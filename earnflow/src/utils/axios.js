@@ -2,9 +2,10 @@
 import axios from 'axios'
 import store from '../app/store'  // ← Adjust path to your Redux store
 import { logout } from '../features/auth/authSlice'
+import API_URL from '../config/api'
 
-// Set base URL
-axios.defaults.baseURL = 'http://localhost:5000/api'
+// Set base URL (use shared API_URL so frontend can use relative `/api`)
+axios.defaults.baseURL = API_URL
 
 // Send cookies (if backend uses them)
 axios.defaults.withCredentials = true

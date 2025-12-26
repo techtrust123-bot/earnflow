@@ -10,6 +10,7 @@ import Container from '../components/Container'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
@@ -20,14 +21,18 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     try {
       const res = await axios.post('/auth/login', { email, password })
       dispatch(loginSuccess({ user: res.data.user, token: res.data.token, balance: res.data.balance }))
       toast.success(res.data.message)
+      
       navigate('/dashboard')
     } catch (error) {
       console.log(error.message)
       toast.error(error.response?.data?.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -61,9 +66,9 @@ export default function Login() {
               <div />
             </div>
 
-            <button type="submit" 
-              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
-              Login & Start Earning
+            <button type="submit" disabled={loading}
+              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
+              {loading ? 'Logging in...' : 'Login & Start Earning'}
             </button>
           </form>
 

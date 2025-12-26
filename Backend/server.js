@@ -1,23 +1,40 @@
 // index.js - CLEAN & WORKING VERSION
-require('dotenv').config();
+ const dotenv = require('dotenv')
+ dotenv.config()
+ 
 const express = require("express");
 const cors = require("cors");
 require("colors");
+const path = require("path");
 
 const cookieParser = require("cookie-parser");
 const dbConnection = require("./config/dbConfig");
 
 const app = express();
 
+// Avoid redeclaring __dirname; use `appDir` instead
+const appDir = path.resolve();
+
+
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+// Serve static files
+app.use(express.static(path.join(appDir, "earnflow/dist")));
+
+
+// Serve frontend (catch-all) — use a regex route to avoid path-to-regexp '*' parsing issues
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(appDir, "dist", "earnflow/dist/index.html"));
+});
 
 // Request logger
 app.use((req, res, next) => {
   console.log(`[req] ${req.method} ${req.originalUrl}`.blue);
   next();
 });
+
 
 app.use(cors({
   origin: "http://localhost:5173",

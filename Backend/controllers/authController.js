@@ -122,6 +122,12 @@ exports.login = async(req, res)=>{
                     role: user.role,
                     userID: user.userID
                 }
+                // if(!user.isAccountVerify){
+                //     return res.status(403).json({
+                //         message: "Please verify your email",
+                //         requiresVerification: true
+                //     })
+                // }
 
                 res.status(200).json({ message: 'Login Successful', user: safeUser, token, balance: user.balance || 0 })
     } catch (error) {

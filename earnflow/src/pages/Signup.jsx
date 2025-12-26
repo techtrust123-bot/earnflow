@@ -6,7 +6,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import axios from '../utils/axios'
 import Container from '../components/Container'
-import Swal from 'sweetalert2'
 
 export default function Signup() {
   const formDatas={
@@ -32,16 +31,27 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    if (!formData.name || !formData.email || !formData.password) {
+      toast.error('Name, email and password are required')
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!")
+      toast.error("Passwords don't match")
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters')
       return
     }
 
     setLoading(true)
-     axios.defaults.withCredentials = true
     try {
-      const res = await axios.post('/auth/register', formData)
-      console.log(res)
+      const payload = { name: formData.name.trim(), email: formData.email.trim(), password: formData.password }
+      console.debug('Signup payload', payload)
+      const res = await axios.post('/auth/register', payload)
+      console.log('signup response', res)
       toast.success(res.data.message)
       dispatch(loginSuccess({
         user: res.data.user,
@@ -49,14 +59,13 @@ export default function Signup() {
         balance: res.data.balance || 0
       }))
 
-      navigate('/verify-email')
+      // If backend returned user id, pass it to verify page
+      const userId = res.data?.user?._id || res.data?.user?.id
+      if (userId) navigate(`/verify-email?id=${userId}`)
+      else navigate('/verify-email')
     } catch (error) {
-      toast.error(
-    error.response?.data?.message || 'Signup failed'
-  )
-      // alert(err.response?.data?.message || 'Signup failed – try another email')
-      console.log({message: error.message})
-            
+      console.error('signup error', error.response?.data || error.message)
+      toast.error(error.response?.data?.message || 'Signup failed')
     } finally {
       setLoading(false)
     }

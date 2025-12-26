@@ -15,7 +15,7 @@ export default function VerifyEmail() {
 
 
   const handleOtp = async (e) => {
-    e?.preventDefault()
+    e.preventDefault()
     try {
       const response = await axios.post('/auth/sendOtp', {}, { withCredentials: true })
       toast.success(response.data.message)

@@ -6,6 +6,7 @@ import axios from '../utils/axios'
 import { motion } from 'framer-motion'
 import Container from '../components/Container'
 import toast from 'react-hot-toast'
+import API_URL from '../config/api'
 
 export default function Profile() {
   const { user, balance } = useSelector(state => state.auth)
@@ -14,7 +15,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(false)
 
   const handleConnectTwitter = () => {
-    window.location.href = 'http://localhost:5000/api/twitter/auth'
+    window.location.href = `${API_URL}/twitter/auth`
   }
 
   const handleUnlinkTwitter = async () => {

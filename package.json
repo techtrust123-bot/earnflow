@@ -1,0 +1,22 @@
+{
+  "name": "flowearn",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install && cd frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "node backend/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/techtrust123-bot/earnflow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/techtrust123-bot/earnflow/issues"
+  },
+  "homepage": "https://github.com/techtrust123-bot/earnflow#readme",
+  "description": ""
+}
