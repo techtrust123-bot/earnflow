@@ -1,7 +1,6 @@
 const express = require("express")
 const { authMiddlewere } = require("../middleweres/authmiddlewere")
 const authorizeRoles = require("../middleweres/roleMiddlewere")
-const { completeTask } = require("../../earnflow/src/features/tasks/tasksSlice")
 const { connectTwitter, twitterCallback } = require("../controllers/twitterAuth")
 const { completeTwitterTask } = require("../controllers/Task")
 const { blockSuspended } = require("../middleweres/blockSuspended")

@@ -5,7 +5,7 @@
   "scripts": {
     "install-all": "npm install && cd frontend && npm install",
     "build": "cd frontend && npm run build",
-    "start": "node backend/server.js"
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -18,5 +18,8 @@
     "url": "https://github.com/techtrust123-bot/earnflow/issues"
   },
   "homepage": "https://github.com/techtrust123-bot/earnflow#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
 }
