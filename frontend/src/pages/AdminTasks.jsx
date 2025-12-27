@@ -62,7 +62,7 @@ export default function AdminTasks() {
   const fetchTasks = async () => {
   setLoading(true)
   try {
-    const res = await axios.get('/tasks/fetch')
+    const res = await axios.get('/tasks/public-active')
     
     // SAFELY extract array
     let tasksArray = []
