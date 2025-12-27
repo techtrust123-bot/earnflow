@@ -21,12 +21,12 @@ const appDir = path.resolve();
 app.use(express.json());
 app.use(cookieParser());
 // Serve static files
-app.use(express.static(path.join(appDir, "earnflow/dist")));
+app.use(express.static(path.join(appDir, "frontend/dist")));
 
 
 // Serve frontend (catch-all) — use a regex route to avoid path-to-regexp '*' parsing issues
 app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(appDir, "dist", "earnflow/dist/index.html"));
+  res.sendFile(path.join(appDir, "dist", "frontend/dist/index.html"));
 });
 
 // Request logger
