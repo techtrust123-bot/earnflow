@@ -1,13 +1,4 @@
-let WebhookLog
-try {
-  WebhookLog = require('../models/WebhookLog')
-} catch (e) {
-  try {
-    WebhookLog = require('../models/webhookLog')
-  } catch (e2) {
-    throw e // rethrow original to preserve stack
-  }
-}
+﻿const WebhookLog = require('../models/webhookLog')
 const crypto = require('crypto')
 const Payment = require('../models/payment')
 const UserTask = require('../models/userTask')
@@ -153,3 +144,5 @@ exports.monnifyWebhook = async (req, res) => {
     }
   })()
 }
+
+
