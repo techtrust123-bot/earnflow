@@ -12,6 +12,7 @@ router.use('/verification', require('./verification.js'))
 router.use('/campaigns', require('./campaigns.js'))
 router.use('/transactions', require('./transactions.js'))
 router.use('/user-tasks', require('./userTasks.js'));
+router.use('/referral', require('./referral.js'));
 router.use('/admin', require('./adminWebhookRoutes.js'));
 
 

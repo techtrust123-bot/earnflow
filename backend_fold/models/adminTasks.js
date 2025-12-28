@@ -6,7 +6,7 @@ const taskSchema = new mongoose.Schema({
   reward: { type: Number, required: true, min: 0.1 },
   link: { type: String, required: true },
   isActive: { type: Boolean, default: true },
-  maxCompletions: { type: Number, default: 1000, min: 1 },
+  maxCompletions: { type: String, default: "" }, // "" means unlimited
   completedCount: { type: Number, default: 0 },
   completedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Track who completed
   startDate: { type: Date },

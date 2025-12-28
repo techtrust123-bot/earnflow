@@ -33,7 +33,7 @@ export default function History() {
     const fetchTx = async () => {
       setLoading(true)
       try {
-        const res = await axios.get('/transactions')
+        const res = await axios.get('/transactions', { headers: { 'X-Skip-Logout': '1' } })
         const txs = (res.data && res.data.transactions) || []
         // normalize date and sort
         txs.sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -220,7 +220,7 @@ export default function History() {
                           </div>
                           <div className="text-right">
                             <p className={`text-xl font-extrabold ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                              {tx.type === 'credit' ? '+' : '-'}₦{tx.amount.toLocaleString()}
+                              {tx.type === 'credit' ? '+' : '-'}₦{Number(tx.amount || 0).toLocaleString()}
                             </p>
                             <div className="flex items-center gap-2 justify-end mt-1">
                               <button onClick={async () => { try { await navigator.clipboard.writeText(String(tx.amount)); setCopiedTx(tx.id); setTimeout(()=>setCopiedTx(null),1200); toast.success('Amount copied') } catch(e){toast.error('Copy failed')} }} className="text-xs text-gray-500 px-2 py-1 rounded-md border">Copy</button>
@@ -235,7 +235,8 @@ export default function History() {
 
                 {/* Desktop: table */}
                 <div className="hidden md:block">
-                  <table className="w-full table-auto">
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-auto">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="text-left px-6 py-4">Date</th>
@@ -252,13 +253,14 @@ export default function History() {
                           <td className="px-6 py-4 text-sm text-gray-600">{new Date(tx.date).toLocaleString()}</td>
                           <td className="px-6 py-4">{tx.description}</td>
                           <td className="px-6 py-4 capitalize">{tx.type}</td>
-                          <td className={`px-6 py-4 text-right font-bold ${tx.type==='credit' ? 'text-green-600' : 'text-red-600'}`}>{tx.type === 'credit' ? '+' : '-'}₦{tx.amount.toLocaleString()}</td>
+                          <td className={`px-6 py-4 text-right font-bold ${tx.type==='credit' ? 'text-green-600' : 'text-red-600'}`}>{tx.type === 'credit' ? '+' : '-'}₦{Number(tx.amount || 0).toLocaleString()}</td>
                           <td className="px-6 py-4"><span className={`px-3 py-1 rounded-full text-sm ${tx.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{tx.status}</span></td>
                           <td className="px-6 py-4 text-right"><button onClick={async () => { try { await navigator.clipboard.writeText(String(tx.amount)); toast.success('Amount copied') } catch(e){toast.error('Copy failed')} }} className="px-3 py-1 rounded border text-sm">Copy</button></td>
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                    </table>
+                  </div>
                 </div>
               </>
             )}

@@ -79,14 +79,14 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-sky-50 to-indigo-50 p-6">
-      <Container>
+      <Container size="md">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-6 sm:p-8 mx-2 sm:mx-0">
+          className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
 
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-3xl font-bold text-white mx-auto sm:mx-0">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white mx-auto sm:mx-0">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
 
@@ -131,7 +131,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="mt-6 text-center sm:text-right flex flex-col sm:flex-row items-center sm:justify-end gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 w-full sm:justify-end">
           <button onClick={() => window.location.href = '/tasks'} className="px-4 py-2 w-full sm:w-auto bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200">View Tasks</button>
           <button onClick={handleDeleteAccount} disabled={loading} className="px-4 py-2 w-full sm:w-auto bg-red-600 text-white rounded-full hover:bg-red-700">{loading? 'Working...' : 'Delete Account'}</button>
         </div>

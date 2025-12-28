@@ -59,6 +59,42 @@ const userSchema = new mongoose.Schema({
         default: "",
         unique:true
     },
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true,
+        default: function() {
+            return `EARN${Math.floor(100000 + Math.random() * 900000)}`
+        }
+    },
+    referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'earn-users',
+        default: null
+    },
+    referrals: {
+        type: Number,
+        default: 0
+    },
+    referralsEarned: {
+        type: Number,
+        default: 0
+    },
+    referralClicks: {
+        type: Number,
+        default: 0
+    },
+    lastActive: {
+        type: Date,
+        default: null,
+        index: true
+    },
+    recentReferrals: [{
+        name: String,
+        date: String,
+        status: String,
+        reward: Number
+    }],
     balance:{
         type:Number,
         default: 0

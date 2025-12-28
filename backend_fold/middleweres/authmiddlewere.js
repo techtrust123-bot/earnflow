@@ -17,6 +17,12 @@ exports.authMiddlewere = async(req, res, next)=>{
     const decoded = jwt.verify(token, process.env.SECRET || process.env.JWT_SECRET)
     if(decoded && decoded.id){
       req.user = { id: decoded.id, role: decoded.role }
+      // update lastActive timestamp (non-blocking)
+      try {
+        User.findByIdAndUpdate(decoded.id, { lastActive: Date.now() }).exec()
+      } catch (e) {
+        // ignore
+      }
     } else {
       return res.status(401).json({message:"Not authorized - invalid token"})
     }
@@ -46,8 +52,19 @@ exports.protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
-    if (!req.user) return res.status(401).json({ message: 'User not found' });
+    const userDoc = await User.findById(decoded.id).select('-password');
+    if (!userDoc) return res.status(401).json({ message: 'User not found' });
+
+    // update lastActive and attach user to req
+    try {
+      userDoc.lastActive = new Date()
+      await userDoc.save()
+    } catch (e) {
+      // non-fatal
+      console.warn('Could not update lastActive', e && e.message)
+    }
+
+    req.user = userDoc
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token invalid' });

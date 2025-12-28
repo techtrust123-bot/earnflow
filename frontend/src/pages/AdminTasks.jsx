@@ -20,7 +20,7 @@ export default function AdminTasks() {
     reward: '',
     link: '',
     isActive: true,
-    maxCompletions: 1000,     // ← NEW: Limit
+    maxCompletions: "",     // ← NEW: Limit
     completedCount: 0,        // ← Tracks how many did it
     startDate: '',            // ← ISO date (e.g., 2025-04-01T10:00)
     endDate: ''               // ← Auto-disable after this
@@ -122,7 +122,7 @@ export default function AdminTasks() {
   const resetForm = () => {
     setForm({
       title: '', platform: '', reward: '', link: '', isActive: true,
-      maxCompletions: 1000, completedCount: 0, startDate: '', endDate: ''
+      maxCompletions: "", completedCount: 0, startDate: '', endDate: ''
     })
     setEditingId(null)
   }
@@ -273,7 +273,8 @@ export default function AdminTasks() {
 
               {/* Desktop Table */}
               <div className="hidden md:block bg-white rounded-3xl shadow-2xl overflow-hidden">
-                <table className="w-full">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
                   <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
                     <tr>
                       <th className="px-6 py-4 text-left">Title</th>
@@ -318,7 +319,8 @@ export default function AdminTasks() {
                       )
                     })}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             </>
           )}

@@ -70,7 +70,7 @@ export default function AdminUsers() {
 							value={q}
 							onChange={(e) => setQ(e.target.value)}
 							placeholder="Search name or email"
-							className="w-64 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+							className="w-full sm:w-64 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
 						/>
 						<button
 							onClick={fetchUsersAndStats}
@@ -103,7 +103,8 @@ export default function AdminUsers() {
 								<div className="space-y-3">
 									{/* responsive list: cards on small screens, table on larger */}
 									<div className="hidden md:block">
-										<table className="w-full text-left">
+										<div className="overflow-x-auto">
+										  <table className="w-full text-left">
 											<thead className="text-sm text-gray-600 border-b">
 												<tr>
 													<th className="py-3">Name</th>
@@ -138,7 +139,8 @@ export default function AdminUsers() {
 													</tr>
 												))}
 											</tbody>
-										</table>
+										  </table>
+										</div>
 									</div>
 
 									<div className="md:hidden grid gap-3">
@@ -181,10 +183,28 @@ function StatCard({ title, value }) {
 }
 
 function UserStatus({ lastActive }) {
-	const isActive = lastActive && new Date(lastActive) > new Date(Date.now() - 86400000)
+	const last = lastActive ? new Date(lastActive) : null
+	const now = Date.now()
+	const isActive = last && last.getTime() > now - 24 * 60 * 60 * 1000
+
+	const timeAgo = (d) => {
+		if (!d) return ''
+		const s = Math.floor((Date.now() - d.getTime()) / 1000)
+		if (s < 60) return `${s}s ago`
+		const m = Math.floor(s / 60)
+		if (m < 60) return `${m}m ago`
+		const h = Math.floor(m / 60)
+		if (h < 24) return `${h}h ago`
+		const days = Math.floor(h / 24)
+		return `${days}d ago`
+	}
+
 	return (
-		<span className={`px-2 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-			{isActive ? 'Active' : 'Inactive'}
-		</span>
+		<div className="flex items-center gap-2">
+			<span className={`px-2 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+				{isActive ? 'Active' : 'Inactive'}
+			</span>
+			<span className="text-xs text-gray-500">{last ? timeAgo(last) : 'no activity'}</span>
+		</div>
 	)
 }

@@ -1,5 +1,7 @@
 import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import axios from '../utils/axios'
 
 import Container from '../components/Container'
 
@@ -33,6 +35,53 @@ export default function Dashboard() {
       <div className={`text-lg font-bold ${tone}`}>{value}</div>
     </div>
   )
+
+  const [recentActivity, setRecentActivity] = useState([])
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      if (!user || !user._id) return
+      try {
+        const [txRes, refRes] = await Promise.allSettled([
+          axios.get('/transactions'),
+          axios.get('/referral/me')
+        ])
+
+        const txs = (txRes.status === 'fulfilled' && txRes.value?.data?.transactions) || []
+        const refs = (refRes.status === 'fulfilled' && refRes.value?.data?.referral?.recentReferrals) || []
+
+        const txItems = txs.slice(0, 10).map(t => ({
+          key: `tx-${t.id}`,
+          text: t.description || 'Transaction',
+          date: new Date(t.date).getTime ? new Date(t.date).getTime() : Date.now(),
+          type: t.type || (t.amount >= 0 ? 'credit' : 'debit'),
+          amount: t.amount || 0,
+          displayAmount: `${t.amount >= 0 ? '+' : '-'}₦${Math.abs(t.amount || 0).toLocaleString()}`
+        }))
+
+        const refItems = refs.slice(0, 10).map((r, i) => ({
+          key: `ref-${i}-${r.name || ''}`,
+          text: `${r.name || 'New signup'} — referral ${r.status || ''}`.trim(),
+          date: r.date ? (isNaN(Date.parse(r.date)) ? Date.now() : Date.parse(r.date)) : Date.now(),
+          type: r.status === 'completed' ? 'credit' : 'neutral',
+          amount: r.reward || 0,
+          displayAmount: r.status === 'completed' ? `+₦${(r.reward || 0).toLocaleString()}` : 'Pending'
+        }))
+
+        const combined = [...txItems, ...refItems]
+          .sort((a, b) => (b.date || 0) - (a.date || 0))
+          .slice(0, 6)
+
+        if (mounted) setRecentActivity(combined)
+      } catch (err) {
+        console.warn('Could not load recent activity', err)
+        if (mounted) setRecentActivity([])
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [user])
 
   return (
     <Container className="p-4 space-y-6">
@@ -78,10 +127,10 @@ export default function Dashboard() {
       {/* Promo + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between">
-          <div>
+          {/* <div>
             <h4 className="text-xl font-bold">World Earn Carnival</h4>
             <p className="mt-2 text-sm opacity-90">Join now for a chance to win big — ₦400,000,000 in cash prizes.</p>
-          </div>
+          </div> */}
           <div className="mt-4">
             <button className="bg-white text-blue-700 px-4 py-2 rounded-lg font-semibold">Join Now</button>
           </div>
@@ -90,14 +139,17 @@ export default function Dashboard() {
         <div className="bg-white p-4 rounded-2xl shadow">
           <h4 className="font-semibold mb-3">Recent Activity</h4>
           <div className="space-y-3 text-sm text-gray-700">
-            <div className="flex items-center justify-between">
-              <div>Task: Follow @earnflow</div>
-              <div className="text-green-600 font-bold">+₦100</div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>Withdrawal to Bank</div>
-              <div className="text-red-600 font-bold">-₦500</div>
-            </div>
+            {/** Render fetched activity items or a friendly message */}
+            {recentActivity && recentActivity.length > 0 ? (
+              recentActivity.map((it) => (
+                <div key={it.key} className="flex items-center justify-between">
+                  <div className="truncate">{it.text}</div>
+                  <div className={`${it.type === 'credit' ? 'text-green-600' : it.type === 'debit' ? 'text-red-600' : 'text-gray-600'} font-bold`}>{it.displayAmount}</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-gray-500">No recent activity yet</div>
+            )}
           </div>
           <Link to="/history" className="block text-center mt-4 text-indigo-600 font-medium">View Full History</Link>
         </div>

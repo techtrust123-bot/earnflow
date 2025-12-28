@@ -14,7 +14,7 @@ export default function Referral() {
     code: '',
     totalReferrals: 0,
     totalEarnedFromReferrals: 0,
-    rewardPerReferral: 500,
+    rewardPerReferral: 50,
     recentReferrals: []
   })
 
@@ -41,7 +41,7 @@ export default function Referral() {
     return () => { mounted = false }
   }, [])
 
-  const referralLink = useMemo(() => `https://earnflow.app/r/${referral.code || ''}`, [referral.code])
+  const referralLink = useMemo(() => `https://earnflow.onrender.com/r/${referral.code || ''}`, [referral.code])
 
   const copyToClipboard = async () => {
     if (!referralLink) return

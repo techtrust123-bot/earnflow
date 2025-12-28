@@ -42,6 +42,26 @@ app.use(
 // API Routes
 app.use("/api", require("./routes"));
 
+// Referral redirect (public) - redirects to frontend signup with ref code
+app.get('/r/:code', async (req, res) => {
+  try {
+    const User = require('./models/user')
+    const code = req.params.code
+    const user = await User.findOne({ $or: [{ referralCode: code }, { userID: code }] })
+    if (user) {
+      // increment click counter (non-blocking)
+      try { user.referralClicks = (user.referralClicks || 0) + 1; user.save().catch(()=>{}) } catch(e){}
+    }
+
+    const client = process.env.CLIENT_URL || 'https://earnflow.onrender.com'
+    const redirectUrl = `${client.replace(/\/$/, '')}/signup?ref=${encodeURIComponent(code)}`
+    return res.redirect(302, redirectUrl)
+  } catch (err) {
+    console.error('/r/:code handler error', err)
+    return res.redirect(302, process.env.CLIENT_URL || 'https://earnflow.onrender.com')
+  }
+})
+
 // ============================
 // PRODUCTION: Serve frontend
 // ============================

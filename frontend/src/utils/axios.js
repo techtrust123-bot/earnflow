@@ -41,7 +41,9 @@ axios.interceptors.request.use((config) => {
 // Response interceptor: handle 401 globally by logging out and redirecting to login
 axios.interceptors.response.use((resp) => resp, (error) => {
   const status = error?.response?.status
-  if (status === 401) {
+  // Allow individual requests to opt out of global logout (e.g. read-only pages)
+  const skipLogout = !!error?.config?.headers?.['X-Skip-Logout']
+  if (status === 401 && !skipLogout) {
     try {
       store.dispatch(logout())
     } catch (e) {

@@ -32,6 +32,25 @@ exports.register = async(req,res)=>{
             userID
         })
 
+        // If the signup request included a referral code, attach and notify referrer
+        const refCode = req.body?.ref || req.body?.referral || req.body?.referralCode
+        if (refCode) {
+            try {
+                const referrer = await User.findOne({ $or: [{ referralCode: refCode }, { userID: refCode }] })
+                if (referrer) {
+                    // add a pending referral entry to referrer
+                    referrer.recentReferrals = referrer.recentReferrals || []
+                    referrer.recentReferrals.unshift({ name: name, date: new Date().toISOString(), status: 'pending', reward: 0 })
+                    // keep only latest 20
+                    if (referrer.recentReferrals.length > 20) referrer.recentReferrals.pop()
+                    await referrer.save().catch(()=>{})
+                    user.referredBy = referrer._id
+                }
+            } catch (e) {
+                console.warn('Referral processing failed', e && e.message)
+            }
+        }
+
          const otp = String(Math.floor(100000 + Math.random() * 900000))
             user.verifyOtp = otp
             user.verifyOtpExpireAt = Date.now() + 10 * 60 * 1000
@@ -238,6 +257,40 @@ exports.verifyAccount = async(req,res)=>{
         user.accountStatus = "Verified"
 
         await user.save()
+
+        // If this user was referred, credit the referrer on successful verification
+        try {
+            const reward = Number(process.env.REFERRAL_REWARD || process.env.REFERRAL_REWARD_AMOUNT || 50)
+            if (user.referredBy) {
+                const referrer = await User.findById(user.referredBy)
+                if (referrer) {
+                    referrer.referrals = (referrer.referrals || 0) + 1
+                    referrer.referralsEarned = (referrer.referralsEarned || 0) + reward
+                    // Optionally credit the referrer's balance so they see the bonus immediately
+                    referrer.balance = (referrer.balance || 0) + reward
+
+                    // Mark matching pending recent referral as completed
+                    referrer.recentReferrals = referrer.recentReferrals || []
+                    let found = false
+                    for (let rr of referrer.recentReferrals) {
+                        if ((rr.name === user.name || rr.name === user.email) && rr.status === 'pending') {
+                            rr.status = 'completed'
+                            rr.reward = reward
+                            found = true
+                            break
+                        }
+                    }
+                    if (!found) {
+                        referrer.recentReferrals.unshift({ name: user.name || user.email, date: new Date().toISOString(), status: 'completed', reward })
+                        if (referrer.recentReferrals.length > 20) referrer.recentReferrals.pop()
+                    }
+
+                    await referrer.save().catch(err => console.warn('Could not save referrer update', err && err.message))
+                }
+            }
+        } catch (e) {
+            console.warn('Referral crediting failed', e && e.message)
+        }
 
         res.status(200).json({message:"Account Verified Successful..."})
     } catch (error) {

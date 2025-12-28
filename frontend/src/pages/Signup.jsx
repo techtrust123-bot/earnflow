@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { loginSuccess } from '../features/auth/authSlice'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import axios from '../utils/axios'
 import Container from '../components/Container'
@@ -19,6 +19,9 @@ export default function Signup() {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
+  const q = new URLSearchParams(location.search)
+  const refParam = q.get('ref') || q.get('referral') || q.get('r')
 
   const handleChange = (e) => {
     const {name, value} = e.target;
@@ -49,6 +52,7 @@ export default function Signup() {
     setLoading(true)
     try {
       const payload = { name: formData.name.trim(), email: formData.email.trim(), password: formData.password }
+      if (refParam) payload.ref = refParam
       console.debug('Signup payload', payload)
       const res = await axios.post('/auth/register', payload)
       console.log('signup response', res)
