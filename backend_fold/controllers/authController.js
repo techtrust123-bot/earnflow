@@ -79,8 +79,11 @@ exports.register = async(req,res)=>{
             subject: "EARN-FLOW-ACCOUNT",
             text:`your account has been created successful with email: ${email}`
         }
-        await transporter.sendMail(mailOption)
-
+        try {
+            await transporter.sendMail(mailOption)
+        } catch (e) {
+            console.warn('Failed to send welcome email:', e && e.message)
+        }
 
         const maileOption = {
             from: process.env.SENDER_EMAIL,
@@ -88,7 +91,11 @@ exports.register = async(req,res)=>{
             subject: " Email Verification Otp Code",
             text: `your verification otp code is:${otp} use it to verify your account`
         }
-        await transporter.sendMail(maileOption)
+        try {
+            await transporter.sendMail(maileOption)
+        } catch (e) {
+            console.warn('Failed to send verification email:', e && e.message)
+        }
 
                 const safeUser = {
                     _id: user._id,
