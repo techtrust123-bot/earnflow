@@ -5,7 +5,6 @@
   "scripts": {
     "install-all": "npm install && cd frontend && npm install",
     "build": "cd frontend && npm run build",
-    "postinstall": "cd backend_fold && npm install",
     "start": "node backend_fold/server.js"
   },
   "repository": {

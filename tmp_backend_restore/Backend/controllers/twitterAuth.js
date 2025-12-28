@@ -1,7 +1,7 @@
 // controllers/twitterAuth.js
 
 
-const axios = require("axios")
+const axios = require("../../../backend_fold/node_modules/axios")
 const User = require("../models/user")
 
 exports.twitterCallback = async (req, res) => {
