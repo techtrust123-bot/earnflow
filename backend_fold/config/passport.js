@@ -1,6 +1,6 @@
 const passport = require("passport");
 const TwitterStrategy = require("passport-twitter-oauth2");
-const User = require("../models/User");
+const User = require("../models/user");
 
 passport.use(
   new TwitterStrategy(
