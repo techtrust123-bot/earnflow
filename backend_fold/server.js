@@ -11,6 +11,11 @@ const app = express();
 // log environment for diagnostics
 console.log('NODE_ENV=', process.env.NODE_ENV);
 
+// Ensure DB connection before starting server
+const connectDb = require("./config/dbConfig");
+
+dbConfig();
+
 // resolve client `dist` located beside backend_fold
 const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
 
@@ -59,9 +64,18 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+(async function start() {
+  try {
+    await connectDb()
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server due to DB error:', err.message || err)
+    process.exit(1)
+  }
+})();
 
 // 404 handler for unknown API routes
 app.use((req, res) => {
