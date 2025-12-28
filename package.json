@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "install-all": "npm install && cd frontend && npm install",
-    "build": "cd frontend && npm run build",
+    "build": "cd frontend && npm install --include=dev && npm run build",
     "start": "node backend_fold/server.js"
   },
   "repository": {
