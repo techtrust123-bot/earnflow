@@ -14,7 +14,7 @@ router.get('/callback',
   passport.authenticate('twitter', { failureRedirect: '/login' }),
   (req, res) => {
     // SUCCESS! Redirect to your frontend
-    res.redirect('http://localhost:5173/profile?twitter=linked')
+    res.redirect(`${process.env.FRONTEND_URL}/profile?twitter=linked`)
     //                     ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
     //              Change this to your frontend port (5173 = Vite)
   }
