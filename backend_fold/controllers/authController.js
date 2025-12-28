@@ -39,12 +39,17 @@ exports.register = async(req,res)=>{
         await user.save()
 
 
+        if (!process.env.SECRET) {
+            console.error('Missing SECRET env var; cannot sign token')
+            return res.status(500).json({ message: 'Server misconfiguration' })
+        }
+
         const token = jwt.sign({id:user._id,role:user.role},process.env.SECRET,{expiresIn:"7d"})
 
         res.cookie("token",token,{
             httpOnly:true,
-            secure:process.env.NODE_ENV === "PRODUCTION",
-            sameSite: process.env.NODE_ENV === "PRODUCTION" ? 
+            secure:process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? 
             "none":"lax",
             maxAge: 24 * 60 * 60 * 1000
         })
@@ -106,10 +111,15 @@ exports.login = async(req, res)=>{
     }
         const token = jwt.sign({id: user._id, role: user.role},process.env.SECRET,{expiresIn:"2d"})
 
+        if (!process.env.SECRET) {
+            console.error('Missing SECRET env var; cannot sign token')
+            return res.status(500).json({ message: 'Server misconfiguration' })
+        }
+
         res.cookie("token",token,{
             httpOnly:true,
-            secure: process.env.NODE_ENV === "PRODUCTION",
-            sameSite: process.env.NODE_ENV === "PRODUCTION" ? 
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? 
             "none":"lax",
             maxAge: 24 * 60 * 60 * 1000
         })
