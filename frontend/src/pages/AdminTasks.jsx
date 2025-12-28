@@ -20,7 +20,7 @@ export default function AdminTasks() {
     reward: '',
     link: '',
     isActive: true,
-    maxCompletions: "",     // ← NEW: Limit
+    maxCompletions: 0,     // ← NEW: Limit
     completedCount: 0,        // ← Tracks how many did it
     startDate: '',            // ← ISO date (e.g., 2025-04-01T10:00)
     endDate: ''               // ← Auto-disable after this

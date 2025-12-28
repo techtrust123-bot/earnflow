@@ -3,10 +3,10 @@ const Tasks = require("../models/adminTasks")
 // const Tasks = require("../models/adminTasks")
 
 exports.createTask = async (req, res) => {
-  const { platform, title, link, reward } = req.body
+  const { platform, title, link, reward, maxCompletions } = req.body
 
   // Basic validation
-  if (!platform || !title || !link || reward === undefined) {
+  if (!platform || !title || !link || reward === undefined || maxCompletions === undefined) {
     return res.status(400).json({
       message: "All input fields are required"
     })
@@ -31,6 +31,7 @@ exports.createTask = async (req, res) => {
       platform,
       title,
       link,
+      maxCompletions: Number(maxCompletions),
       reward: Number(reward),
       createdBy: req.user.id
     })

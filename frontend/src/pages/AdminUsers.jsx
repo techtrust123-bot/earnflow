@@ -5,7 +5,7 @@ import Container from '../components/Container'
 import axios from '../utils/axios'
 
 export default function AdminUsers() {
-	const { token } = useSelector((s) => s.auth)
+	const { token, user: currentUser } = useSelector((s) => s.auth)
 	const [users, setUsers] = useState([])
 	const [stats, setStats] = useState({ totalUsers: 0, activeToday: 0, totalEarnings: 0, totalWithdrawn: 0 })
 	const [q, setQ] = useState('')
@@ -40,8 +40,10 @@ export default function AdminUsers() {
 		setDeletingId(id)
 		try {
 			await axios.delete(`/admin/users/${id}`)
+			// Optimistically remove user from UI without full refetch
+			setUsers((prev) => prev.filter((u) => u._id !== id))
+			setStats((s) => ({ ...s, totalUsers: Math.max(0, (s.totalUsers || 1) - 1) }))
 			toast.success('User deleted')
-			fetchUsersAndStats()
 		} catch (err) {
 			console.error(err)
 			toast.error(err.response?.data?.message || 'Failed to delete user')
