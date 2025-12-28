@@ -14,7 +14,7 @@ console.log('NODE_ENV=', process.env.NODE_ENV);
 // Ensure DB connection before starting server
 const connectDb = require("./config/dbConfig");
 
-dbConfig();
+
 
 // resolve client `dist` located beside backend_fold
 const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
