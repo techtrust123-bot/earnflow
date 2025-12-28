@@ -8,6 +8,12 @@ dotenv.config();
 
 const app = express();
 
+// log environment for diagnostics
+console.log('NODE_ENV=', process.env.NODE_ENV);
+
+// resolve client `dist` located beside backend_fold
+const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
@@ -30,10 +36,11 @@ app.use("/api", require("./routes"));
 // PRODUCTION: Serve frontend
 // ============================
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "frontend/dist")));
+  app.use(express.static(clientDistPath));
 
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
+  // use '/*' instead of '*' to avoid path-to-regexp parsing errors
+  app.get('/*', (req, res) => {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 } else {
   // DEVELOPMENT
