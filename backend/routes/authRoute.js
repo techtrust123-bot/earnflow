@@ -1,5 +1,5 @@
 const express = require("express")
-const { register, login, logout, verifyAccount, sendResetOtp, resetPassword, resendOtp, getCurrentUser } = require("../controllers/authController")
+const { register, login, logout, verifyAccount, sendResetOtp, resetPassword, resendOtp, getCurrentUser, deleteAccount } = require("../controllers/authController")
 const { authMiddlewere } = require("../middleweres/authmiddlewere")
 const router = express.Router()
 
@@ -14,6 +14,9 @@ router.post("/sendReset", sendResetOtp)
 router.post("/resetPassword", resetPassword)
 
 router.get('/me', authMiddlewere, getCurrentUser)
+
+// Delete own account
+router.delete('/delete', authMiddlewere, deleteAccount)
 
 // console.log('types:', {
 //   register: typeof register,

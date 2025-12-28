@@ -332,3 +332,26 @@ exports.getCurrentUser = async (req, res) => {
         return res.status(500).json({ message: 'Server error' })
     }
 }
+
+// Delete current logged-in user
+exports.deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user?.id
+        if (!userId) return res.status(401).json({ message: 'Not authenticated' })
+
+        // Delete user record
+        await User.findByIdAndDelete(userId)
+
+        // Clear auth cookie
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'PRODUCTION',
+            sameSite: process.env.NODE_ENV === 'PRODUCTION' ? 'none' : 'lax',
+        })
+
+        return res.status(200).json({ success: true, message: 'Account deleted successfully' })
+    } catch (error) {
+        console.error('deleteAccount error', error)
+        return res.status(500).json({ message: 'Server error' })
+    }
+}

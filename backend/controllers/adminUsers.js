@@ -33,6 +33,29 @@ exports.getStats = async (req, res) => {
   }
 }
 
+// DELETE /api/admin/users/:id
+exports.deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id
+    if (!userId) return res.status(400).json({ message: 'User id required' })
+
+    // Prevent admin deleting themselves via admin panel
+    if (req.user && req.user.id && req.user.id.toString() === userId.toString()) {
+      return res.status(400).json({ message: 'Cannot delete your own account from admin panel' })
+    }
+
+    const user = await User.findById(userId)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    await User.findByIdAndDelete(userId)
+
+    res.json({ success: true, message: 'User deleted' })
+  } catch (err) {
+    console.error('deleteUser error', err)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
 
 
 

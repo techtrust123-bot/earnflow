@@ -13,9 +13,9 @@ export default function Dashboard() {
     { icon: '🎁', title: 'Rewards', to: '/rewards' },
     { icon: '📊', title: 'History', to: '/history' },
     { icon: '➕', title: 'Referral', to: '/referral' },
-    { icon: '➕', title: 'Referral', to: '/referral' },
-    { icon: '➕', title: 'Create Task', to: '/create-task' },
-    { icon: '➕', title: 'My Tasks', to: '/my-tasks' }
+    // { icon: '➕', title: 'Referral', to: '/referral' },
+    // { icon: '➕', title: 'Create Task', to: '/create-task' },
+    // { icon: '➕', title: 'My Tasks', to: '/my-tasks' }
   ]
 
   // Show admin panel to users with role 'admin'
@@ -23,6 +23,8 @@ export default function Dashboard() {
     features.push({ icon: '🛠️', title: 'Admin Tasks', to: '/admin' })
     features.push({ icon: '🛠️', title: 'Admin Campaing', to: '/admin/campaigns' })
     features.push({ icon: '🛠️', title: 'Admin Users', to: '/admin/users' })
+    features.push({ icon: '🛠️', title: 'Create Task', to: '/create-task' })
+    features.push({ icon: '🛠️', title: 'My Tasks', to: '/my-tasks' })
   }
 
   const stat = (label, value, tone = 'text-gray-700') => (

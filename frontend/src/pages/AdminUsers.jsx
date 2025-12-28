@@ -10,6 +10,7 @@ export default function AdminUsers() {
 	const [stats, setStats] = useState({ totalUsers: 0, activeToday: 0, totalEarnings: 0, totalWithdrawn: 0 })
 	const [q, setQ] = useState('')
 	const [loading, setLoading] = useState(true)
+	const [deletingId, setDeletingId] = useState(null)
 
 	useEffect(() => {
 		fetchUsersAndStats()
@@ -20,8 +21,8 @@ export default function AdminUsers() {
 		setLoading(true)
 		try {
 			const [usersRes, statsRes] = await Promise.all([
-				axios.get('/admin/users', { headers: { Authorization: `Bearer ${token}` } }),
-				axios.get('/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
+				axios.get('/admin/users'),
+				axios.get('/admin/stats')
 			])
 
 			setUsers(usersRes.data.users || [])
@@ -31,6 +32,21 @@ export default function AdminUsers() {
 			toast.error('Failed to load admin data')
 		} finally {
 			setLoading(false)
+		}
+	}
+
+	const handleDeleteUser = async (id) => {
+		if (!window.confirm('Delete this user? This action is irreversible.')) return
+		setDeletingId(id)
+		try {
+			await axios.delete(`/admin/users/${id}`)
+			toast.success('User deleted')
+			fetchUsersAndStats()
+		} catch (err) {
+			console.error(err)
+			toast.error(err.response?.data?.message || 'Failed to delete user')
+		} finally {
+			setDeletingId(null)
 		}
 	}
 
@@ -96,6 +112,7 @@ export default function AdminUsers() {
 													<th>Tasks</th>
 													<th>Joined</th>
 													<th>Status</th>
+													<th>Actions</th>
 												</tr>
 											</thead>
 											<tbody>
@@ -108,6 +125,15 @@ export default function AdminUsers() {
 														<td className="text-sm text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</td>
 														<td>
 															<UserStatus lastActive={u.lastActive} />
+														</td>
+														<td>
+															<button
+																onClick={() => handleDeleteUser(u._id)}
+																disabled={deletingId === u._id}
+																className="px-3 py-2 rounded-md bg-red-500 text-white"
+															>
+																{deletingId === u._id ? 'Deleting…' : 'Delete'}
+															</button>
 														</td>
 													</tr>
 												))}

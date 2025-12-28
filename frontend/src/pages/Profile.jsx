@@ -1,11 +1,12 @@
 // src/pages/Profile.jsx
 import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { loginSuccess } from '../features/auth/authSlice'
+import { loginSuccess, logout } from '../features/auth/authSlice'
 import axios from '../utils/axios'
 import { motion } from 'framer-motion'
 import Container from '../components/Container'
 import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 import API_URL from '../config/api'
 
 export default function Profile() {
@@ -13,6 +14,7 @@ export default function Profile() {
   const dispatch = useDispatch()
 
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleConnectTwitter = () => {
     window.location.href = `${API_URL}/twitter/auth`
@@ -29,6 +31,23 @@ export default function Profile() {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to unlink Twitter')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Delete your account? This action is irreversible.')) return
+    setLoading(true)
+    try {
+      const res = await axios.delete('/auth/delete')
+      if (res.data.success) {
+        toast.success(res.data.message || 'Account deleted')
+        dispatch(logout())
+        navigate('/')
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete account')
     } finally {
       setLoading(false)
     }
@@ -112,8 +131,9 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="mt-6 text-center sm:text-right">
+        <div className="mt-6 text-center sm:text-right flex flex-col sm:flex-row items-center sm:justify-end gap-3">
           <button onClick={() => window.location.href = '/tasks'} className="px-4 py-2 w-full sm:w-auto bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200">View Tasks</button>
+          <button onClick={handleDeleteAccount} disabled={loading} className="px-4 py-2 w-full sm:w-auto bg-red-600 text-white rounded-full hover:bg-red-700">{loading? 'Working...' : 'Delete Account'}</button>
         </div>
         </motion.div>
       </Container>

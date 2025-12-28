@@ -6,5 +6,6 @@ const { getUsers, getStats } = require('../controllers/adminUsers')
 
 router.get('/users', authMiddlewere, authorizeRoles('admin'), getUsers)
 router.get('/stats', authMiddlewere, authorizeRoles('admin'), getStats)
+router.delete('/users/:id', authMiddlewere, authorizeRoles('admin'), require('../controllers/adminUsers').deleteUser)
 
 module.exports = router

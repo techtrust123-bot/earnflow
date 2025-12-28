@@ -4,5 +4,5 @@
     "module": "commonjs",
     "checkJs": false
   },
-  "exclude": ["Backend"]
+  "exclude": ["backend"]
 }
