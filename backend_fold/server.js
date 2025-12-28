@@ -40,7 +40,16 @@ if (process.env.NODE_ENV === "production") {
 
   // Use a RegExp route to avoid path-to-regexp parsing errors with '*' patterns
   app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(clientDistPath, 'index.html'));
+    const indexFile = path.join(clientDistPath, 'index.html');
+    res.sendFile(indexFile, (err) => {
+      if (err) {
+        console.error('Error sending index.html:', err);
+        // if headers not sent, respond with a helpful error message
+        if (!res.headersSent) {
+          res.status(err.status || 500).send('Error loading app');
+        }
+      }
+    });
   });
 } else {
   // DEVELOPMENT
@@ -52,4 +61,24 @@ if (process.env.NODE_ENV === "production") {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// 404 handler for unknown API routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+// Express error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Log unhandled rejections/uncaught exceptions so deploy logs capture them
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
 });
