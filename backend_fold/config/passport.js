@@ -1,63 +1,44 @@
-// config/passport.js
-const passport = require('passport')
-const TwitterStrategy = require('passport-twitter').Strategy
-const User = require('../models/user')
-require("dotenv").config()
+const passport = require("passport");
+const TwitterStrategy = require("passport-twitter-oauth2");
+const User = require("../models/User");
 
-passport.use(new TwitterStrategy({
-  consumerKey: process.env.TWITTER_CONSUMER_KEY,
-  consumerSecret: process.env.TWITTER_CONSUMER_SECRET,
-  callbackURL: "http://localhost:5000/api/twitter/callback"
-},
-async (token, tokenSecret, profile, done) => {
-  try {
-    let user = await User.findOne({ 'twitter.id': profile.id })
-
-    if (!user) {
-      // Find by email or create new
-      user = await User.findOne({ email: profile.emails?.[0]?.value })
-      if (!user) {
-        user = new User({
-          name: profile.displayName,
-          email: profile.emails?.[0]?.value || null,
-          twitter: {
-            id: profile.id,
-            username: profile.username,
-            token,
-            tokenSecret
-          }
-        })
-      } else {
-        // Link to existing account
-        user.twitter = {
-          id: profile.id,
-          username: profile.username,
-          token,
-          tokenSecret
+passport.use(
+  new TwitterStrategy(
+    {
+      clientID: process.env.TWITTER_CLIENT_ID,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET,
+      callbackURL: process.env.TWITTER_CALLBACK_URL,
+      scope: ['tweet.read', 'users.read', 'follows.read', 'follows.write']
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        if (!profile || !profile.id) {
+          return done(new Error("Invalid Twitter profile"), null);
         }
+        let user = await User.findOne({ twitterId: profile.id });
+
+        if (!user) {
+          user = await User.create({
+            twitterId: profile.id,
+            username: profile.username,
+          });
+        }
+
+        return done(null, user);
+      } catch (err) {
+        return done(err, null);
       }
-    } else {
-      // Update tokens
-      user.twitter.token = token
-      user.twitter.tokenSecret = tokenSecret
     }
+  )
+);
 
-    await user.save()
-    return done(null, user)
-  } catch (err) {
-    return done(err)
-  }
-}))
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
 
-// Serialize user
-passport.serializeUser((user, done) => done(null, user.id))
 passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id)
-    done(null, user)
-  } catch (err) {
-    done(err)
-  }
-})
+  const user = await User.findById(id);
+  done(null, user);
+});
 
-module.exports = passport
+module.exports = passport;

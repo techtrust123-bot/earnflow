@@ -3,6 +3,11 @@ const path = require("path");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+// Ensure DB connection before starting server
+const connectDb = require("./config/dbConfig");
+const passport = require("passport");
+require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
+
 
 dotenv.config();
 
@@ -11,8 +16,7 @@ const app = express();
 // log environment for diagnostics
 console.log('NODE_ENV=', process.env.NODE_ENV);
 
-// Ensure DB connection before starting server
-const connectDb = require("./config/dbConfig");
+
 
 
 
@@ -22,6 +26,7 @@ const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+app.use(passport.initialize());
 
 // CORS
 app.use(
