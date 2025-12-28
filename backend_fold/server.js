@@ -38,8 +38,8 @@ app.use("/api", require("./routes"));
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(clientDistPath));
 
-  // use '/*' instead of '*' to avoid path-to-regexp parsing errors
-  app.get('/*', (req, res) => {
+  // Use a RegExp route to avoid path-to-regexp parsing errors with '*' patterns
+  app.get(/.*/, (req, res) => {
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 } else {
