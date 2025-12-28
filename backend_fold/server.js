@@ -7,7 +7,7 @@ const cors = require("cors");
 dotenv.config();
 
 const app = express();
-const __dirname = path.resolve();
+// const __dirname = path.resolve();
 
 // Middleware
 app.use(express.json());
