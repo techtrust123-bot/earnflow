@@ -102,7 +102,10 @@ exports.register = async(req,res)=>{
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    userID: user.userID
+                    userID: user.userID,
+                    isAccountVerify: !!user.isAccountVerify,
+                    accountStatus: user.accountStatus || 'unVerified',
+                    twitter: user.twitter || null
                 }
 
                 res.status(201).json({ message: 'register successful', user: safeUser, token, balance: user.balance || 0 })
@@ -156,7 +159,10 @@ exports.login = async(req, res)=>{
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    userID: user.userID
+                    userID: user.userID,
+                    isAccountVerify: !!user.isAccountVerify,
+                    accountStatus: user.accountStatus || 'unVerified',
+                    twitter: user.twitter || null
                 }
                 // if(!user.isAccountVerify){
                 //     return res.status(403).json({
