@@ -86,6 +86,7 @@ export default function AdminTasks() {
   setLoading(true)
   try {
     const res = await axios.get('/tasks/activeTasks')  // ← Keep this exact path
+    params: { _t: Date.now() }
     
     console.log("Backend response:", res.data)  // ← ADD THIS FOR DEBUG
     

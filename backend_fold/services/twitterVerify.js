@@ -8,6 +8,11 @@ const appClient = axios.create({
   }
 })
 
+exports.verifyFollow = async (userId, targetUserId) => {
+  const res = await appClient.get(`/users/${userId}/following`)
+  return res.data.data?.some(u => u.id === targetUserId)
+}
+
 exports.verifyLike = async (userId, tweetId) => {
   const res = await appClient.get(`/tweets/${tweetId}/liking_users`)
   return res.data.data?.some(u => u.id === userId)
