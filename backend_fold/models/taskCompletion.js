@@ -13,7 +13,7 @@ const taskCompletionSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['pending', 'verified', 'rewarded', 'revoked'],
+    enum: ['pending', 'verified', 'rewarded', 'revoked', "failed"],
     default: 'pending'
   },
 
