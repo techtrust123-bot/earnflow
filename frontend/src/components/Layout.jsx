@@ -50,7 +50,8 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex">
-      {isAuthenticated && (
+  
+      {isAuthenticated && user && user.isAccountVerify && (
         <aside className="hidden md:flex md:flex-col bg-white border-r border-gray-100 shadow-sm p-4 sticky top-0 h-screen transition-all">
           <SidebarContent
             user={user}
@@ -67,7 +68,7 @@ export default function Layout({ children }) {
           <Container>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-              {isAuthenticated && (
+              {isAuthenticated && user && user.isAccountVerify && (
                 <button aria-label="Toggle menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(prev => !prev)} className="md:hidden p-2 rounded-md hover:bg-gray-100 text-gray-700">
                   <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
@@ -76,22 +77,28 @@ export default function Layout({ children }) {
             </div>
 
             <div className="flex items-center gap-4">
-              {isAuthenticated && (
+              {isAuthenticated && user && user.isAccountVerify ? (
                 <div className="hidden sm:flex items-center gap-3" aria-hidden={!isAuthenticated}>
                   <div className="text-sm text-gray-500">Balance</div>
                   <div className="font-semibold">₦{(Number(balance) || 0).toLocaleString()}</div>
                 </div>
-              )}
+              ) : null}
 
-              {isAuthenticated ? (
+              {/* If not authenticated show login/signup. If authenticated but not verified show verify CTA + logout */}
+              {!isAuthenticated ? (
                 <div className="flex items-center gap-3">
-                  <Link to="/profile" className="hidden sm:inline-block px-3 py-2 rounded-md hover:bg-gray-100">Profile</Link>
+                  <Link to="/login" className="px-3 py-2 rounded-md hover:bg-gray-100">Login</Link>
+                  <Link to="/signup" className="px-3 py-2 bg-indigo-600 text-white rounded-md">Sign Up</Link>
+                </div>
+              ) : user && !user.isAccountVerify ? (
+                <div className="flex items-center gap-3">
+                  <Link to="/verify-email" className="px-3 py-2 rounded-md hover:bg-gray-100">Verify</Link>
                   <button onClick={handleLogout} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Logout</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <Link to="/login" className="px-3 py-2 rounded-md hover:bg-gray-100">Login</Link>
-                  <Link to="/signup" className="px-3 py-2 bg-indigo-600 text-white rounded-md">Sign Up</Link>
+                  <Link to="/profile" className="hidden sm:inline-block px-3 py-2 rounded-md hover:bg-gray-100">Profile</Link>
+                  <button onClick={handleLogout} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Logout</button>
                 </div>
               )}
             </div>
@@ -99,13 +106,20 @@ export default function Layout({ children }) {
           </Container>
         </header>
 
+        {/* Show verification prompt for logged in but unverified users */}
+        {isAuthenticated && user && !user.isAccountVerify && (
+          <div className="bg-yellow-50 border-b border-yellow-200 text-yellow-800 p-3 text-center">
+            Your email is not verified. <Link to="/verify-email" className="font-semibold underline">Verify now</Link>
+          </div>
+        )}
+
         <main className="flex-1 p-6 w-full">
           <Container>
             {children}
           </Container>
         </main>
 
-        {isAuthenticated && (
+        {isAuthenticated && user && user.isAccountVerify && (
           <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-white rounded-2xl shadow-lg p-3 z-40" role="navigation" aria-label="Primary mobile navigation">
             <div className="flex justify-around">
               <Link to="/dashboard" className="flex flex-col items-center text-xs" aria-label="Home">🏠<span>Home</span></Link>
@@ -117,7 +131,7 @@ export default function Layout({ children }) {
           </nav>
         )}
 
-        {mobileOpen && isAuthenticated && (
+        {mobileOpen && isAuthenticated && user && user.isAccountVerify && (
           <div className="md:hidden fixed inset-0 z-50 flex">
             <div className="fixed inset-0 bg-black/40" onClick={() => setMobileOpen(false)} aria-hidden="true" />
             <div className="relative w-72 bg-white h-full shadow-xl">

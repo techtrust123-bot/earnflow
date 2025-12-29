@@ -21,7 +21,7 @@ router.delete('/delete', authMiddlewere, deleteAccount)
 // console.log('types:', {
 //   register: typeof register,
 //   login: typeof login,
-//   logout: typeof logout,
+//   logout: typeof logout,s
 //   resendOtp: typeof resendOtp,
 //   verifyAccount: typeof verifyAccount,
 //   sendResetOtp: typeof sendResetOtp,

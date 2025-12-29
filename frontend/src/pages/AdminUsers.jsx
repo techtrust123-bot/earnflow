@@ -114,6 +114,7 @@ export default function AdminUsers() {
 													<th>Balance</th>
 													<th>Tasks</th>
 													<th>Joined</th>
+													<th>Verified</th>
 													<th>Status</th>
 													<th>Actions</th>
 												</tr>
@@ -126,6 +127,11 @@ export default function AdminUsers() {
 														<td className="font-semibold text-green-600">₦{Number(u.balance || 0).toLocaleString()}</td>
 														<td>{u.tasksCompleted || 0}</td>
 														<td className="text-sm text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</td>
+														<td>
+															<span className={`px-2 py-1 rounded-full text-xs font-semibold ${u.isAccountVerify ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+																{u.isAccountVerify ? 'Verified' : 'Unverified'}
+															</span>
+														</td>
 														<td>
 															<UserStatus lastActive={u.lastActive} />
 														</td>
@@ -160,7 +166,12 @@ export default function AdminUsers() {
 												</div>
 												<div className="flex items-center justify-between mt-3">
 													<div className="text-sm">Tasks: {u.tasksCompleted || 0}</div>
-													<UserStatus lastActive={u.lastActive} />
+													<div className="flex items-center gap-3">
+														<span className={`px-2 py-1 rounded-full text-xs font-semibold ${u.isAccountVerify ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+															{u.isAccountVerify ? 'Verified' : 'Unverified'}
+														</span>
+														<UserStatus lastActive={u.lastActive} />
+													</div>
 												</div>
 											</div>
 										))}

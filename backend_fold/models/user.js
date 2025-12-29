@@ -100,11 +100,17 @@ const userSchema = new mongoose.Schema({
         default: 0
     },
     twitter: {
-    id: String,
-    username: String,
-    accessToken: String,
-    refreshToken: String,
-    linkedAt: Date
+        id: String,
+        username: String,
+        // OAuth2 fields (optional)
+        accessToken: String,
+        refreshToken: String,
+        // OAuth1.0a fields for user-context actions (follow/like verification)
+        token: String,
+        tokenSecret: String,
+        // Temporary storage during request_token flow
+        requestTokenSecret: String,
+        linkedAt: Date
   },
 
   fraudScore: {

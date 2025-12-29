@@ -16,8 +16,18 @@ export default function Profile() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleConnectTwitter = () => {
-    window.location.href = `${API_URL}/twitter/auth`
+  const handleConnectTwitter = async () => {
+    try {
+      const res = await axios.get('/twitter/connect')
+      const redirectUrl = res.data?.redirectUrl
+      if (redirectUrl) {
+        window.location.href = redirectUrl
+      } else {
+        toast.error('Failed to start Twitter connection')
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to connect Twitter')
+    }
   }
 
   const handleUnlinkTwitter = async () => {

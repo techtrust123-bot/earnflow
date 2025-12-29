@@ -1,61 +1,170 @@
-// controllers/twitterAuth.js
-
-
 const axios = require("axios")
+const crypto = require("crypto")
+const qs = require("querystring")
 const User = require("../models/user")
 
-exports.twitterCallback = async (req, res) => {
-  const { code, state } = req.query
+/* ---------------- OAuth 1.0a Helpers ---------------- */
 
-  const tokenRes = await axios.post(
-    "https://api.twitter.com/2/oauth2/token",
-    new URLSearchParams({
-      code,
-      grant_type: "authorization_code",
-      client_id: process.env.TWITTER_CLIENT_ID,
-      redirect_uri: process.env.TWITTER_CALLBACK_URL,
-      code_verifier: "challenge"
-    }),
-    {
-      auth: {
-        username: process.env.TWITTER_CLIENT_ID,
-        password: process.env.TWITTER_CLIENT_SECRET
-      }
-    }
-  )
-
-  const accessToken = tokenRes.data.access_token
-
-  const userRes = await axios.get(
-    "https://api.twitter.com/2/users/me",
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  )
-
-  await User.findByIdAndUpdate(state, {
-    twitter: {
-      id: userRes.data.data.id,
-      username: userRes.data.data.username,
-      accessToken,
-      linkedAt: new Date()
-    }
-  })
-
-  res.redirect("/dashboard")
+function encodeRFC3986(str) {
+  return encodeURIComponent(str)
+    .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())
 }
 
+function oauthNonce() {
+  return crypto.randomBytes(16).toString("hex")
+}
 
+function oauthTimestamp() {
+  return Math.floor(Date.now() / 1000).toString()
+}
 
+function generateSignature(method, baseUrl, params, consumerSecret, tokenSecret = "") {
+  const sortedParams = Object.keys(params)
+    .sort()
+    .map(k => `${encodeRFC3986(k)}=${encodeRFC3986(params[k])}`)
+    .join("&")
 
-exports.connectTwitter = (req, res) => {
-  const url =
-    `https://twitter.com/i/oauth2/authorize` +
-    `?response_type=code` +
-    `&client_id=${process.env.TWITTER_CLIENT_ID}` +
-    `&redirect_uri=${process.env.TWITTER_CALLBACK_URL}` +
-    `&scope=tweet.read users.read follows.read offline.access` +
-    `&state=${req.user.id}` +
-    `&code_challenge=challenge` +
-    `&code_challenge_method=plain`
+  const baseString = [
+    method.toUpperCase(),
+    encodeRFC3986(baseUrl),
+    encodeRFC3986(sortedParams)
+  ].join("&")
 
-  res.redirect(url)
+  const signingKey =
+    `${encodeRFC3986(consumerSecret)}&${encodeRFC3986(tokenSecret)}`
+
+  return crypto
+    .createHmac("sha1", signingKey)
+    .update(baseString)
+    .digest("base64")
+}
+
+function buildAuthHeader(params) {
+  return (
+    "OAuth " +
+    Object.keys(params)
+      .sort()
+      .map(k => `${encodeRFC3986(k)}="${encodeRFC3986(params[k])}"`)
+      .join(", ")
+  )
+}
+
+/* ---------------- STEP 1: CONNECT TWITTER ---------------- */
+
+exports.connectTwitter = async (req, res) => {
+  try {
+    const callbackUrl =
+      `${process.env.TWITTER_CALLBACK_URL}?state=${req.user.id}`
+
+    const requestUrl = "https://api.twitter.com/oauth/request_token"
+
+    const oauthParams = {
+      oauth_callback: callbackUrl,
+      oauth_consumer_key: process.env.TWITTER_CONSUMER_KEY,
+      oauth_nonce: oauthNonce(),
+      oauth_signature_method: "HMAC-SHA1",
+      oauth_timestamp: oauthTimestamp(),
+      oauth_version: "1.0"
+    }
+
+    oauthParams.oauth_signature = generateSignature(
+      "POST",
+      requestUrl,
+      oauthParams,
+      process.env.TWITTER_CONSUMER_SECRET
+    )
+
+    const headers = {
+      Authorization: buildAuthHeader(oauthParams)
+    }
+
+    const response = await axios.post(requestUrl, null, { headers })
+    const data = qs.parse(response.data)
+
+    if (!data.oauth_token || !data.oauth_token_secret) {
+      throw new Error("Invalid request token response")
+    }
+
+    // Save token secret temporarily
+    await User.findByIdAndUpdate(req.user.id, {
+      "twitter.requestTokenSecret": data.oauth_token_secret
+    })
+
+    const redirectUrl = `https://api.twitter.com/oauth/authenticate?oauth_token=${data.oauth_token}`
+
+    // If this request is an XHR (frontend calling via axios), return JSON with the redirect URL
+    const acceptsJson = req.headers.accept && req.headers.accept.includes('application/json')
+    if (req.xhr || acceptsJson) {
+      return res.json({ redirectUrl })
+    }
+
+    // Fallback: regular redirect
+    return res.redirect(redirectUrl)
+  } catch (err) {
+    console.error("Twitter connect error:", err.response?.data || err.message)
+    return res.status(500).json({ message: "Twitter connection failed" })
+  }
+}
+
+/* ---------------- STEP 2: CALLBACK ---------------- */
+
+exports.twitterCallback = async (req, res) => {
+  try {
+    const { oauth_token, oauth_verifier, state } = req.query
+
+    if (!oauth_token || !oauth_verifier || !state) {
+      return res.status(400).send("Missing OAuth parameters")
+    }
+
+    const user = await User.findById(state)
+    if (!user || !user.twitter?.requestTokenSecret) {
+      return res.status(400).send("Invalid OAuth session")
+    }
+
+    const accessUrl = "https://api.twitter.com/oauth/access_token"
+
+    const oauthParams = {
+      oauth_consumer_key: process.env.TWITTER_CONSUMER_KEY,
+      oauth_nonce: oauthNonce(),
+      oauth_signature_method: "HMAC-SHA1",
+      oauth_timestamp: oauthTimestamp(),
+      oauth_token,
+      oauth_verifier,
+      oauth_version: "1.0"
+    }
+
+    oauthParams.oauth_signature = generateSignature(
+      "POST",
+      accessUrl,
+      oauthParams,
+      process.env.TWITTER_CONSUMER_SECRET,
+      user.twitter.requestTokenSecret
+    )
+
+    const headers = {
+      Authorization: buildAuthHeader(oauthParams)
+    }
+
+    const response = await axios.post(accessUrl, null, { headers })
+    const data = qs.parse(response.data)
+
+    if (!data.oauth_token || !data.oauth_token_secret) {
+      throw new Error("Invalid access token response")
+    }
+
+    await User.findByIdAndUpdate(state, {
+      twitter: {
+        id: data.user_id,
+        username: data.screen_name,
+        token: data.oauth_token,
+        tokenSecret: data.oauth_token_secret,
+        linkedAt: new Date()
+      }
+    })
+
+    return res.redirect(`${process.env.FRONTEND_URL}/profile?twitter=linked`)
+  } catch (err) {
+    console.error("Twitter callback error:", err.response?.data || err.message)
+    return res.status(500).send("Twitter authentication failed")
+  }
 }

@@ -12,17 +12,23 @@ const taskSchema = new mongoose.Schema({
   startDate: { type: Date },
   endDate: { type: Date },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  //  verification: {
-  //   type: {
-  //     type: String,
-  //     enum: ['follow', 'like', 'retweet'],
-  //     required: true
-  //   },
-  //   targetId: {
-  //     type: String,
-  //     required: true // Twitter userId or tweetId
-  //   }
-  // },
+   verification: {
+    type: {
+        type: String,
+        enum: ['follow', 'like', 'retweet', 'repost', 'comment'],
+        required: true
+    },
+    targetId: {
+        type: String,
+        // For 'follow' this is the target userId. For tweet-based checks use `targetTweetId`.
+        required: false
+    }
+      ,
+      targetTweetId: {
+        type: String,
+        required: false
+      }
+  },
 }, { timestamps: true })
 
 const Tasks = mongoose.model('Task', taskSchema)

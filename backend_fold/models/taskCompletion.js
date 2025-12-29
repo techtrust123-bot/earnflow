@@ -19,6 +19,11 @@ const taskCompletionSchema = new mongoose.Schema({
 
   verifiedAt: Date,
   rewardedAt: Date
+  ,
+  verificationType: String,
+  targetId: String,
+  targetTweetId: String,
+  reason: String
 }, { timestamps: true })
 
 taskCompletionSchema.index({ user: 1, task: 1 }, { unique: true })

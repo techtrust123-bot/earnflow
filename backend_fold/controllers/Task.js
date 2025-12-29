@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const TwitterTask = require("../models/adminTasks")
 const TaskCompletion = require("../models/taskCompletion")
 const User = require("../models/user")
-const { verifyFollow } = require("../services/twitterVerify")
+const { verifyFollow, verifyLike, verifyRepost, verifyComment } = require("../services/twitterVerify")
 
 exports.completeTwitterTask = async (req, res) => {
   const user = req.user
@@ -57,20 +57,36 @@ exports.completeTwitterTask = async (req, res) => {
       })
     }
 
-    // 6. Verify action (e.g., follow)
-    let verified = false
-    if (task.verification.type === 'follow') {
-      verified = await verifyFollow(user.twitter.id, task.verification.targetId)
+    // 6. Verify action per task type
+    if (!user.twitter?.token || !user.twitter?.tokenSecret) {
+      return res.status(400).json({ success: false, message: 'Please link your Twitter account (full permissions) first' })
     }
-    // Add more types later (like, retweet, etc.)
+
+    let verified = false
+    const vType = task.verification?.type
+    if (vType === 'follow') {
+      verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else if (vType === 'like') {
+      verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else if (vType === 'repost' || vType === 'retweet') {
+      verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else if (vType === 'comment') {
+      verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else {
+      return res.status(400).json({ success: false, message: 'Unsupported verification type' })
+    }
 
     if (!verified) {
-      // Record failed attempt
+      // Record failed attempt with details
       await TaskCompletion.create({
         user: user._id,
         task: taskId,
         status: "failed",
-        verifiedAt: new Date()
+        verifiedAt: new Date(),
+        verificationType: task.verification?.type || null,
+        targetId: task.verification?.targetId || null,
+        targetTweetId: task.verification?.targetTweetId || null,
+        reason: 'verification_failed'
       })
 
       return res.status(400).json({ 
@@ -90,7 +106,10 @@ exports.completeTwitterTask = async (req, res) => {
         task: taskId,
         status: "verified",
         verifiedAt: new Date(),
-        reverifyUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Re-check for 7 days
+        reverifyUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Re-check for 7 days
+        verificationType: task.verification?.type || null,
+        targetId: task.verification?.targetId || null,
+        targetTweetId: task.verification?.targetTweetId || null
       }], { session })
 
       // Update task count
@@ -171,8 +190,22 @@ const recheckCompletion = async (completion) => {
 
   let stillValid = false
 
-  if (task.verification.type === "follow") {
-    stillValid = await verifyFollow(user.twitter.id, task.verification.targetId)
+  // Use verifyTask for rechecks as well
+  try {
+    const vType = task.verification?.type
+    if (vType === 'follow') {
+      stillValid = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else if (vType === 'like') {
+      stillValid = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else if (vType === 'repost' || vType === 'retweet') {
+      stillValid = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else if (vType === 'comment') {
+      stillValid = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    } else {
+      stillValid = false
+    }
+  } catch (err) {
+    stillValid = false
   }
 
   if (stillValid) return // Still following → good
