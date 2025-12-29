@@ -16,16 +16,16 @@ const taskSchema = new mongoose.Schema({
     type: {
       type: String,
       enum: ['follow', 'like', 'retweet', 'repost', 'comment'],
-      required: true
+      required: false
     },
     targetId: {
       type: String,
       // For 'follow' this is the target userId. For tweet-based checks use `targetTweetId`.
-      required: true
+      required: false
     },
     targetTweetId: {
       type: String,
-      required: true
+      required: false
     }
   },
 }, { timestamps: true })
