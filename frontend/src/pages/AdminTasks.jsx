@@ -57,31 +57,58 @@ export default function AdminTasks() {
     setFilteredTasks(filtered)
   }
 
-  const fetchTasks = async () => {
-    setLoading(true)
-    try {
-      const res = await axios.get('/tasks/activeTasks')
+  // const fetchTasks = async () => {
+  //   setLoading(true)
+  //   try {
+  //     const res = await axios.get('/tasks/activeTasks')
       
-      let tasksArray = []
-      if (Array.isArray(res.data)) {
-        tasksArray = res.data
-      } else if (res.data?.tasks && Array.isArray(res.data.tasks)) {
-        tasksArray = res.data.tasks
-      } else if (res.data?.data && Array.isArray(res.data.data)) {
-        tasksArray = res.data.data
-      }
+  //     let tasksArray = []
+  //     if (Array.isArray(res.data)) {
+  //       tasksArray = res.data
+  //     } else if (res.data?.tasks && Array.isArray(res.data.tasks)) {
+  //       tasksArray = res.data.tasks
+  //     } else if (res.data?.data && Array.isArray(res.data.data)) {
+  //       tasksArray = res.data.data
+  //     }
 
-      setTasks(tasksArray)
-      setFilteredTasks(tasksArray)
-    } catch (err) {
-      console.error(err)
-      toast.error('Failed to load tasks')
-      setTasks([])
-      setFilteredTasks([])
-    } finally {
-      setLoading(false)
+  //     setTasks(tasksArray)
+  //     setFilteredTasks(tasksArray)
+  //   } catch (err) {
+  //     console.error(err)
+  //     toast.error('Failed to load tasks')
+  //     setTasks([])
+  //     setFilteredTasks([])
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+  const fetchTasks = async () => {
+  setLoading(true)
+  try {
+    const res = await axios.get('/tasks/activeTasks')  // ← Keep this exact path
+    
+    console.log("Backend response:", res.data)  // ← ADD THIS FOR DEBUG
+    
+    let tasksArray = []
+    if (Array.isArray(res.data)) {
+      tasksArray = res.data
+    } else if (res.data?.tasks && Array.isArray(res.data.tasks)) {
+      tasksArray = res.data.tasks
+    } else if (res.data?.data && Array.isArray(res.data.data)) {
+      tasksArray = res.data.data
     }
+
+    setTasks(tasksArray)
+    setFilteredTasks(tasksArray)
+  } catch (err) {
+    console.error("Fetch error:", err.response?.data || err)
+    toast.error('Failed to load tasks')
+    setTasks([])
+    setFilteredTasks([])
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -261,6 +288,7 @@ export default function AdminTasks() {
         </div>
 
         {/* ... rest of your task list ... */}
+        
       </Container>
     </div>
   )
