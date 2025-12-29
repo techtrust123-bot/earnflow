@@ -52,6 +52,15 @@ function buildAuthHeader(params) {
 /* ---------------- STEP 1: CONNECT TWITTER ---------------- */
 
 exports.connectTwitter = async (req, res) => {
+  // Validate required Twitter env vars early for clearer errors
+  if (!process.env.TWITTER_CONSUMER_KEY || !process.env.TWITTER_CONSUMER_SECRET || !process.env.TWITTER_CALLBACK_URL) {
+    console.error('Missing Twitter env vars:', {
+      TWITTER_CONSUMER_KEY: !!process.env.TWITTER_CONSUMER_KEY,
+      TWITTER_CONSUMER_SECRET: !!process.env.TWITTER_CONSUMER_SECRET,
+      TWITTER_CALLBACK_URL: !!process.env.TWITTER_CALLBACK_URL
+    })
+    return res.status(500).json({ message: 'Twitter OAuth is not configured on the server (missing env vars)' })
+  }
   try {
     const callbackUrl =
       `${process.env.TWITTER_CALLBACK_URL}?state=${req.user.id}`
