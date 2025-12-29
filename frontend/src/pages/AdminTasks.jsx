@@ -286,10 +286,130 @@ export default function AdminTasks() {
             </div>
           </form>
         </div>
+                {/* Responsive Task List */}
+        <div className="space-y-6">
+          {filteredTasks.length === 0 ? (
+            <div className="text-center py-20 text-2xl text-gray-500 bg-white rounded-3xl shadow-2xl">
+              No tasks match your filters
+            </div>
+          ) : (
+            <>
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-6">
+                {filteredTasks.map(task => {
+                  const expired = isTaskExpired(task)
+                  return (
+                    <div key={task._id} className={`bg-white rounded-3xl shadow-xl p-6 border-4 ${expired ? 'border-red-300 opacity-75' : 'border-gray-200'}`}>
+                      <div className="flex justify-between mb-4">
+                        <h3 className="text-xl font-bold">{task.title}</h3>
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${expired ? 'bg-red-100 text-red-800' : task.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
+                          {expired ? 'Expired' : task.isActive ? 'Active' : 'Paused'}
+                        </span>
+                      </div>
+                      <p>Platform: <strong>{task.platform}</strong> • ₦{task.reward}</p>
+                      <p className="text-sm text-gray-600">Completed: {task.completedCount || 0} / {task.maxCompletions || '∞'}</p>
+                      {task.endDate && <p className="text-sm text-gray-600">Ends: {new Date(task.endDate).toLocaleString()}</p>}
+                      <div className="mt-4 grid grid-cols-1 gap-3">
+                        <div className="flex gap-3">
+                          <button onClick={() => handleEdit(task)} className="flex-1 inline-flex items-center justify-center gap-2 bg-yellow-500 text-white py-3 rounded-xl font-semibold"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Edit</button>
+                          <button onClick={() => toggleActive(task._id, task.isActive)} disabled={expired} className={`px-4 py-3 rounded-xl font-semibold text-white ${expired ? 'bg-gray-400' : task.isActive ? 'bg-orange-500' : 'bg-green-500'}`}>
+                            {expired ? 'Expired' : task.isActive ? 'Pause' : 'Activate'}
+                          </button>
+                        </div>
+                        <button onClick={() => handleDelete(task._id)} className="w-full bg-red-500 text-white py-3 rounded-xl font-semibold">Delete</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
 
+              {/* Desktop Table */}
+              <div className="hidden md:block bg-white rounded-3xl shadow-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                  <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left">Title</th>
+                      <th className="px-6 py-4 text-left">Platform</th>
+                      <th className="px-6 py-4 text-left">Reward</th>
+                      <th className="px-6 py-4 text-left">Progress</th>
+                      <th className="px-6 py-4 text-left">Time</th>
+                      <th className="px-6 py-4 text-left">Status</th>
+                      <th className="px-6 py-4 text-left">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {filteredTasks.map(task => {
+                      const expired = isTaskExpired(task)
+                      return (
+                        <tr key={task._id} className={expired ? 'bg-red-50' : 'hover:bg-gray-50'}>
+                          <td className="px-6 py-5 font-medium">{task.title}</td>
+                          <td className="px-6 py-5">{task.platform}</td>
+                          <td className="px-6 py-5 font-bold text-green-600">₦{task.reward}</td>
+                          <td className="px-6 py-5 w-48">
+                            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                              <div style={{ width: `${Math.min(100, Math.floor(((task.completedCount||0) / (task.maxCompletions||Infinity)) * 100))}%` }} className="h-3 bg-gradient-to-r from-green-400 to-green-600" />
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">{task.completedCount || 0} / {task.maxCompletions || '∞'}</div>
+                          </td>
+                          <td className="px-6 py-5 text-sm">
+                            {task.endDate ? new Date(task.endDate).toLocaleString() : 'No limit'}
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className={`px-4 py-2 rounded-full text-sm font-bold ${expired ? 'bg-red-100 text-red-800' : task.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
+                              {expired ? 'Expired' : task.isActive ? 'Active' : 'Paused'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handleEdit(task)} className="inline-flex items-center gap-2 bg-yellow-500 text-white px-3 py-2 rounded-md"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Edit</button>
+                              <button onClick={() => toggleActive(task._id, task.isActive)} disabled={expired} className={`px-3 py-2 rounded-md text-white ${expired ? 'bg-gray-400' : task.isActive ? 'bg-orange-500' : 'bg-green-500'}`}>{expired ? 'Expired' : task.isActive ? 'Pause' : 'Activate'}</button>
+                              <button onClick={() => handleDelete(task._id)} className="px-3 py-2 rounded-md bg-red-500 text-white">Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
         {/* ... rest of your task list ... */}
-        
       </Container>
+      {confirmAction && (
+        <ConfirmModal
+          action={confirmAction}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => {
+            if (confirmAction.type === 'delete') performDelete(confirmAction.task)
+            else if (confirmAction.type === 'toggle') performToggle(confirmAction.task)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Confirm modal component (simple, local)
+function ConfirmModal({ action, onConfirm, onCancel }) {
+  if (!action) return null
+  const { type, task } = action
+  const title = type === 'delete' ? 'Delete task' : 'Change status'
+  const message = type === 'delete' ? `Delete "${task.title}" permanently?` : `${task.isActive ? 'Pause' : 'Activate'} "${task.title}"?`
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+      <div className="relative bg-white rounded-2xl p-6 shadow-xl max-w-md w-full mx-4 sm:mx-0">
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        <p className="text-sm text-gray-600 mb-4">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button onClick={onCancel} className="px-4 py-2 rounded-md border">Cancel</button>
+          <button onClick={() => { onConfirm && onConfirm(); }} className="px-4 py-2 rounded-md bg-red-600 text-white">Confirm</button>
+        </div>
+      </div>
     </div>
   )
 }
