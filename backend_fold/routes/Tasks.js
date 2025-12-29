@@ -1,5 +1,5 @@
 const express = require("express")
-const { authMiddlewere } = require("../middleweres/authmiddlewere")
+const { authMiddlewere, protect } = require("../middleweres/authmiddlewere")
 const authorizeRoles = require("../middleweres/roleMiddlewere")
 const { connectTwitter, twitterCallback } = require("../controllers/twitterAuth")
 const { completeTwitterTask } = require("../controllers/Task")
@@ -12,7 +12,7 @@ router.get("/twitter/callback", twitterCallback)
 
 router.post(
   "/twitter/:id/complete",
-  authMiddlewere,
+  protect,
   blockSuspended,
   completeTwitterTask
 )
