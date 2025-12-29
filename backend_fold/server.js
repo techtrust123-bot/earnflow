@@ -5,8 +5,8 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 // Ensure DB connection before starting server
 const connectDb = require("./config/dbConfig");
-// const passport = require("passport");
-// require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
+const passport = require("passport");
+require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
 
 
 dotenv.config();
@@ -26,7 +26,7 @@ const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-// app.use(passport.initialize());
+app.use(passport.initialize());
 
 // CORS
 app.use(
