@@ -6,7 +6,7 @@ exports.createTask = async (req, res) => {
   const { platform, title, link, reward, maxCompletions, verification } = req.body
 
   // Basic validation
-  if (!platform || !title || !link || reward === undefined || maxCompletions === undefined) {
+  if (!platform || !title || !link || reward === undefined || maxCompletions === undefined || verification === undefined) {
     return res.status(400).json({ message: 'All input fields are required' })
   }
 
@@ -15,24 +15,31 @@ exports.createTask = async (req, res) => {
     return res.status(400).json({ message: 'Reward must be a positive number' })
   }
 
-  // Verification validation: require a verification.type
-  if (!verification || !verification.type) {
-    return res.status(400).json({ message: 'verification.type is required' })
-  }
+  // Only require verification for social platforms (e.g., X/Twitter, Instagram, TikTok)
+  const platformKey = String(platform || '').toLowerCase()
+  const socialPlatforms = ['x', 'twitter', 'instagram', 'tiktok']
+  const needsVerification = socialPlatforms.includes(platformKey)
 
-  // Normalize verification type and accept common aliases
-  const vType = String(verification.type).toLowerCase()
-  const aliasMap = { reply: 'comment' }
-  const normalizedType = aliasMap[vType] || vType
-  const allowed = ['follow', 'like', 'retweet', 'repost', 'comment']
-  if (!allowed.includes(normalizedType)) {
-    return res.status(400).json({ message: `Unsupported verification.type: ${verification.type}` })
-  }
+  let verificationObj = undefined
+  if (needsVerification) {
+    if (!verification || !verification.type) {
+      return res.status(400).json({ message: 'verification.type is required for social tasks' })
+    }
 
-  const verificationObj = {
-    type: normalizedType,
-    targetId: verification.targetId || verification.targetUserId || verification.target || undefined,
-    targetTweetId: verification.targetTweetId || verification.tweetId || undefined
+    // Normalize verification type and accept common aliases
+    const vType = String(verification.type).toLowerCase()
+    const aliasMap = { reply: 'comment' }
+    const normalizedType = aliasMap[vType] || vType
+    const allowed = ['follow', 'like', 'retweet', 'repost', 'comment']
+    if (!allowed.includes(normalizedType)) {
+      return res.status(400).json({ message: `Unsupported verification.type: ${verification.type}` })
+    }
+
+    verificationObj = {
+      type: normalizedType,
+      targetId: verification.targetId || verification.targetUserId || verification.target || undefined,
+      targetTweetId: verification.targetTweetId || verification.tweetId || undefined
+    }
   }
 
   try {
@@ -43,15 +50,18 @@ exports.createTask = async (req, res) => {
       })
     }
 
-    const newTask = await Tasks.create({
+    const createPayload = {
       platform,
       title,
       link,
+      verification: verificationObj,
       maxCompletions: Number(maxCompletions),
       reward: Number(reward),
-      createdBy: req.user.id,
-      verification: verificationObj
-    })
+      createdBy: req.user.id
+    }
+    if (verificationObj) createPayload.verification = verificationObj
+
+    const newTask = await Tasks.create(createPayload)
 
     res.status(201).json({ message: 'Task created successfully', task: newTask })
   } catch (error) {
