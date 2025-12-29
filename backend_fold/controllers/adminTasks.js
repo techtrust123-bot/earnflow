@@ -3,20 +3,36 @@ const Tasks = require("../models/adminTasks")
 // const Tasks = require("../models/adminTasks")
 
 exports.createTask = async (req, res) => {
-  const { platform, title, link, reward, maxCompletions } = req.body
+  const { platform, title, link, reward, maxCompletions, verification } = req.body
 
   // Basic validation
   if (!platform || !title || !link || reward === undefined || maxCompletions === undefined) {
-    return res.status(400).json({
-      message: "All input fields are required"
-    })
+    return res.status(400).json({ message: 'All input fields are required' })
   }
 
   // Reward validation
   if (isNaN(reward) || Number(reward) <= 0) {
-    return res.status(400).json({
-      message: "Reward must be a positive number"
-    })
+    return res.status(400).json({ message: 'Reward must be a positive number' })
+  }
+
+  // Verification validation: require a verification.type
+  if (!verification || !verification.type) {
+    return res.status(400).json({ message: 'verification.type is required' })
+  }
+
+  // Normalize verification type and accept common aliases
+  const vType = String(verification.type).toLowerCase()
+  const aliasMap = { reply: 'comment' }
+  const normalizedType = aliasMap[vType] || vType
+  const allowed = ['follow', 'like', 'retweet', 'repost', 'comment']
+  if (!allowed.includes(normalizedType)) {
+    return res.status(400).json({ message: `Unsupported verification.type: ${verification.type}` })
+  }
+
+  const verificationObj = {
+    type: normalizedType,
+    targetId: verification.targetId || verification.targetUserId || verification.target || undefined,
+    targetTweetId: verification.targetTweetId || verification.tweetId || undefined
   }
 
   try {
@@ -33,12 +49,11 @@ exports.createTask = async (req, res) => {
       link,
       maxCompletions: Number(maxCompletions),
       reward: Number(reward),
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      verification: verificationObj
     })
 
-    res.status(201).json({
-      message: "Tasks created successfully",
-    })
+    res.status(201).json({ message: 'Task created successfully', task: newTask })
   } catch (error) {
     console.error(error)
     res.status(500).json({

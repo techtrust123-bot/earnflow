@@ -63,14 +63,14 @@ exports.completeTwitterTask = async (req, res) => {
     }
 
     let verified = false
-    const vType = task.verification?.type
+    const vType = (task.verification?.type || '').toLowerCase()
     if (vType === 'follow') {
       verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
     } else if (vType === 'like') {
       verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
     } else if (vType === 'repost' || vType === 'retweet') {
       verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-    } else if (vType === 'comment') {
+    } else if (vType === 'comment' || vType === 'reply') {
       verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
     } else {
       return res.status(400).json({ success: false, message: 'Unsupported verification type' })
@@ -191,15 +191,15 @@ const recheckCompletion = async (completion) => {
   let stillValid = false
 
   // Use verifyTask for rechecks as well
-  try {
-    const vType = task.verification?.type
+    try {
+    const vType = (task.verification?.type || '').toLowerCase()
     if (vType === 'follow') {
       stillValid = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
     } else if (vType === 'like') {
       stillValid = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
     } else if (vType === 'repost' || vType === 'retweet') {
       stillValid = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-    } else if (vType === 'comment') {
+    } else if (vType === 'comment' || vType === 'reply') {
       stillValid = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
     } else {
       stillValid = false
