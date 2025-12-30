@@ -83,32 +83,68 @@ export default function AdminTasks() {
   //   }
   // }
 
-  const handleDelete = async (taskId) => {
-    try {
-      const del = await axios.delete(`/tasks/delete/${taskId}`)
-    setTasks(prev => prev.filter(task => task._id !== taskId))
-    toast.success(del.data.message || 'Task deleted')
-    } catch (error) {
-      console.error("Delete error:", error)
-      toast.error(error.response?.data?.message || 'Failed to delete task')
-    } 
-  }   
+  // const handleDelete = async (taskId) => {
+  //   try {
+  //     const del = await axios.delete(`/tasks/delete/${taskId}`)
+  //   setTasks(prev => prev.filter(task => task._id !== taskId))
+  //   toast.success(del.data.message || 'Task deleted')
+  //   } catch (error) {
+  //     console.error("Delete error:", error)
+  //     toast.error(error.response?.data?.message || 'Failed to delete task')
+  //   } 
+  // }   
 
-  const toggleActive = async (taskId, currentStatus) => {
-    try {
-      const res = await axios.patch(`/tasks/toggle/${taskId}`)
-      setTasks(prev => prev.map(t => t._id === taskId ? { ...t, isActive: !currentStatus } : t))
-      toast.success(res.data.message || 'Task status updated')
-    } catch (error) {
-      console.error("Toggle error:", error)
-      toast.error(error.response?.data?.message || 'Failed to update task status')
-    }
+  // const toggleActive = async (taskId, currentStatus) => {
+  //   try {
+  //     const res = await axios.patch(`/tasks/toggle/${taskId}`)
+  //     setTasks(prev => prev.map(t => t._id === taskId ? { ...t, isActive: !currentStatus } : t))
+  //     toast.success(res.data.message || 'Task status updated')
+  //   } catch (error) {
+  //     console.error("Toggle error:", error)
+  //     toast.error(error.response?.data?.message || 'Failed to update task status')
+  //   }
+  // }
+
+const handleDelete = (taskId) => {
+    setConfirmAction({ type: 'delete', taskId })
   }
+
+  const toggleActive = (taskId, currentStatus) => {
+    setConfirmAction({ type: 'toggle', taskId, currentStatus })
+  }
+
   const fetchTasks = async () => {
   setLoading(true)
   try {
-    const res = await axios.get('/tasks/activeTasks')  // ← Keep this exact path
-    params: { _t: Date.now() }
+    const res = await axios.get('/tasks/activeTasks',{
+         params: { _t: Date.now() }
+    })  // ← Keep this exact path
+
+
+    const performDelete = async () => {
+    try {
+      await axios.delete(`/tasks/delete/${confirmAction.taskId}`)
+      toast.success('Task deleted')
+      fetchTasks()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete')
+    } finally {
+      setConfirmAction(null)
+    }
+  }
+
+  const performToggle = async () => {
+    try {
+      await axios.patch(`/tasks/toggle/${confirmAction.taskId}`)
+      toast.success('Task status updated')
+      fetchTasks()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update status')
+    } finally {
+      setConfirmAction(null)
+    }
+  }
+ 
     
     console.log("Backend response:", res.data)  // ← ADD THIS FOR DEBUG
     
@@ -133,20 +169,6 @@ export default function AdminTasks() {
   }
 }
 
-
-// const handleDelete = async(taskId) => {
-//     try {
-//       ◘
-//       const task = tasks.find(t => t._id === taskId)
-//       setConfirmAction({ type: 'delete', task })
-
-//       const del = await axios.delete(`/tasks/delete/${taskId}`)
-//       toast.success(del.data.message || 'Task deleted')
-//       fetchTasks()
-//     } catch (err) {
-//       toast.error('Failed to initiate delete')
-//     }
-//   } 
 
   const handleSubmit = async (e) => {
     e.preventDefault()
