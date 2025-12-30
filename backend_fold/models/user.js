@@ -112,7 +112,10 @@ const userSchema = new mongoose.Schema({
         requestTokenSecret: String,
         linkedAt: Date
   },
-
+    tasksCompleted: {
+        type: Number,
+        default: 0
+    },
   fraudScore: {
     type: Number,
     default: 0

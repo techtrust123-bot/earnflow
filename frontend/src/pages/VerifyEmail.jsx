@@ -31,6 +31,7 @@ export default function VerifyEmail() {
       if (res.data.message) {
         toast.success(res.data.message)
       }
+    
       navigate('/login')
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid OTP")

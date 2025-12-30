@@ -35,14 +35,14 @@ exports.completeTwitterTask = async (req, res) => {
       })
     }
 
-    // 4. Check if already attempted
-    const exists = await TaskCompletion.findOne({ user: user._id, task: taskId })
-    if (exists) {
-      return res.status(400).json({ 
-        success: false,
-        message: "You have already attempted this task" 
-      })
-    }
+    // // 4. Check if already attempted
+    // const exists = await TaskCompletion.findOne({ user: user._id, task: taskId })
+    // if (exists) {
+    //   return res.status(400).json({ 
+    //     success: false,
+    //     message: "You have already attempted this task" 
+    //   })
+    // }
 
     // 5. Rate limiting (prevent spam)
     const recentAttempt = await TaskCompletion.findOne({
@@ -116,8 +116,10 @@ exports.completeTwitterTask = async (req, res) => {
       const updatedTask = await TwitterTask.findByIdAndUpdate(
         taskId,
         { $inc: { completedCount: 1 } },
-        { new: true, session }
+        { new: true, session },
+        user.tasksCompleted += 1
       )
+      await user.save({ session })
 
       // Deactivate if limit reached
       if (updatedTask.maxCompletions && updatedTask.completedCount >= updatedTask.maxCompletions) {

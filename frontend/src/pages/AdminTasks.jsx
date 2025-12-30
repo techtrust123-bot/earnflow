@@ -82,6 +82,28 @@ export default function AdminTasks() {
   //     setLoading(false)
   //   }
   // }
+
+  const handleDelete = async (taskId) => {
+    try {
+      const del = await axios.delete(`/tasks/delete/${taskId}`)
+    setTasks(prev => prev.filter(task => task._id !== taskId))
+    toast.success(del.data.message || 'Task deleted')
+    } catch (error) {
+      console.error("Delete error:", error)
+      toast.error(error.response?.data?.message || 'Failed to delete task')
+    } 
+  }   
+
+  const toggleActive = async (taskId, currentStatus) => {
+    try {
+      const res = await axios.patch(`/tasks/toggle/${taskId}`)
+      setTasks(prev => prev.map(t => t._id === taskId ? { ...t, isActive: !currentStatus } : t))
+      toast.success(res.data.message || 'Task status updated')
+    } catch (error) {
+      console.error("Toggle error:", error)
+      toast.error(error.response?.data?.message || 'Failed to update task status')
+    }
+  }
   const fetchTasks = async () => {
   setLoading(true)
   try {
@@ -110,6 +132,21 @@ export default function AdminTasks() {
     setLoading(false)
   }
 }
+
+
+// const handleDelete = async(taskId) => {
+//     try {
+//       ◘
+//       const task = tasks.find(t => t._id === taskId)
+//       setConfirmAction({ type: 'delete', task })
+
+//       const del = await axios.delete(`/tasks/delete/${taskId}`)
+//       toast.success(del.data.message || 'Task deleted')
+//       fetchTasks()
+//     } catch (err) {
+//       toast.error('Failed to initiate delete')
+//     }
+//   } 
 
   const handleSubmit = async (e) => {
     e.preventDefault()
