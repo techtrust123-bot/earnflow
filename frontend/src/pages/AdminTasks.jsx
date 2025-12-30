@@ -123,7 +123,7 @@ const handleDelete = (taskId) => {
 
     const performDelete = async () => {
     try {
-      await axios.delete(`/tasks/delete/${confirmAction.taskId}`)
+      await axios.delete(`/tasks/del/${confirmAction.taskId}`)
       toast.success('Task deleted')
       fetchTasks()
     } catch (err) {
@@ -135,7 +135,7 @@ const handleDelete = (taskId) => {
 
   const performToggle = async () => {
     try {
-      await axios.patch(`/tasks/toggle/${confirmAction.taskId}`)
+      await axios.patch(`/tasks/${confirmAction.taskId}/toggle`)
       toast.success('Task status updated')
       fetchTasks()
     } catch (err) {
