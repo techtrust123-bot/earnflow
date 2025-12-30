@@ -105,12 +105,12 @@ export default function AdminTasks() {
   //   }
   // }
 
-const handleDelete = (taskId) => {
-    setConfirmAction({ type: 'delete', taskId })
+  const handleDelete = (task) => {
+    setConfirmAction({ type: 'delete', task })
   }
 
-  const toggleActive = (taskId, currentStatus) => {
-    setConfirmAction({ type: 'toggle', taskId, currentStatus })
+  const toggleActive = (task) => {
+    setConfirmAction({ type: 'toggle', task })
   }
 
   const fetchTasks = async () => {
@@ -121,30 +121,6 @@ const handleDelete = (taskId) => {
     })  // ← Keep this exact path
 
 
-    const performDelete = async () => {
-    try {
-      await axios.delete(`/tasks/del/${confirmAction.taskId}`)
-      toast.success('Task deleted')
-      fetchTasks()
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to delete')
-    } finally {
-      setConfirmAction(null)
-    }
-  }
-
-  const performToggle = async () => {
-    try {
-      await axios.patch(`/tasks/${confirmAction.taskId}/toggle`)
-      toast.success('Task status updated')
-      fetchTasks()
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update status')
-    } finally {
-      setConfirmAction(null)
-    }
-  }
- 
     
     console.log("Backend response:", res.data)  // ← ADD THIS FOR DEBUG
     
@@ -168,6 +144,33 @@ const handleDelete = (taskId) => {
     setLoading(false)
   }
 }
+
+  // perform actions (delete/toggle) using the selected task object
+  const performDelete = async (task) => {
+    try {
+      await axios.delete(`/tasks/del/${task._id}`)
+      toast.success('Task deleted')
+      fetchTasks()
+    } catch (err) {
+      console.error('Delete error:', err)
+      toast.error(err.response?.data?.message || 'Failed to delete')
+    } finally {
+      setConfirmAction(null)
+    }
+  }
+
+  const performToggle = async (task) => {
+    try {
+      await axios.patch(`/tasks/${task._id}/toggle`, { isActive: !task.isActive })
+      toast.success('Task status updated')
+      fetchTasks()
+    } catch (err) {
+      console.error('Toggle error:', err)
+      toast.error(err.response?.data?.message || 'Failed to update status')
+    } finally {
+      setConfirmAction(null)
+    }
+  }
 
 
   const handleSubmit = async (e) => {
@@ -263,6 +266,25 @@ const handleDelete = (taskId) => {
 
   if (loading) return <div className="flex justify-center py-20"><div className="text-3xl font-bold text-purple-600 animate-pulse">Loading...</div></div>
 
+  // split filtered tasks into active vs completed
+  // Prefer backend-provided completion flags: `isCompleted`, `completed`, or `status === 'completed'`.
+  // Fallback to maxCompletions comparison if no backend flag is present.
+  const isBackendCompleted = (t) => {
+    return !!(t.isCompleted || t.completed || (typeof t.status === 'string' && t.status.toLowerCase() === 'completed'))
+  }
+
+  const activeTasks = filteredTasks.filter(t => {
+    if (isBackendCompleted(t)) return false
+    if (t.maxCompletions && t.maxCompletions > 0 && (t.completedCount || 0) >= t.maxCompletions) return false
+    return true
+  })
+
+  const completedTasks = filteredTasks.filter(t => {
+    if (isBackendCompleted(t)) return true
+    if (t.maxCompletions && t.maxCompletions > 0 && (t.completedCount || 0) >= t.maxCompletions) return true
+    return false
+  })
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <Container>
@@ -348,7 +370,7 @@ const handleDelete = (taskId) => {
         </div>
                 {/* Responsive Task List */}
         <div className="space-y-6">
-          {filteredTasks.length === 0 ? (
+          {activeTasks.length + completedTasks.length === 0 ? (
             <div className="text-center py-20 text-2xl text-gray-500 bg-white rounded-3xl shadow-2xl">
               No tasks match your filters
             </div>
@@ -356,7 +378,7 @@ const handleDelete = (taskId) => {
             <>
               {/* Mobile Cards */}
               <div className="md:hidden space-y-6">
-                {filteredTasks.map(task => {
+                {activeTasks.map(task => {
                   const expired = isTaskExpired(task)
                   return (
                     <div key={task._id} className={`bg-white rounded-3xl shadow-xl p-6 border-4 ${expired ? 'border-red-300 opacity-75' : 'border-gray-200'}`}>
@@ -369,14 +391,14 @@ const handleDelete = (taskId) => {
                       <p>Platform: <strong>{task.platform}</strong> • ₦{task.reward}</p>
                       <p className="text-sm text-gray-600">Completed: {task.completedCount || 0} / {task.maxCompletions || '∞'}</p>
                       {task.endDate && <p className="text-sm text-gray-600">Ends: {new Date(task.endDate).toLocaleString()}</p>}
-                      <div className="mt-4 grid grid-cols-1 gap-3">
+                          <div className="mt-4 grid grid-cols-1 gap-3">
                         <div className="flex gap-3">
                           <button onClick={() => handleEdit(task)} className="flex-1 inline-flex items-center justify-center gap-2 bg-yellow-500 text-white py-3 rounded-xl font-semibold"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Edit</button>
-                          <button onClick={() => toggleActive(task._id, task.isActive)} disabled={expired} className={`px-4 py-3 rounded-xl font-semibold text-white ${expired ? 'bg-gray-400' : task.isActive ? 'bg-orange-500' : 'bg-green-500'}`}>
+                          <button onClick={() => toggleActive(task)} disabled={expired} className={`px-4 py-3 rounded-xl font-semibold text-white ${expired ? 'bg-gray-400' : task.isActive ? 'bg-orange-500' : 'bg-green-500'}`}>
                             {expired ? 'Expired' : task.isActive ? 'Pause' : 'Activate'}
                           </button>
                         </div>
-                        <button onClick={() => handleDelete(task._id)} className="w-full bg-red-500 text-white py-3 rounded-xl font-semibold">Delete</button>
+                        <button onClick={() => handleDelete(task)} className="w-full bg-red-500 text-white py-3 rounded-xl font-semibold">Delete</button>
                       </div>
                     </div>
                   )
@@ -399,7 +421,7 @@ const handleDelete = (taskId) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {filteredTasks.map(task => {
+                    {activeTasks.map(task => {
                       const expired = isTaskExpired(task)
                       return (
                         <tr key={task._id} className={expired ? 'bg-red-50' : 'hover:bg-gray-50'}>
@@ -423,8 +445,8 @@ const handleDelete = (taskId) => {
                           <td className="px-6 py-5">
                             <div className="flex items-center gap-2">
                               <button onClick={() => handleEdit(task)} className="inline-flex items-center gap-2 bg-yellow-500 text-white px-3 py-2 rounded-md"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Edit</button>
-                              <button onClick={() => toggleActive(task._id, task.isActive)} disabled={expired} className={`px-3 py-2 rounded-md text-white ${expired ? 'bg-gray-400' : task.isActive ? 'bg-orange-500' : 'bg-green-500'}`}>{expired ? 'Expired' : task.isActive ? 'Pause' : 'Activate'}</button>
-                              <button onClick={() => handleDelete(task._id)} className="px-3 py-2 rounded-md bg-red-500 text-white">Delete</button>
+                              <button onClick={() => toggleActive(task)} disabled={expired} className={`px-3 py-2 rounded-md text-white ${expired ? 'bg-gray-400' : task.isActive ? 'bg-orange-500' : 'bg-green-500'}`}>{expired ? 'Expired' : task.isActive ? 'Pause' : 'Activate'}</button>
+                              <button onClick={() => handleDelete(task)} className="px-3 py-2 rounded-md bg-red-500 text-white">Delete</button>
                             </div>
                           </td>
                         </tr>
@@ -434,6 +456,29 @@ const handleDelete = (taskId) => {
                   </table>
                 </div>
               </div>
+              {/* Completed Tasks Section */}
+              {completedTasks.length > 0 && (
+                <div className="bg-white rounded-3xl shadow-2xl p-6">
+                  <h2 className="text-2xl font-bold mb-4">Completed Tasks</h2>
+                  <div className="grid grid-cols-1 gap-4">
+                    {completedTasks.map(task => (
+                      <div key={task._id} className="bg-green-50 rounded-2xl p-4 border border-green-100">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h3 className="font-bold">{task.title}</h3>
+                            <div className="text-sm text-gray-600">{task.platform} • ₦{task.reward}</div>
+                            <div className="text-xs text-gray-500">Completed: {task.completedCount || 0} / {task.maxCompletions || '∞'}</div>
+                          </div>
+                          <div className="text-green-700 font-bold">Completed ✓</div>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button onClick={() => handleDelete(task)} className="px-4 py-2 bg-red-500 text-white rounded-md">Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
