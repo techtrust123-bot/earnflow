@@ -1,16 +1,41 @@
-const express = require("express")
-const router = express.Router()
+// const express = require("express")
+// const router = express.Router()
+//
+// const {
+//   connectTwitter,
+//   twitterCallback
+// } = require("../controllers/twitterAuth")
+
+// // 1️⃣ Start Twitter OAuth
+// router.get("/connect", protect, connectTwitter)
+
+// // 2️⃣ Twitter Callback
+// router.get("/callback", twitterCallback)
+
+
+
+// module.exports = router
+
+
+
+
+// routes/twitter.js
+const express = require('express');
+const router = express.Router();
+const passport = require('../config/passport');
 const { protect } = require("../middleweres/authmiddlewere")
-const {
-  connectTwitter,
-  twitterCallback
-} = require("../controllers/twitterAuth")
 
-// 1️⃣ Start Twitter OAuth
-router.get("/connect", protect, connectTwitter)
+// Start OAuth flow
+router.get('/connect', passport.authenticate('twitter'));
 
-// 2️⃣ Twitter Callback
-router.get("/callback", twitterCallback)
+// Callback
+router.get('/callback',
+  passport.authenticate('twitter', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Successful authentication
+    res.redirect('/profile?twitter=linked');
+  }
+);
 
 // 3️⃣ Unlink Twitter
 router.delete("/unlink", protect, async (req, res) => {
@@ -31,4 +56,4 @@ router.delete("/unlink", protect, async (req, res) => {
   }
 })
 
-module.exports = router
+module.exports = router;
