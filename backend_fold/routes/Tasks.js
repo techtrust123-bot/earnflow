@@ -1,7 +1,7 @@
 const express = require("express")
 const { authMiddlewere, protect } = require("../middleweres/authmiddlewere")
 const authorizeRoles = require("../middleweres/roleMiddlewere")
-const { connectTwitter, twitterCallback } = require("../controllers/twitterAuth")
+// const { connectTwitter, twitterCallback } = require("../controllers/twitterAuth")
 const { completeTwitterTask, fetchUserCompletions } = require("../controllers/Task")
 const { blockSuspended } = require("../middleweres/blockSuspended")
 const router = express.Router()
