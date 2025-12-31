@@ -6,9 +6,7 @@ const { completeTwitterTask, fetchUserCompletions } = require("../controllers/Ta
 const { blockSuspended } = require("../middleweres/blockSuspended")
 const router = express.Router()
 
-// router.post("/complete/:id",authMiddlewere,authorizeRoles("admin","user"),completeTask)
-// router.get("/twitter/connect", authMiddlewere, connectTwitter)
-// router.get("/twitter/callback", twitterCallback)
+
 
 router.post(
   "/twitter/:id/complete",
