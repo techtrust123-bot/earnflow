@@ -99,18 +99,45 @@ const userSchema = new mongoose.Schema({
         type:Number,
         default: 0
     },
-    twitter: {
-        id: String,
-        username: String,
-        // OAuth2 fields (optional)
-        accessToken: String,
-        refreshToken: String,
-        // OAuth1.0a fields for user-context actions (follow/like verification)
-        token: String,
-        tokenSecret: String,
-        // Temporary storage during request_token flow
-        requestTokenSecret: String,
-        linkedAt: Date
+//     twitter: {
+//         id: String,
+//         username: String,
+//         // OAuth2 fields (optional)
+//         accessToken: String,
+//         refreshToken: String,
+//         // OAuth1.0a fields for user-context actions (follow/like verification)
+//         token: String,
+//         tokenSecret: String,
+//         // Temporary storage during request_token flow
+//         requestTokenSecret: String,
+//         linkedAt: Date
+//   },
+  accessToken:{
+        type: String,
+        default: ""
+  },
+  refreshToken:{
+        type: String,
+        default: ""
+  },
+  token:{
+        type: String,
+        default: ""
+  },
+  tokenSecret:{
+        type: String,
+        default: ""
+  },
+  requestTokenSecret:{
+        type: String,
+        default: ""
+  },
+  username:{
+        type: String,
+        default: ""
+  },
+  linkedAt: {
+        type: Date
   },
     tasksCompleted: {
         type: Number,
