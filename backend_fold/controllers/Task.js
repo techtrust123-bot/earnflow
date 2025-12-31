@@ -58,13 +58,13 @@ exports.completeTwitterTask = async (req, res) => {
     }
 
     // 6. Verify action per task type
-    // if (!user.twitter?.token || !user.twitter?.tokenSecret) {
-    //   return res.status(400).json({ success: false, message: 'Please link your Twitter account (full permissions) first' })
-    // }
+    if (!user.twitter?.token || !user.twitter?.tokenSecret) {
+      return res.status(400).json({ success: false, message: 'Please link your Twitter account (full permissions) first' })
+    }
 
-    if (!user.twitter?.accessToken) {
-        return res.status(400).json({ success: false, message: 'Please re-link your Twitter account' })
-  }
+  //   if (!user.twitter?.accessToken) {
+  //       return res.status(400).json({ success: false, message: 'Please re-link your Twitter account' })
+  // }
 
   let verified = false
 const vType = (task.verification?.type || '').toLowerCase()
