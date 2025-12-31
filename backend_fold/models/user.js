@@ -92,7 +92,8 @@ const userSchema = new mongoose.Schema({
     recentReferrals: [{
         name: String,
         date: String,
-        status: String,
+            requestToken: String,
+            requestTokenExpiresAt: Date,
         reward: Number
     }],
     balance:{

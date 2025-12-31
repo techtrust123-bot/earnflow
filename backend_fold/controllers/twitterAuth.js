@@ -94,9 +94,18 @@ exports.connectTwitter = async (req, res) => {
       throw new Error("Invalid request token response")
     }
 
-    // Save token secret temporarily
+    // Save request token and secret temporarily on the user for callback validation
+    const TOKEN_TTL_MS = 10 * 60 * 1000 // 10 minutes
+    const now = new Date()
+    const expiresAt = new Date(Date.now() + TOKEN_TTL_MS)
+    const existing = await User.findById(req.user.id)
     await User.findByIdAndUpdate(req.user.id, {
-      "twitter.requestTokenSecret": data.oauth_token_secret
+      twitter: {
+        ...(existing.twitter || {}),
+        requestToken: data.oauth_token,
+        requestTokenSecret: data.oauth_token_secret,
+        requestTokenExpiresAt: expiresAt
+      }
     })
 
     const redirectUrl = `https://api.twitter.com/oauth/authenticate?oauth_token=${data.oauth_token}`
@@ -121,13 +130,32 @@ exports.twitterCallback = async (req, res) => {
   try {
     const { oauth_token, oauth_verifier, state } = req.query
 
-    if (!oauth_token || !oauth_verifier || !state) {
-      return res.status(400).send("Missing OAuth parameters")
+    if (!oauth_token || !oauth_verifier) {
+      const redirect = `${process.env.FRONTEND_URL}/profile?twitter=failed&reason=${encodeURIComponent('missing_params')}`
+      return res.redirect(302, redirect)
     }
 
-    const user = await User.findById(state)
+    // Prefer state-based lookup (keeps original flow). If state is missing or session expired,
+    // fall back to finding the user who initiated the request using the saved request token.
+    let user = null
+    if (state) {
+      user = await User.findById(state)
+    }
+
+    if (!user) {
+      // try find by requestToken matching the oauth_token returned by Twitter
+      user = await User.findOne({ 'twitter.requestToken': oauth_token })
+    }
+
     if (!user || !user.twitter?.requestTokenSecret) {
-      return res.status(400).send("Invalid OAuth session")
+      const redirect = `${process.env.FRONTEND_URL}/profile?twitter=failed&reason=${encodeURIComponent('invalid_session')}`
+      return res.redirect(302, redirect)
+    }
+
+    // Ensure the saved request token hasn't expired
+    if (user.twitter.requestTokenExpiresAt && new Date(user.twitter.requestTokenExpiresAt) < new Date()) {
+      const redirect = `${process.env.FRONTEND_URL}/profile?twitter=failed&reason=${encodeURIComponent('expired')}`
+      return res.redirect(302, redirect)
     }
 
     const accessUrl = "https://api.twitter.com/oauth/access_token"
@@ -161,7 +189,8 @@ exports.twitterCallback = async (req, res) => {
       throw new Error("Invalid access token response")
     }
 
-    await User.findByIdAndUpdate(state, {
+    // Replace temporary request token fields with permanent access tokens
+    await User.findByIdAndUpdate(user._id, {
       twitter: {
         id: data.user_id,
         username: data.screen_name,
@@ -171,9 +200,19 @@ exports.twitterCallback = async (req, res) => {
       }
     })
 
+    // Clear temporary request token fields (if present)
+    try {
+      await User.updateOne({ _id: user._id }, { $unset: { 'twitter.requestToken': '', 'twitter.requestTokenSecret': '', 'twitter.requestTokenExpiresAt': '' } })
+    } catch (e) {
+      // non-fatal
+      console.warn('Could not clear temporary twitter request token fields', e && e.message)
+    }
+
     return res.redirect(`${process.env.FRONTEND_URL}/profile?twitter=linked`)
   } catch (err) {
     console.error("Twitter callback error:", err.response?.data || err.message)
-    return res.status(500).send("Twitter authentication failed")
+    const reason = encodeURIComponent((err && err.message) || 'server_error')
+    const redirect = `${process.env.FRONTEND_URL}/profile?twitter=failed&reason=${reason}`
+    return res.redirect(302, redirect)
   }
 }

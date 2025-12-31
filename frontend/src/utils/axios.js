@@ -3,6 +3,7 @@ import axios from 'axios'
 import store from '../app/store'  // ← Adjust path to your Redux store
 import { logout } from '../features/auth/authSlice'
 import API_URL from '../config/api'
+import toast from 'react-hot-toast'
 
 // Set base URL (use shared API_URL so frontend can use relative `/api`)
 axios.defaults.baseURL = API_URL
@@ -41,6 +42,12 @@ axios.interceptors.request.use((config) => {
 // Response interceptor: handle 401 globally by logging out and redirecting to login
 axios.interceptors.response.use((resp) => resp, (error) => {
   const status = error?.response?.status
+  // Network errors (no response) — show friendly toast
+  if (!error?.response) {
+    try {
+      toast.error('Network error: cannot reach API. Check your connection or server.')
+    } catch (e) {}
+  }
   // Allow individual requests to opt out of global logout (e.g. read-only pages)
   const skipLogout = !!error?.config?.headers?.['X-Skip-Logout']
   if (status === 401 && !skipLogout) {

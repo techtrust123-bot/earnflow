@@ -14,6 +14,7 @@ export default function Profile() {
   const dispatch = useDispatch()
 
   const [loading, setLoading] = useState(false)
+  const [showRetry, setShowRetry] = useState(false)
   const navigate = useNavigate()
 
   const handleConnectTwitter = async () => {
@@ -66,6 +67,8 @@ export default function Profile() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const twitterLinked = params.get('twitter') === 'linked'
+    const twitterFailed = params.get('twitter') === 'failed'
+    const failReason = params.get('reason')
 
     const refreshUser = async () => {
       try {
@@ -79,9 +82,33 @@ export default function Profile() {
     if (twitterLinked) {
       toast.success('Twitter linked')
       params.delete('twitter')
+      params.delete('reason')
       const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
       window.history.replaceState({}, '', newUrl)
       refreshUser()
+      setShowRetry(false)
+    } else if (twitterFailed) {
+      // map some reasons to friendly messages
+      const map = {
+        expired: 'OAuth session expired, please try connecting again',
+        invalid_session: 'OAuth session invalid — please retry linking your Twitter account',
+        missing_params: 'Twitter returned invalid response. Please try again',
+        server_error: 'Twitter linking failed due to a server error. Please retry.'
+      }
+      const msg = map[failReason] || decodeURIComponent(failReason || 'Twitter linking failed')
+      toast.error(msg)
+      params.delete('twitter')
+      params.delete('reason')
+      const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
+      window.history.replaceState({}, '', newUrl)
+      // refresh user (still helpful)
+      refreshUser()
+      // show retry option for common recoverable reasons
+      if (['expired', 'invalid_session'].includes(failReason)) {
+        setShowRetry(true)
+      } else {
+        setShowRetry(false)
+      }
     } else {
       refreshUser()
     }
@@ -89,6 +116,15 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-sky-50 to-indigo-50 p-6">
+      {showRetry && (
+        <div className="max-w-3xl mx-auto mb-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-between gap-4">
+          <div className="text-sm text-yellow-800">Twitter linking failed — you can retry connecting your account.</div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setShowRetry(false); handleConnectTwitter() }} className="px-3 py-2 bg-yellow-600 text-white rounded-full text-sm hover:bg-yellow-700">Retry Connect</button>
+            <button onClick={() => setShowRetry(false)} className="px-3 py-2 bg-white border rounded-full text-sm">Dismiss</button>
+          </div>
+        </div>
+      )}
       <Container size="md">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
