@@ -37,8 +37,7 @@ const requestWithUserAuth = (userToken, userTokenSecret, method, url, params = {
   });
 };
 
-// services/twitterVerify.js
-const axios = require('axios')
+
 
 exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
   try {
