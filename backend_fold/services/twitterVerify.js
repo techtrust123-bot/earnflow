@@ -37,42 +37,95 @@ const requestWithUserAuth = (userToken, userTokenSecret, method, url, params = {
   });
 };
 
-exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecret) => {
-  try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/users/${userTwitterId}/following`);
-    return res.data.data?.some(u => u.id === targetId);
-  } catch (err) {
-    console.error("Follow verify failed:", err.response?.data || err.message);
-    return false;
-  }
-};
+// services/twitterVerify.js
+const axios = require('axios')
 
-exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
   try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/liking_users`);
-    return res.data.data?.some(u => u.id === userTwitterId);
+    const res = await axios.get(`https://api.twitter.com/2/users/${userTwitterId}/following`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { max_results: 1000 }
+    })
+    return res.data.data?.some(u => u.id === targetId) || false
   } catch (err) {
-    return false;
+    console.error("Follow verify error:", err.response?.status)
+    return false
   }
-};
+}
 
-exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+exports.verifyLike = async (userTwitterId, tweetId, accessToken) => {
   try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`);
-    return res.data.data?.some(u => u.id === userTwitterId);
+    const res = await axios.get(`https://api.twitter.com/2/tweets/${tweetId}/liking_users`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+    return res.data.data?.some(u => u.id === userTwitterId) || false
   } catch (err) {
-    return false;
+    return false
   }
-};
+}
 
-exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+exports.verifyRepost = async (userTwitterId, tweetId, accessToken) => {
   try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/2/tweets/search/recent', {
-      query: `conversation_id:${tweetId} from:${userTwitterId}`,
-      max_results: 10
-    });
-    return res.data.data?.length > 0;
+    const res = await axios.get(`https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+    return res.data.data?.some(u => u.id === userTwitterId) || false
   } catch (err) {
-    return false;
+    return false
   }
-};
+}
+
+exports.verifyComment = async (userTwitterId, tweetId, accessToken) => {
+  try {
+    const res = await axios.get('https://api.twitter.com/2/tweets/search/recent', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        query: `conversation_id:${tweetId} from:${userTwitterId}`,
+        max_results: 10
+      }
+    })
+    return res.data.data?.length > 0 || false
+  } catch (err) {
+    return false
+  }
+}
+
+// exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/users/${userTwitterId}/following`);
+//     return res.data.data?.some(u => u.id === targetId);
+//   } catch (err) {
+//     console.error("Follow verify failed:", err.response?.data || err.message);
+//     return false;
+//   }
+// };
+
+// exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/liking_users`);
+//     return res.data.data?.some(u => u.id === userTwitterId);
+//   } catch (err) {
+//     return false;
+//   }
+// };
+
+// exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`);
+//     return res.data.data?.some(u => u.id === userTwitterId);
+//   } catch (err) {
+//     return false;
+//   }
+// };
+
+// exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/2/tweets/search/recent', {
+//       query: `conversation_id:${tweetId} from:${userTwitterId}`,
+//       max_results: 10
+//     });
+//     return res.data.data?.length > 0;
+//   } catch (err) {
+//     return false;
+//   }
+// };

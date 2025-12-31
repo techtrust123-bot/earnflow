@@ -18,6 +18,7 @@ export default function Tasks() {
   // ALL HOOKS MUST BE INSIDE THE COMPONENT
   const [tasks, setTasks] = useState([])
   const [completedTasks, setCompletedTasks] = useState([])
+  const [completedTaskObjects, setCompletedTaskObjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [processingTask, setProcessingTask] = useState(null)
   const navigate = useNavigate()
@@ -49,6 +50,29 @@ export default function Tasks() {
     fetchTasks()
   }, [])
 
+  // Fetch user's previously completed tasks (server-side records)
+  useEffect(() => {
+    const fetchCompletions = async () => {
+      try {
+        const res = await axios.get('/tasks/completions')
+        // Expecting { completions: [{ task: {...}, ... }] } or an array
+        const raw = Array.isArray(res.data) ? res.data : (res.data.completions || [])
+        const objs = raw.map(c => c.task || c)
+        const ids = objs.map(o => o && (o._id || o.id)).filter(Boolean)
+        setCompletedTaskObjects(objs)
+        setCompletedTasks(ids)
+      } catch (err) {
+        // if endpoint missing or error, silently continue — client will still show recent completions
+        // but surface a non-blocking toast for clarity
+        if (err.response && err.response.status !== 404) {
+          toast.error(err.response?.data?.message || 'Could not load completed tasks')
+        }
+      }
+    }
+
+    fetchCompletions()
+  }, [])
+
 // Show confirmation modal before running completion
 const handleComplete = (task) => {
   if (processingTask) return
@@ -63,7 +87,7 @@ const confirmComplete = async () => {
   setProcessingTask(task._id)
   try {
     const res = await axios.post(`/tasks/twitter/${task._id}/complete`)
-    if (res.data.success) {
+      if (res.data.success) {
       // Server returns updated balance — use it as source of truth
       if (typeof res.data.balance === 'number') {
         dispatch(updateBalance(res.data.balance))
@@ -75,6 +99,7 @@ const confirmComplete = async () => {
         const next = [...prev, task._id]
         return next
       })
+        setCompletedTaskObjects(prev => [...prev, { ...task, reward: res.data.reward }])
       // remove task from tasks list to reflect completed state immediately
       setTasks(prev => prev.filter(t => t._id !== task._id))
     }
@@ -114,7 +139,7 @@ const copyLink = async (task) => {
   // legacy client-side completion helper removed — server is source of truth
 
   const activeTasks = tasks.filter(task => !completedTasks.includes(task._id))
-  const completedTasksList = tasks.filter(task => completedTasks.includes(task._id))
+  const completedTasksList = completedTaskObjects
 
   if (loading) {
     return (

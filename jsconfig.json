@@ -4,5 +4,5 @@
     "module": "commonjs",
     "checkJs": false
   },
-  "exclude": ["backend"]
+  "exclude": ["backend_fold_temp_templet"]
 }

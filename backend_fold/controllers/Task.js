@@ -58,23 +58,41 @@ exports.completeTwitterTask = async (req, res) => {
     }
 
     // 6. Verify action per task type
-    if (!user.twitter?.token || !user.twitter?.tokenSecret) {
-      return res.status(400).json({ success: false, message: 'Please link your Twitter account (full permissions) first' })
-    }
+    // if (!user.twitter?.token || !user.twitter?.tokenSecret) {
+    //   return res.status(400).json({ success: false, message: 'Please link your Twitter account (full permissions) first' })
+    // }
 
-    let verified = false
-    const vType = (task.verification?.type || '').toLowerCase()
-    if (vType === 'follow') {
-      verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-    } else if (vType === 'like') {
-      verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-    } else if (vType === 'repost' || vType === 'retweet') {
-      verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-    } else if (vType === 'comment' || vType === 'reply') {
-      verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-    } else {
-      return res.status(400).json({ success: false, message: 'Unsupported verification type' })
-    }
+    if (!user.twitter?.accessToken) {
+        return res.status(400).json({ success: false, message: 'Please re-link your Twitter account' })
+  }
+
+  let verified = false
+const vType = (task.verification?.type || '').toLowerCase()
+if (vType === 'follow') {
+  verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.accessToken)
+} else if (vType === 'like') {
+  verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.accessToken)
+} else if (vType === 'repost' || vType === 'retweet') {
+  verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.accessToken)
+} else if (vType === 'comment' || vType === 'reply') {
+  verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.accessToken)
+}
+
+
+
+    // let verified = false
+    // const vType = (task.verification?.type || '').toLowerCase()
+    // if (vType === 'follow') {
+    //   verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    // } else if (vType === 'like') {
+    //   verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    // } else if (vType === 'repost' || vType === 'retweet') {
+    //   verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    // } else if (vType === 'comment' || vType === 'reply') {
+    //   verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+    // } else {
+    //   return res.status(400).json({ success: false, message: 'Unsupported verification type' })
+    // }
 
     if (!verified) {
       // Record failed attempt with details
@@ -196,13 +214,13 @@ const recheckCompletion = async (completion) => {
     try {
     const vType = (task.verification?.type || '').toLowerCase()
     if (vType === 'follow') {
-      stillValid = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.accessToken)
     } else if (vType === 'like') {
-      stillValid = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.accessToken)
     } else if (vType === 'repost' || vType === 'retweet') {
-      stillValid = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.accessToken)
     } else if (vType === 'comment' || vType === 'reply') {
-      stillValid = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.accessToken)
     } else {
       stillValid = false
     }
@@ -262,5 +280,22 @@ const revokeReward = async (completion, user, task) => {
     console.error("Revoke failed:", err)
   } finally {
     session.endSession()
+  }
+}
+
+// Return current user's rewarded task completions (populated with task details)
+exports.fetchUserCompletions = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' })
+
+    const completions = await TaskCompletion.find({ user: userId, status: 'rewarded' })
+      .populate('task')
+      .sort({ createdAt: -1 })
+
+    return res.status(200).json({ success: true, completions })
+  } catch (err) {
+    console.error('fetchUserCompletions error:', err)
+    return res.status(500).json({ success: false, message: err.message })
   }
 }
