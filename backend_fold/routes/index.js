@@ -1,6 +1,9 @@
 const express = require("express")
 const router = express.Router()
 
+// Health check endpoint for quick reachability tests
+router.get('/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }))
+
 router.use("/auth",require("./authRoute.js"))
 router.use("/twitter", require("./twitter.js"))
 router.use("/tasks",require("./adminTasks.js"))
