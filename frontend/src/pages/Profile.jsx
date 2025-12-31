@@ -19,7 +19,7 @@ export default function Profile() {
 
   const handleConnectTwitter = async () => {
     try {
-      const res = await axios.get('/tasks/twitter/connect')
+      const res = await axios.get('/twitter/connect')
       const redirectUrl = res.data?.redirectUrl
       if (redirectUrl) {
         window.location.href = redirectUrl
