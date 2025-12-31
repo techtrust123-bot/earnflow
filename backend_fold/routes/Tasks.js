@@ -1,5 +1,5 @@
 const express = require("express")
-const { authMiddlewere, protect } = require("../middleweres/authMiddlewere")
+const { authMiddlewere, protect } = require("../middleweres/authmiddlewere")
 const authorizeRoles = require("../middleweres/roleMiddlewere")
 const { connectTwitter, twitterCallback } = require("../controllers/twitterAuth")
 const { completeTwitterTask, fetchUserCompletions } = require("../controllers/Task")
