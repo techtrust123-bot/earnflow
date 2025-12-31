@@ -8,7 +8,7 @@ const taskCompletionSchema = new mongoose.Schema({
   },
   task: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "TwitterTask"
+    ref: "Task"
   },
 
   status: {
