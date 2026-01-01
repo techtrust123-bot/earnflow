@@ -150,7 +150,17 @@ router.get('/oauth1/connect', (req, res, next) => {
 router.get('/oauth1/callback',
   (req, res, next) => {
     try { console.debug('[twitter][oauth1] callback query:', req.query); } catch (e) {}
-    next()
+    try { console.debug('[twitter][oauth1] callback headers.cookie:', !!req.headers.cookie); } catch (e) {}
+    try {
+      const sessKeys = req.session ? Object.keys(req.session) : null;
+      console.debug('[twitter][oauth1] session present:', !!req.session, 'sessionKeys:', sessKeys);
+    } catch (e) {}
+
+    // Early failure when no cookie or session present (common cause of "no request token")
+    if (!req.headers.cookie) return res.redirect('/twitter/popup-close?twitter=failed&reason=missing_cookie');
+    if (!req.session || !req.sessionID) return res.redirect('/twitter/popup-close?twitter=failed&reason=missing_session');
+
+    next();
   },
   passport.authenticate('twitter-oauth1', { failureRedirect: '/twitter/popup-close?twitter=failed&reason=server_error' }),
   (req, res) => {
