@@ -91,8 +91,17 @@ router.get('/callback',
     // If the OAuth flow was started in a popup, redirect to a small page
     // that will notify the opener and close itself. Otherwise redirect
     // to the profile page for normal navigation.
-    const client = process.env.CLIENT_URL || ''
-    // prefer the popup-close endpoint on this server (same-origin)
+    console.log('Callback success - req.user:', req.user ? req.user.id : 'NO USER');
+    try { console.log('Callback success - req.session.passport:', req.session && req.session.passport); } catch (e) {}
+    try {
+      if (req.session && typeof req.session.save === 'function') {
+        req.session.save((err) => {
+          if (err) console.error('[twitter][oauth2] session save error:', err);
+          return res.redirect(`/twitter/popup-close?twitter=linked`);
+        });
+        return;
+      }
+    } catch (e) {}
     return res.redirect(`/twitter/popup-close?twitter=linked`)
   }
 );
@@ -165,6 +174,16 @@ router.get('/oauth1/callback',
   passport.authenticate('twitter-oauth1', { failureRedirect: '/twitter/popup-close?twitter=failed&reason=server_error' }),
   (req, res) => {
     try { console.debug('[twitter][oauth1] authenticated, user id:', req.user && req.user.id); } catch (e) {}
+    try {
+      if (req.session && typeof req.session.save === 'function') {
+        req.session.save((err) => {
+          if (err) console.error('[twitter][oauth1] session save error:', err);
+          try { console.debug('[twitter][oauth1] session.passport:', req.session.passport); } catch(e) {}
+          return res.redirect(`/twitter/popup-close?twitter=linked_oauth1`);
+        });
+        return;
+      }
+    } catch (e) {}
     return res.redirect(`/twitter/popup-close?twitter=linked_oauth1`);
   }
 );
@@ -199,6 +218,19 @@ router.delete('/unlink', (req, res) => {
   req.user.save();
   
   res.json({ success: true, message: 'Twitter unlinked' });
+});
+
+// Session test route for debugging persistence
+router.get('/test-session', (req, res) => {
+  try {
+    req.session._test = req.session._test ? req.session._test + 1 : 1;
+    req.session.save(() => {
+      res.json({ ok: true, session: { id: req.sessionID, test: req.session._test, passport: req.session.passport || null } });
+    });
+  } catch (err) {
+    console.error('[twitter] /test-session error', err);
+    res.status(500).json({ ok: false });
+  }
 });
 
 module.exports = router;
