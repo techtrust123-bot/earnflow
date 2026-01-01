@@ -44,21 +44,20 @@ console.log('NODE_ENV=', process.env.NODE_ENV);
 //     maxAge: 24 * 60 * 60 * 1000  // 24 hours
 //   }
 // }))
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGO_URI,
-      collectionName: "sessions"
-    }),
-    cookie: {
-      secure: true,
-      sameSite: "none"
-    }
-  })
-);
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'change_this_in_production',
+  resave: false,
+  saveUninitialized: false,
+  store: new MongoStore({
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: 'sessions'
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',  // HTTPS on Render
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000  // 24 hours
+  }
+}));
 
 // Middleware
 app.use(express.json());
