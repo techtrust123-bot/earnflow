@@ -17,19 +17,48 @@ export default function Profile() {
   const [showRetry, setShowRetry] = useState(false)
   const navigate = useNavigate()
 
-  const handleConnectTwitter = async () => {
-    try {
-      const res = await axios.get('/twitter/connect')
-      window.open('/api/twitter/connect', '_blank', 'width=600,height=700');
-      // const redirectUrl = res.data?.redirectUrl
-      // if (redirectUrl) {
-      //   window.location.href = redirectUrl
-      // } else {
-      //   toast.error('Failed to start Twitter connection')
-      // }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to connect Twitter')
+  const handleConnectTwitter = () => {
+    const url = `${API_URL}/twitter/connect`
+    const width = 600
+    const height = 700
+    const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2)
+    const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2)
+
+    // Try popup first; fallback to top-level navigation if blocked
+    const popup = window.open(url, 'TwitterConnect', `width=${width},height=${height},left=${left},top=${top}`)
+    if (!popup) {
+      // popup blocked — navigate the main window
+      window.location.href = url
+      return
     }
+
+    // Poll popup: when it becomes same-origin (redirected back to our site) or closes, refresh user
+    const pollInterval = 500
+    const poll = setInterval(async () => {
+      try {
+        if (popup.closed) {
+          clearInterval(poll)
+          try {
+            const { data } = await axios.get('/auth/me')
+            if (data?.user) dispatch(loginSuccess({ user: data.user, token: null, balance: data.balance }))
+          } catch (e) {}
+          return
+        }
+
+        // Once popup is redirected back to our origin we can safely read its location
+        const href = popup.location && popup.location.href
+        if (href && (href.includes('/profile') || href.includes('?twitter='))) {
+          popup.close()
+          clearInterval(poll)
+          try {
+            const { data } = await axios.get('/auth/me')
+            if (data?.user) dispatch(loginSuccess({ user: data.user, token: null, balance: data.balance }))
+          } catch (e) {}
+        }
+      } catch (e) {
+        // Cross-origin until redirect back to our site — ignore errors
+      }
+    }, pollInterval)
   }
 
   const handleUnlinkTwitter = async () => {
@@ -113,6 +142,35 @@ export default function Profile() {
     } else {
       refreshUser()
     }
+  }, [dispatch])
+
+  // Listen for messages from the OAuth popup (immediate notification)
+  useEffect(() => {
+    const handlePopupMessage = async (e) => {
+      try {
+        if (e.origin !== window.location.origin) return
+        const data = e.data || {}
+        if (!data.twitter) return
+
+        if (data.twitter === 'linked') {
+          toast.success('Twitter linked')
+        } else if (data.twitter === 'failed') {
+          toast.error('Twitter linking failed')
+        }
+
+        try {
+          const { data: res } = await axios.get('/auth/me')
+          if (res?.user) dispatch(loginSuccess({ user: res.user, token: null, balance: res.balance }))
+        } catch (err) {
+          // ignore
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    window.addEventListener('message', handlePopupMessage)
+    return () => window.removeEventListener('message', handlePopupMessage)
   }, [dispatch])
 
   return (
