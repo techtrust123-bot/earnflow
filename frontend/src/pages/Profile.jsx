@@ -19,13 +19,14 @@ export default function Profile() {
 
   const handleConnectTwitter = async () => {
     try {
-      const res = await axios.get('/tasks/twitter/connect')
-      const redirectUrl = res.data?.redirectUrl
-      if (redirectUrl) {
-        window.location.href = redirectUrl
-      } else {
-        toast.error('Failed to start Twitter connection')
-      }
+      const res = await axios.get('/twitter/connect')
+      window.open('/api/twitter/connect', '_blank', 'width=600,height=700');
+      // const redirectUrl = res.data?.redirectUrl
+      // if (redirectUrl) {
+      //   window.location.href = redirectUrl
+      // } else {
+      //   toast.error('Failed to start Twitter connection')
+      // }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to connect Twitter')
     }
