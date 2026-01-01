@@ -30,20 +30,36 @@ console.log('NODE_ENV=', process.env.NODE_ENV);
 // }));
 
 
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_production',
-  resave: false,
-  saveUninitialized: false,
-  store: new MongoStore({  // ← CHANGE TO "new MongoStore"
-    mongoUrl: process.env.MONGO_URI,
-    collectionName: 'sessions'  // Optional but good
-  }),
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000  // 24 hours
-  }
-}))
+// app.use(session({
+//   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_production',
+//   resave: false,
+//   saveUninitialized: false,
+//   store: new MongoStore({  // ← CHANGE TO "new MongoStore"
+//     mongoUrl: process.env.MONGO_URI,
+//     collectionName: 'sessions'  // Optional but good
+//   }),
+//   cookie: { 
+//     secure: process.env.NODE_ENV === 'production',
+//     httpOnly: true,
+//     maxAge: 24 * 60 * 60 * 1000  // 24 hours
+//   }
+// }))
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: "sessions"
+    }),
+    cookie: {
+      secure: true,
+      sameSite: "none"
+    }
+  })
+);
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
