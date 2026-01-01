@@ -127,7 +127,17 @@ router.get('/popup-close', (req, res) => {
 // --- OAuth1 (3-legged) connect and callback ---
 router.get('/oauth1/connect', (req, res, next) => {
   try { console.debug('[twitter][oauth1] sessionID:', req.sessionID); } catch(e) {}
-  const doAuth = () => passport.authenticate('twitter-oauth1')(req, res, next);
+  const doAuth = () => {
+    // wrap redirect so we can log the Twitter redirect URL (helps debug callback mismatches)
+    const origRedirect = res.redirect && res.redirect.bind(res);
+    if (origRedirect) {
+      res.redirect = function(url) {
+        try { console.debug('[twitter][oauth1] redirect to:', url); } catch (e) {}
+        return origRedirect(url);
+      }
+    }
+    passport.authenticate('twitter-oauth1')(req, res, next);
+  };
   try {
     if (req.session && typeof req.session.save === 'function') {
       req.session.save((err) => { if (err) console.error('[twitter][oauth1] session save error:', err); doAuth(); });
@@ -138,8 +148,13 @@ router.get('/oauth1/connect', (req, res, next) => {
 });
 
 router.get('/oauth1/callback',
-  passport.authenticate('twitter-oauth1', { failureRedirect: '/login?error=twitter1_failed' }),
+  (req, res, next) => {
+    try { console.debug('[twitter][oauth1] callback query:', req.query); } catch (e) {}
+    next()
+  },
+  passport.authenticate('twitter-oauth1', { failureRedirect: '/twitter/popup-close?twitter=failed&reason=server_error' }),
   (req, res) => {
+    try { console.debug('[twitter][oauth1] authenticated, user id:', req.user && req.user.id); } catch (e) {}
     return res.redirect(`/twitter/popup-close?twitter=linked_oauth1`);
   }
 );
