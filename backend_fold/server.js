@@ -15,6 +15,10 @@ dotenv.config();
 
 const app = express();
 
+// When running behind a proxy (Render, Heroku, etc.) trust the first proxy
+// so `cookie.secure` and IP detection work correctly for HTTPS setups.
+app.set('trust proxy', 1);
+
 // log environment for diagnostics
 console.log('NODE_ENV=', process.env.NODE_ENV);
 
