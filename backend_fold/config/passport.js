@@ -3,11 +3,15 @@ const TwitterOAuth2Strategy = require('passport-twitter-oauth2');
 const TwitterOAuth1Strategy = require('passport-twitter').Strategy;
 const User = require('../models/user');
 
-// Options for Twitter OAuth2
+// Options for Twitter OAuth2 (read from env into local vars first)
+const oauth2ClientID = process.env.TWITTER_CLIENT_ID;
+const oauth2ClientSecret = process.env.TWITTER_CLIENT_SECRET;
+const oauth2CallbackURL = process.env.TWITTER_CALLBACK_URL;
+
 const twitterOptions = {
-  clientID: process.env.TWITTER_CLIENT_ID,
-  clientSecret: process.env.TWITTER_CLIENT_SECRET,
-  callbackURL: process.env.TWITTER_CALLBACK_URL,
+  clientID: oauth2ClientID,
+  clientSecret: oauth2ClientSecret,
+  callbackURL: oauth2CallbackURL,
   // Explicit OAuth2 endpoints (ensure OAuth2 flow)
   authorizationURL: 'https://twitter.com/i/oauth2/authorize',
   tokenURL: 'https://api.twitter.com/2/oauth2/token',
@@ -61,10 +65,15 @@ const twitterVerify = async (accessToken, refreshToken, profile, done) => {
   }
 };
 
-const twitterStrategy = new TwitterOAuth2Strategy(twitterOptions, twitterVerify);
-// Give it a distinct name to avoid conflicts with any OAuth1 strategies
-twitterStrategy.name = 'twitter-oauth2';
-passport.use(twitterStrategy);
+// Register OAuth2 strategy only when credentials are present
+if (oauth2ClientID && oauth2ClientSecret) {
+  const twitterStrategy = new TwitterOAuth2Strategy(twitterOptions, twitterVerify);
+  // Give it a distinct name to avoid conflicts with any OAuth1 strategies
+  twitterStrategy.name = 'twitter-oauth2';
+  passport.use(twitterStrategy);
+} else {
+  console.warn('Skipping Twitter OAuth2 strategy: TWITTER_CLIENT_ID or TWITTER_CLIENT_SECRET not set');
+}
 
 // --- OAuth 1.0a (3-legged) strategy for endpoints requiring OAuth1 tokens ---
 const twitter1Verify = async (token, tokenSecret, profile, done) => {
@@ -103,15 +112,23 @@ const twitter1Verify = async (token, tokenSecret, profile, done) => {
   }
 };
 
+const oauth1ConsumerKey = process.env.TWITTER_CONSUMER_KEY || process.env.TWITTER_CLIENT_ID;
+const oauth1ConsumerSecret = process.env.TWITTER_CONSUMER_SECRET || process.env.TWITTER_CLIENT_SECRET;
+const oauth1CallbackURL = process.env.TWITTER_OAUTH1_CALLBACK_URL || process.env.TWITTER_CALLBACK_URL;
+
 const twitter1Options = {
-  consumerKey: process.env.TWITTER_CONSUMER_KEY || process.env.TWITTER_CLIENT_ID,
-  consumerSecret: process.env.TWITTER_CONSUMER_SECRET || process.env.TWITTER_CLIENT_SECRET,
-  callbackURL: process.env.TWITTER_OAUTH1_CALLBACK_URL || process.env.TWITTER_CALLBACK_URL
+  consumerKey: oauth1ConsumerKey,
+  consumerSecret: oauth1ConsumerSecret,
+  callbackURL: oauth1CallbackURL
 };
 
-const twitter1Strategy = new TwitterOAuth1Strategy(twitter1Options, twitter1Verify);
-twitter1Strategy.name = 'twitter-oauth1';
-passport.use(twitter1Strategy);
+if (oauth1ConsumerKey && oauth1ConsumerSecret) {
+  const twitter1Strategy = new TwitterOAuth1Strategy(twitter1Options, twitter1Verify);
+  twitter1Strategy.name = 'twitter-oauth1';
+  passport.use(twitter1Strategy);
+} else {
+  console.warn('Skipping Twitter OAuth1 strategy: TWITTER_CONSUMER_KEY or TWITTER_CONSUMER_SECRET not set');
+}
 
 // Serialize user ID to session
 passport.serializeUser((user, done) => {
