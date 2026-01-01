@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
-const MongoStore = require("connect-mongo");
+const MongoStore = require("connect-mongo")(session);
 const connectDb = require("./config/dbConfig");
 const passport = require("passport");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
@@ -17,45 +17,19 @@ const app = express();
 // log environment for diagnostics
 console.log('NODE_ENV=', process.env.NODE_ENV);
 
-
-// app.use(session({
-//   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_production',
-//   resave: false,
-//   saveUninitialized: false,
-//   store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
-//   cookie: { 
-//     secure: process.env.NODE_ENV === 'production',
-//     maxAge: 24 * 60 * 60 * 1000
-//   }
-// }));
-
-
-// app.use(session({
-//   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_production',
-//   resave: false,
-//   saveUninitialized: false,
-//   store: new MongoStore({  // ← CHANGE TO "new MongoStore"
-//     mongoUrl: process.env.MONGO_URI,
-//     collectionName: 'sessions'  // Optional but good
-//   }),
-//   cookie: { 
-//     secure: process.env.NODE_ENV === 'production',
-//     httpOnly: true,
-//     maxAge: 24 * 60 * 60 * 1000  // 24 hours
-//   }
-// }))
 app.use(session({
   secret: process.env.SESSION_SECRET || 'change_this_in_production',
   resave: false,
   saveUninitialized: false,
   store: new MongoStore({
     mongoUrl: process.env.MONGO_URI,
-    collectionName: 'sessions'
+    collectionName: 'sessions',
+    ttl: 14 * 24 * 60 * 60  // optional: expire after 14 days
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',  // HTTPS on Render
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000  // 24 hours
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
