@@ -4,7 +4,8 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
-const MongoStore = require("connect-mongo");
+const connectMongo = require("connect-mongo");
+const mongoose = require("mongoose");
 const connectDb = require("./config/dbConfig");
 const passport = require("passport");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
@@ -17,15 +18,37 @@ const app = express();
 // log environment for diagnostics
 console.log('NODE_ENV=', process.env.NODE_ENV);
 
+// Create a session store compatible with the installed `connect-mongo` version.
+let sessionStore = null;
+try {
+  const cm = connectMongo;
+  const ttl = 14 * 24 * 60 * 60; // expire after 14 days
+  const storeOpts = { mongoUrl: process.env.MONGO_URI, collectionName: 'sessions', ttl };
+
+  if (cm && typeof cm.create === 'function') {
+    // connect-mongo v4+ exposes `create()`
+    sessionStore = cm.create(storeOpts);
+  } else if (typeof cm === 'function') {
+    // older connect-mongo (v1-v3) exports a function that takes `session`
+    const OldStore = cm(session);
+    const mongooseConn = mongoose && mongoose.connection;
+    if (mongooseConn && mongooseConn.readyState) {
+      sessionStore = new OldStore({ mongooseConnection: mongooseConn, collection: 'sessions', ttl });
+    } else {
+      sessionStore = new OldStore({ url: process.env.MONGO_URI, collection: 'sessions', ttl });
+    }
+  } else {
+    console.warn('connect-mongo: unexpected export; falling back to MemoryStore');
+  }
+} catch (err) {
+  console.error('Error creating session store (connect-mongo):', err);
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'change_this_in_production',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60  // optional: expire after 14 days
-  }),
+  store: sessionStore || undefined,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
