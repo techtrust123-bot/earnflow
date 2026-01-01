@@ -16,40 +16,30 @@ router.get('/connect', (req, res, next) => {
   } catch (e) {
     console.error('[twitter] debug log failed', e)
   }
+
+  const doAuth = () => {
+    // Wrap res.redirect so we can log the exact redirect URL passport issues
+    const origRedirect = res.redirect && res.redirect.bind(res);
+    if (origRedirect) {
+      res.redirect = function(url) {
+        try { console.debug('[twitter] redirect to:', url); } catch (e) {}
+        return origRedirect(url);
+      }
+    }
+    passport.authenticate('twitter-oauth2')(req, res, next);
+  }
+
   try {
     if (req.session && typeof req.session.save === 'function') {
       req.session.save((err) => {
         if (err) console.error('[twitter] session save error:', err);
-        next();
+        doAuth();
       });
       return;
     }
   } catch (e) {}
-  next();
-}, passport.authenticate('twitter-oauth2'));
-    const doAuth = () => {
-      // Wrap res.redirect so we can log the exact redirect URL passport issues
-      const origRedirect = res.redirect && res.redirect.bind(res);
-      if (origRedirect) {
-        res.redirect = function(url) {
-          try { console.debug('[twitter] redirect to:', url); } catch (e) {}
-          return origRedirect(url);
-        }
-      }
-      passport.authenticate('twitter-oauth2')(req, res, next);
-    }
-
-    try {
-      if (req.session && typeof req.session.save === 'function') {
-        req.session.save((err) => {
-          if (err) console.error('[twitter] session save error:', err);
-          doAuth();
-        });
-        return;
-      }
-    } catch (e) {}
-    doAuth();
-  
+  doAuth();
+});
 
 // Debug endpoint: returns non-sensitive info about session and strategies
 router.get('/debug', (req, res) => {
