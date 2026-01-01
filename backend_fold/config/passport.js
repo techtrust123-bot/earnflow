@@ -58,6 +58,7 @@ const twitterVerify = async (accessToken, refreshToken, profile, done) => {
     }
 
     await user.save();
+    console.log('twitterVerify: saved user id=', user.id);
     return done(null, user);
   } catch (err) {
     console.error('Twitter auth error:', err);
@@ -105,6 +106,7 @@ const twitter1Verify = async (token, tokenSecret, profile, done) => {
     }
 
     await user.save();
+    console.log('twitter1Verify: saved user id=', user.id);
     return done(null, user);
   } catch (err) {
     console.error('Twitter OAuth1 auth error:', err);

@@ -63,6 +63,19 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Debug middleware: log session and passport presence for every request (helpful during OAuth troubleshooting)
+app.use((req, res, next) => {
+  try {
+    console.debug('[session-debug] Session ID:', req.sessionID);
+    try { console.debug('[session-debug] Session data keys:', req.session ? Object.keys(req.session) : null); } catch(e) {}
+    console.debug('[session-debug] Passport present on session:', !!(req.session && req.session.passport));
+    console.debug('[session-debug] req.user:', req.user ? req.user.id : 'not logged in');
+  } catch (e) {}
+  next();
+});
 
 // Helpful diagnostic when running in development — warns about cookie settings
 if (process.env.NODE_ENV !== 'production') {
@@ -74,8 +87,7 @@ if (process.env.NODE_ENV !== 'production') {
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(passport.initialize());
-app.use(passport.session());
+
 // resolve client `dist` located beside backend_fold
 const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
 
