@@ -45,6 +45,30 @@ router.get('/debug', (req, res) => {
   }
 })
 
+// Return redacted session contents for debugging (does not log secrets)
+router.get('/session', (req, res) => {
+  try {
+    if (!req.session) return res.json({ ok: true, session: null })
+
+    const clone = JSON.parse(JSON.stringify(req.session))
+    // Redact anything that looks like a token
+    const redact = (obj) => {
+      if (!obj || typeof obj !== 'object') return obj
+      for (const k of Object.keys(obj)) {
+        try {
+          if (/token|secret|pass|refresh|oauth/i.test(k) && obj[k]) obj[k] = '[REDACTED]'
+          else if (typeof obj[k] === 'object') redact(obj[k])
+        } catch (e) {}
+      }
+    }
+    redact(clone)
+    return res.json({ ok: true, session: clone })
+  } catch (err) {
+    console.error('[twitter] /session error', err)
+    return res.status(500).json({ ok: false })
+  }
+})
+
 // Callback
 router.get('/callback',
   passport.authenticate('twitter-oauth2', { 
