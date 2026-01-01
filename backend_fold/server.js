@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
-const MongoStore = require("connect-mongo")(session);
+const MongoStore = require("connect-mongo");
 const connectDb = require("./config/dbConfig");
 const passport = require("passport");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
@@ -21,7 +21,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'change_this_in_production',
   resave: false,
   saveUninitialized: false,
-  store: new MongoStore({
+  store: MongoStore.create({
     mongoUrl: process.env.MONGO_URI,
     collectionName: 'sessions',
     ttl: 14 * 24 * 60 * 60  // optional: expire after 14 days
