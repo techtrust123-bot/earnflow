@@ -3,7 +3,8 @@ const path = require("path");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-// Ensure DB connection before starting server
+const session = require("express-session");
+const MongoStore = require("connect-mongo");
 const connectDb = require("./config/dbConfig");
 const passport = require("passport");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
@@ -17,16 +18,28 @@ const app = express();
 console.log('NODE_ENV=', process.env.NODE_ENV);
 
 
-
-
-
-// resolve client `dist` located beside backend_fold
-const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_production',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
 
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
+app.use(passport.session());
+// resolve client `dist` located beside backend_fold
+const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+// resolve client `dist` located beside backend_fold
+const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+
+
 
 // CORS
 app.use(
@@ -62,9 +75,7 @@ app.get('/r/:code', async (req, res) => {
   }
 })
 
-// ============================
-// PRODUCTION: Serve frontend
-// ============================
+// Serve frontend in production
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(clientDistPath));
 
