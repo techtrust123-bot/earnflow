@@ -4,11 +4,50 @@ const router = express.Router();
 const passport = require('../config/passport');
 
 // Start OAuth — NO protect middleware
-router.get('/connect', passport.authenticate('twitter'));
+// Log session id for debugging and explicitly use the OAuth2 strategy name
+router.get('/connect', (req, res, next) => {
+  try { console.debug('[twitter] sessionID:', req.sessionID); } catch(e) {}
+  try {
+    const strategies = Object.keys(passport._strategies || {});
+    console.debug('[twitter] passport strategies:', strategies);
+    console.debug('[twitter] using strategy exists?', !!(passport._strategies && passport._strategies['twitter-oauth2']));
+    console.debug('[twitter] cookie header present?', !!req.headers.cookie);
+    console.debug('[twitter] session.passport keys:', req.session && req.session.passport ? Object.keys(req.session.passport) : null);
+  } catch (e) {
+    console.error('[twitter] debug log failed', e)
+  }
+  // Ensure session is saved before passport redirects to the provider
+  try {
+    if (req.session && typeof req.session.save === 'function') {
+      req.session.save((err) => {
+        if (err) console.error('[twitter] session save error:', err);
+        next();
+      });
+      return;
+    }
+  } catch (e) {}
+  next();
+}, passport.authenticate('twitter-oauth2'));
+
+// Debug endpoint: returns non-sensitive info about session and strategies
+router.get('/debug', (req, res) => {
+  try {
+    const strategies = Object.keys(passport._strategies || {});
+    const sessionInfo = {
+      sessionID: req.sessionID || null,
+      hasPassport: !!(req.session && req.session.passport),
+      passportKeys: req.session && req.session.passport ? Object.keys(req.session.passport) : []
+    }
+    return res.json({ ok: true, strategies, session: sessionInfo });
+  } catch (err) {
+    console.error('[twitter] /debug error', err)
+    return res.status(500).json({ ok: false })
+  }
+})
 
 // Callback
 router.get('/callback',
-  passport.authenticate('twitter', { 
+  passport.authenticate('twitter-oauth2', { 
     failureRedirect: '/login?error=twitter_failed' 
   }),
   (req, res) => {
