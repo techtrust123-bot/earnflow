@@ -36,8 +36,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 // resolve client `dist` located beside backend_fold
 const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
-// resolve client `dist` located beside backend_fold
-const clientDistPath = path.join(__dirname, '..', 'frontend', 'dist');
 
 
 
