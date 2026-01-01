@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('../config/passport');
+const axios = require('axios');
 
 // Start OAuth — NO protect middleware
 // Log session id for debugging and explicitly use the OAuth2 strategy name
@@ -122,6 +123,48 @@ router.get('/popup-close', (req, res) => {
   res.set('Content-Type', 'text/html')
   res.send(html)
 })
+
+// --- OAuth1 (3-legged) connect and callback ---
+router.get('/oauth1/connect', (req, res, next) => {
+  try { console.debug('[twitter][oauth1] sessionID:', req.sessionID); } catch(e) {}
+  const doAuth = () => passport.authenticate('twitter-oauth1')(req, res, next);
+  try {
+    if (req.session && typeof req.session.save === 'function') {
+      req.session.save((err) => { if (err) console.error('[twitter][oauth1] session save error:', err); doAuth(); });
+      return;
+    }
+  } catch (e) {}
+  doAuth();
+});
+
+router.get('/oauth1/callback',
+  passport.authenticate('twitter-oauth1', { failureRedirect: '/login?error=twitter1_failed' }),
+  (req, res) => {
+    return res.redirect(`/twitter/popup-close?twitter=linked_oauth1`);
+  }
+);
+
+// App-only bearer token (client credentials) — returns token data
+router.get('/bearer-token', async (req, res) => {
+  try {
+    const key = process.env.TWITTER_CLIENT_ID;
+    const secret = process.env.TWITTER_CLIENT_SECRET;
+    if (!key || !secret) return res.status(400).json({ ok: false, message: 'Missing consumer key/secret' });
+
+    const creds = Buffer.from(`${key}:${secret}`).toString('base64');
+    const response = await axios.post('https://api.twitter.com/oauth2/token', 'grant_type=client_credentials', {
+      headers: {
+        Authorization: `Basic ${creds}`,
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      }
+    });
+
+    return res.json({ ok: true, data: response.data });
+  } catch (err) {
+    console.error('[twitter] bearer-token error', err?.response?.data || err.message || err);
+    return res.status(500).json({ ok: false, error: err?.response?.data || err.message });
+  }
+});
 
 // Optional: Unlink
 router.delete('/unlink', (req, res) => {

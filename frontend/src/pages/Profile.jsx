@@ -18,7 +18,8 @@ export default function Profile() {
   const navigate = useNavigate()
 
   const handleConnectTwitter = () => {
-    const url = `${API_URL}/twitter/connect`
+    // Use OAuth1 3-legged connect endpoint (server-side uses 'twitter-oauth1')
+    const url = `${API_URL}/twitter/oauth1/connect`
     const width = 600
     const height = 700
     const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2)
@@ -96,7 +97,8 @@ export default function Profile() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const twitterLinked = params.get('twitter') === 'linked'
+    const twitterParam = params.get('twitter')
+    const twitterLinked = typeof twitterParam === 'string' && twitterParam.startsWith('linked')
     const twitterFailed = params.get('twitter') === 'failed'
     const failReason = params.get('reason')
 
@@ -152,7 +154,7 @@ export default function Profile() {
         const data = e.data || {}
         if (!data.twitter) return
 
-        if (data.twitter === 'linked') {
+        if (typeof data.twitter === 'string' && data.twitter.startsWith('linked')) {
           toast.success('Twitter linked')
         } else if (data.twitter === 'failed') {
           toast.error('Twitter linking failed')
