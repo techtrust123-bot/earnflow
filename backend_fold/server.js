@@ -18,17 +18,32 @@ const app = express();
 console.log('NODE_ENV=', process.env.NODE_ENV);
 
 
+// app.use(session({
+//   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_production',
+//   resave: false,
+//   saveUninitialized: false,
+//   store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+//   cookie: { 
+//     secure: process.env.NODE_ENV === 'production',
+//     maxAge: 24 * 60 * 60 * 1000
+//   }
+// }));
+
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback_secret_change_in_production',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  store: new MongoStore({  // ← CHANGE TO "new MongoStore"
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: 'sessions'  // Optional but good
+  }),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000  // 24 hours
   }
-}));
-
+}))
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
