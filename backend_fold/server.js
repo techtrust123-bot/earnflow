@@ -56,9 +56,20 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    // In production we need SameSite=None so cookies are sent after cross-site
+    // redirects (Twitter OAuth will redirect back to this callback). In
+    // development we use 'lax' which allows top-level GET navigations.
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
+
+// Helpful diagnostic when running in development — warns about cookie settings
+if (process.env.NODE_ENV !== 'production') {
+  console.warn('Session cookie settings: sameSite=lax (dev). If you use a popup and cookies appear missing, try a full-page redirect or disable strict cookie blocking in your browser.');
+} else {
+  console.warn('Running in production: ensure TWITTER_OAUTH1_CALLBACK_URL uses https and the developer app callback is configured with the exact URL.');
+}
 
 // Middleware
 app.use(express.json());
