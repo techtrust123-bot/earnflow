@@ -157,7 +157,7 @@ const port = process.env.PORT || 10000;
   try {
     await connectDb()
     app.listen(port, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`Server running on port ${port}`);
     });
   } catch (err) {
     console.error('Failed to start server due to DB error:', err.message || err)
