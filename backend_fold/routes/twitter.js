@@ -161,25 +161,113 @@ router.get('/oauth1/callback', async (req, res) => {
           console.error('[twitter][oauth1] session save error', saveErr);
           return res.redirect('/popup-close?twitter=failed&reason=session_save_failed');
         }
+              // If client has a JWT (cookie or Authorization header), link to that user
+              const cookieToken = req.cookies?.token;
+              const headerToken = req.get('authorization') ? req.get('authorization').split(' ')[1] : null;
+              const rawToken = cookieToken || headerToken;
 
-        delete req.session.oauthRequestToken;
-        delete req.session.oauthRequestTokenSecret;
+              try {
+                if (rawToken) {
+                  let decoded = null;
+                  try {
+                    decoded = jwt.verify(rawToken, process.env.SECRET || process.env.JWT_SECRET);
+                  } catch (e) {
+                    decoded = null;
+                  }
 
-        return res.redirect('/popup-close?twitter=linked_oauth1');
-      });
-    });
+                  if (decoded && decoded.id) {
+                    const existing = await User.findById(decoded.id);
+                    if (existing) {
+                      existing.twitter = {
+                        id: String(user_id),
+                        username: screen_name,
+                        token: accessToken,
+                        tokenSecret: accessSecret,
+                        linkedAt: new Date()
+                      };
+                      await existing.save();
+                      // clear temporary request token
+                      delete req.session.oauthRequestToken;
+                      delete req.session.oauthRequestTokenSecret;
+                      return res.redirect('/popup-close?twitter=linked_oauth1');
+                    }
+                  }
+                }
+              } catch (e) {
+                console.warn('[twitter][oauth1] jwt/link error', e && e.message);
+              }
+
+              // No JWT or could not link: find existing user by twitter id
+              let user = await User.findOne({ 'twitter.id': String(user_id) });
+              if (user) {
+                user.twitter = {
+                  ...user.twitter,
+                  token: accessToken,
+                  tokenSecret: accessSecret,
+                  username: screen_name,
+                  linkedAt: new Date()
+                };
+                await user.save();
+
+                // issue JWT cookie so frontend recognizes the user
+                try {
+                  if (process.env.SECRET) {
+                    const newToken = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '7d' });
+                    res.cookie('token', newToken, {
+                      httpOnly: true,
+                      secure: process.env.NODE_ENV === 'production',
+                      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                      maxAge: 24 * 60 * 60 * 1000
+                    });
+                  }
+                } catch (e) {
+                  console.warn('[twitter][oauth1] issue token cookie failed', e && e.message);
+                }
+
+                delete req.session.oauthRequestToken;
+                delete req.session.oauthRequestTokenSecret;
+                return res.redirect('/popup-close?twitter=linked_oauth1');
+              }
+
+              // Create new user and attach twitter info
+              user = new User({
+                name: screen_name || `twitter_${user_id}`,
+                email: null,
+                password: Date.now().toString(36),
+                twitter: {
+                  id: String(user_id),
+                  username: screen_name,
+                  token: accessToken,
+                  tokenSecret: accessSecret,
+                  linkedAt: new Date()
+                }
+              });
+              await user.save();
+
+              // issue JWT cookie for new user
+              try {
+                if (process.env.SECRET) {
+                  const newToken = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '7d' });
+                  res.cookie('token', newToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                    maxAge: 24 * 60 * 60 * 1000
+                  });
+                }
+              } catch (e) {
+                console.warn('[twitter][oauth1] sign token failed', e && e.message);
+              }
+
+              delete req.session.oauthRequestToken;
+              delete req.session.oauthRequestTokenSecret;
+              return res.redirect('/popup-close?twitter=linked_oauth1');
+            });
+          });
   } catch (err) {
     console.error('[twitter][oauth1] access_token error', err);
-    return res.redirect('/twitter/popup-close?twitter=failed&reason=access_token_failed');
+    return res.redirect('/popup-close?twitter=failed&reason=access_token_error');
   }
-});
-
-// Unlink
-router.delete('/unlink', (req, res) => {
-  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-  req.user.twitter = undefined;
-  req.user.save();
-  res.json({ success: true, message: 'Twitter unlinked' });
 });
 
 module.exports = router;
