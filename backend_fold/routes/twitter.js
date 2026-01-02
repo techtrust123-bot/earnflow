@@ -180,17 +180,39 @@ router.get('/oauth1/callback', async (req, res) => {
     await user.save();
 
     // log the user in (populate passport session)
-    req.login(user, (err) => {
-      if (err) {
-        console.error('[twitter][oauth1] req.login error', err);
-        return res.redirect('/twitter/popup-close?twitter=failed&reason=login_failed');
-      }
+    // req.login(user, (err) => {
+    //   if (err) {
+    //     console.error('[twitter][oauth1] req.login error', err);
+    //     return res.redirect('/twitter/popup-close?twitter=failed&reason=login_failed');
+    //   }
 
-      // clear temporary request token data
-      try { delete req.session.oauthRequestToken; delete req.session.oauthRequestTokenSecret; req.session.save(() => {}); } catch(e) {}
+    //   // clear temporary request token data
+    //   try { delete req.session.oauthRequestToken; delete req.session.oauthRequestTokenSecret; req.session.save(() => {}); } catch(e) {}
 
-      return res.redirect(`/twitter/popup-close?twitter=linked_oauth1`);
-    });
+    //   return res.redirect(`/twitter/popup-close?twitter=linked_oauth1`);
+    // });
+   req.login(user, (err) => {
+  if (err) {
+    console.error('[twitter][oauth1] req.login error', err);
+    return res.redirect('/twitter/popup-close?twitter=failed&reason=login_failed');
+  }
+
+  // CRITICAL FIX: Save session before redirect
+  req.session.save((saveErr) => {
+    if (saveErr) {
+      console.error('[twitter][oauth1] session save error', saveErr);
+      return res.redirect('/twitter/popup-close?twitter=failed&reason=session_save_failed');
+    }
+
+    console.log('Twitter linked successfully for user:', user._id);
+
+    // clear temporary request token data
+    delete req.session.oauthRequestToken;
+    delete req.session.oauthRequestTokenSecret;
+
+    return res.redirect(`/twitter/popup-close?twitter=linked_oauth1`);
+  });
+});
   } catch (err) {
     console.error('[twitter][oauth1] access_token error', err?.response?.data || err.message || err);
     return res.redirect('/twitter/popup-close?twitter=failed&reason=access_token_failed');
