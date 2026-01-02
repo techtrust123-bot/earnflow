@@ -153,67 +153,75 @@
 
 
 const passport = require('passport');
-const TwitterStrategy = require('passport-twitter-oauth2');
+const TwitterOAuth2Strategy = require('passport-twitter-oauth2');
 const User = require('../models/user');
 
-passport.use(
-  new TwitterStrategy(
-    {
-      clientID: process.env.TWITTER_CLIENT_ID,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET,
-      callbackURL: process.env.TWITTER_CALLBACK_URL,
-      includeEmail: true,
-      scope: [
-        'tweet.read',
-        'users.read',
-        'follows.read',
-        'follows.write',
-        'like.read',
-        'like.write',
-        'offline.access'
-      ],
-      pkce: true,
-      state: true
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        if (!profile?.id) return done(new Error('No Twitter ID received'), null);
+// Register OAuth2 (Twitter API v2) strategy only when credentials present
+const oauth2ClientID = process.env.TWITTER_CLIENT_ID;
+const oauth2ClientSecret = process.env.TWITTER_CLIENT_SECRET;
+const oauth2CallbackURL = process.env.TWITTER_CALLBACK_URL;
 
-        let user = await User.findOne({ 'twitter.id': profile.id });
-        if (!user) {
-          user = new User({
-            name: profile.displayName || profile.username,
-            email: profile.emails?.[0]?.value || null,
-            twitter: {
-              id: profile.id,
-              username: profile.username,
-              displayName: profile.displayName,
-              accessToken,
-              refreshToken,
-              linkedAt: new Date()
-            }
-          });
-        } else {
-          user.twitter = {
-            ...user.twitter,
+if (oauth2ClientID && oauth2ClientSecret) {
+  const twitterOptions = {
+    clientID: oauth2ClientID,
+    clientSecret: oauth2ClientSecret,
+    callbackURL: oauth2CallbackURL,
+    authorizationURL: 'https://twitter.com/i/oauth2/authorize',
+    tokenURL: 'https://api.twitter.com/2/oauth2/token',
+    includeEmail: true,
+    scope: [
+      'tweet.read',
+      'users.read',
+      'follows.read',
+      'follows.write',
+      'like.read',
+      'like.write',
+      'offline.access'
+    ],
+    pkce: true,
+    state: true
+  };
+
+  passport.use(new TwitterOAuth2Strategy(twitterOptions, async (accessToken, refreshToken, profile, done) => {
+    try {
+      if (!profile?.id) return done(new Error('No Twitter ID received'), null);
+      let user = await User.findOne({ 'twitter.id': profile.id });
+      if (!user) {
+        user = new User({
+          name: profile.displayName || profile.username,
+          email: profile.emails?.[0]?.value || null,
+          twitter: {
+            id: profile.id,
+            username: profile.username,
+            displayName: profile.displayName,
             accessToken,
             refreshToken,
-            username: profile.username,
-            displayName: profile.displayName
-          };
-        }
-
-        await user.save();
-        return done(null, user);
-      } catch (err) {
-        console.error('Twitter auth error:', err);
-        return done(err, null);
+            linkedAt: new Date()
+          }
+        });
+      } else {
+        user.twitter = {
+          ...user.twitter,
+          accessToken,
+          refreshToken,
+          username: profile.username,
+          displayName: profile.displayName
+        };
       }
+      await user.save();
+      console.log('twitter-oauth2 verify saved user id=', user.id);
+      return done(null, user);
+    } catch (err) {
+      console.error('Twitter auth error:', err);
+      return done(err, null);
     }
-  )
-);
+  }));
+  console.log('Twitter OAuth2 strategy registered');
+} else {
+  console.warn('Skipping Twitter OAuth2 strategy: TWITTER_CLIENT_ID or TWITTER_CLIENT_SECRET not set');
+}
 
-// Serialize/deserialize user for session
+// Passport session handling (serialize/deserialize)
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
   try {
