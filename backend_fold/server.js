@@ -151,7 +151,7 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-const PORT = process.env.PORT || 10000;
+const port = process.env.PORT || 10000;
 
 (async function start() {
   try {
@@ -184,3 +184,7 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
   process.exit(1);
 });
+
+app.listen(port,()=>{
+  console.log(`server is running on http://localhost:${port} `)
+})

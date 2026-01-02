@@ -25,6 +25,8 @@
     "crypto-js": "^4.2.0",
     "dotenv": "^17.2.3",
     "express-session": "^1.18.2",
-    "oauth-1.0a": "^2.2.6"
+    "oauth-1.0a": "^2.2.6",
+    "passport": "^0.7.0",
+    "passport-twitter-oauth2": "^2.1.1"
   }
 }
