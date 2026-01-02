@@ -156,7 +156,7 @@ const port = process.env.PORT || 10000;
 (async function start() {
   try {
     await connectDb()
-    app.listen(PORT, () => {
+    app.listen(port, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (err) {
@@ -185,6 +185,6 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-app.listen(port,()=>{
-  console.log(`server is running on http://localhost:${port} `)
-})
+// app.listen(port,()=>{
+//   console.log(`server is running on http://localhost:${port} `)
+// })
