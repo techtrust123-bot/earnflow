@@ -19,11 +19,28 @@ function createOauthClient() {
 
 // Debug endpoints
 router.get('/debug', (req, res) => {
-  // ... your debug code ...
+  try {
+    const info = {
+      ok: true,
+      strategies: req._passport ? Object.keys(req._passport) : ['session'],
+      session: {
+        id: req.sessionID,
+        hasPassport: !!req.session?.passport,
+        passportKeys: req.session?.passport ? Object.keys(req.session.passport) : []
+      }
+    };
+    res.json(info);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
+  }
 });
 
 router.get('/session', (req, res) => {
-  // ... your session code ...
+  try {
+    res.json({ ok: true, session: req.session });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
+  }
 });
 
 // Popup close page
@@ -44,7 +61,39 @@ router.get('/popup-close', (req, res) => {
 
 // OAuth1 Connect
 router.get('/oauth1/connect', async (req, res) => {
-  // ... your working /oauth1/connect code ...
+  try {
+    const callbackUrl = process.env.TWITTER_OAUTH1_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/twitter/oauth1/callback`;
+    const oauth = createOauthClient();
+    const request_data = { url: 'https://api.twitter.com/oauth/request_token', method: 'POST', data: { oauth_callback: callbackUrl } };
+
+    const headers = oauth.toHeader(oauth.authorize(request_data));
+    const r = await axios.post(request_data.url, null, { headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const params = new URLSearchParams(r.data);
+
+    const oauth_token = params.get('oauth_token');
+    const oauth_token_secret = params.get('oauth_token_secret');
+
+    if (!oauth_token || !oauth_token_secret) {
+      console.error('[twitter][oauth1] missing request token response', r.data);
+      return res.redirect('/popup-close?twitter=failed&reason=request_token_failed');
+    }
+
+    req.session.oauthRequestToken = oauth_token;
+    req.session.oauthRequestTokenSecret = oauth_token_secret;
+
+    // Save session then redirect to Twitter authorize
+    req.session.save((err) => {
+      if (err) {
+        console.error('[twitter][oauth1] session save error', err);
+        return res.redirect('/popup-close?twitter=failed&reason=session_save_failed');
+      }
+      const authUrl = `https://api.twitter.com/oauth/authenticate?oauth_token=${encodeURIComponent(oauth_token)}`;
+      return res.redirect(authUrl);
+    });
+  } catch (err) {
+    console.error('[twitter][oauth1] request_token error', err);
+    return res.redirect('/popup-close?twitter=failed&reason=request_token_error');
+  }
 });
 
 // OAuth1 Callback — ONLY ONE OF THESE
@@ -56,8 +105,8 @@ router.get('/oauth1/callback', async (req, res) => {
     const storedToken = req.session?.oauthRequestToken;
     const storedSecret = req.session?.oauthRequestTokenSecret;
 
-    if (!oauth_token || !oauth_verifier) return res.redirect('/twitter/popup-close?twitter=failed&reason=missing_params');
-    if (!storedToken || !storedSecret || storedToken !== oauth_token) return res.redirect('/twitter/popup-close?twitter=failed&reason=missing_request_token');
+    if (!oauth_token || !oauth_verifier) return res.redirect('/popup-close?twitter=failed&reason=missing_params');
+    if (!storedToken || !storedSecret || storedToken !== oauth_token) return res.redirect('/popup-close?twitter=failed&reason=missing_request_token');
 
     const oauth = createOauthClient();
     const token = { key: oauth_token, secret: storedSecret };
@@ -104,19 +153,19 @@ router.get('/oauth1/callback', async (req, res) => {
     req.login(user, (err) => {
       if (err) {
         console.error('[twitter][oauth1] req.login error', err);
-        return res.redirect('/twitter/popup-close?twitter=failed&reason=login_failed');
+        return res.redirect('/popup-close?twitter=failed&reason=login_failed');
       }
 
       req.session.save((saveErr) => {
         if (saveErr) {
           console.error('[twitter][oauth1] session save error', saveErr);
-          return res.redirect('/twitter/popup-close?twitter=failed&reason=session_save_failed');
+          return res.redirect('/popup-close?twitter=failed&reason=session_save_failed');
         }
 
         delete req.session.oauthRequestToken;
         delete req.session.oauthRequestTokenSecret;
 
-        return res.redirect('/twitter/popup-close?twitter=linked_oauth1');
+        return res.redirect('/popup-close?twitter=linked_oauth1');
       });
     });
   } catch (err) {
