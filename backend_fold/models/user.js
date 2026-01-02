@@ -103,6 +103,7 @@ const userSchema = new mongoose.Schema({
     twitter: {
         id: String,
         username: String,
+        displayName: String,
         // OAuth2 fields (optional)
         accessToken: String,
         refreshToken: String,
