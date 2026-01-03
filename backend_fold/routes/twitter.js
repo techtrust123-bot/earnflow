@@ -120,28 +120,6 @@ if (process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
   router.get('/oauth2/connect', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
   router.get('/oauth2/callback', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
 }
-  try {
-    // `req.user` is set by passport verify; issue JWT cookie for frontend
-    const user = req.user;
-    if (user && process.env.SECRET) {
-      try {
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '7d' });
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-          maxAge: 24 * 60 * 60 * 1000
-        });
-      } catch (e) {
-        console.warn('[twitter][oauth2] could not sign cookie', e && e.message);
-      }
-    }
-    return res.redirect('/api/twitter/popup-close?twitter=linked_oauth2');
-  } catch (err) {
-    console.error('[twitter][oauth2] callback error', err);
-    return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error');
-  }
-
 
 // OAuth1 Callback — ONLY ONE OF THESE
 router.get('/oauth1/callback', twitterAuth.callback);
