@@ -6,7 +6,7 @@ const axios = require('axios');
 const oauth = OAuth({
   consumer: {
     key: process.env.TWITTER_CONSUMER_KEY,
-    secret: process.env.TWITTER_CONSUMER_SECRET
+    secret: process.env.TWITTER_CLIENT_SECRET
   },
   signature_method: 'HMAC-SHA1',
   hash_function(base_string, key) {

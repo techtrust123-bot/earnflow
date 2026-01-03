@@ -57,26 +57,32 @@ exports.completeTwitterTask = async (req, res) => {
       })
     }
 
-    // 6. Verify action per task type
-    if (!user.twitter?.token || !user.twitter?.tokenSecret) {
-      return res.status(400).json({ success: false, message: 'Please link your Twitter account (full permissions) first' })
+    // // 6. Verify action per task type
+    // if (!user.twitter?.token || !user.twitter?.tokenSecret) {
+    //   return res.status(400).json({ success: false, message: 'Please link your Twitter account (full permissions) first' })
+    // }
+
+    // Require either OAuth2 accessToken or OAuth1 token+secret
+    if (!user.twitter?.accessToken && !(user.twitter?.token && user.twitter?.tokenSecret)) {
+      return res.status(400).json({ success: false, message: 'Please link your Twitter account with required permissions' })
     }
 
-  //   if (!user.twitter?.accessToken) {
-  //       return res.status(400).json({ success: false, message: 'Please re-link your Twitter account' })
-  // }
+    // Prepare auth args: if OAuth1 tokens present, use them; otherwise use OAuth2 access token
+    const isOAuth1 = !!(user.twitter?.token && user.twitter?.tokenSecret)
+    const authArg1 = isOAuth1 ? user.twitter.token : user.twitter.accessToken
+    const authArg2 = isOAuth1 ? user.twitter.tokenSecret : undefined
 
-  let verified = false
-const vType = (task.verification?.type || '').toLowerCase()
-if (vType === 'follow') {
-  verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-} else if (vType === 'like') {
-  verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-} else if (vType === 'repost' || vType === 'retweet') {
-  verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-} else if (vType === 'comment' || vType === 'reply') {
-  verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
-}
+    let verified = false
+    const vType = (task.verification?.type || '').toLowerCase()
+    if (vType === 'follow') {
+      verified = await verifyFollow(user.twitter.id, task.verification.targetId, authArg1, authArg2)
+    } else if (vType === 'like') {
+      verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, authArg1, authArg2)
+    } else if (vType === 'repost' || vType === 'retweet') {
+      verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, authArg1, authArg2)
+    } else if (vType === 'comment' || vType === 'reply') {
+      verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, authArg1, authArg2)
+    }
 
 
 
@@ -219,14 +225,17 @@ const recheckCompletion = async (completion) => {
   // Use verifyTask for rechecks as well
     try {
     const vType = (task.verification?.type || '').toLowerCase()
+    const isOAuth1 = !!(user.twitter?.token && user.twitter?.tokenSecret)
+    const authArg1 = isOAuth1 ? user.twitter.token : user.twitter.accessToken
+    const authArg2 = isOAuth1 ? user.twitter.tokenSecret : undefined
     if (vType === 'follow') {
-      stillValid = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyFollow(user.twitter.id, task.verification.targetId, authArg1, authArg2)
     } else if (vType === 'like') {
-      stillValid = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, authArg1, authArg2)
     } else if (vType === 'repost' || vType === 'retweet') {
-      stillValid = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, authArg1, authArg2)
     } else if (vType === 'comment' || vType === 'reply') {
-      stillValid = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
+      stillValid = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, authArg1, authArg2)
     } else {
       stillValid = false
     }
