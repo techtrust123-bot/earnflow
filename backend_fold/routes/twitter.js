@@ -79,67 +79,67 @@ if (process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
     }
   }
 
-  router.get('/oauth2/connect', (req, res, next) => {
-    try {
-      if (hasStrategy('twitter-oauth2')) {
-        return passport.authenticate('twitter-oauth2', { scope: [
-          'tweet.read', 'users.read', 'follows.read', 'follows.write', 'like.read', 'like.write', 'offline.access'
-        ], session: false })(req, res, next)
-      }
-      // Fallback to manual PKCE implementation in controller
-      console.warn('[twitter][oauth2] strategy missing, using manual PKCE connect')
-      return twitterAuth.oauth2Connect(req, res, next)
-    } catch (err) {
-      console.error('[twitter][oauth2] connect error', err)
-      return res.status(500).json({ error: 'Server error initiating OAuth2' })
-    }
-  });
+  // router.get('/oauth2/connect', (req, res, next) => {
+  //   try {
+  //     if (hasStrategy('twitter-oauth2')) {
+  //       return passport.authenticate('twitter-oauth2', { scope: [
+  //         'tweet.read', 'users.read', 'follows.read', 'follows.write', 'like.read', 'like.write', 'offline.access'
+  //       ], session: false })(req, res, next)
+  //     }
+  //     // Fallback to manual PKCE implementation in controller
+  //     console.warn('[twitter][oauth2] strategy missing, using manual PKCE connect')
+  //     return twitterAuth.oauth2Connect(req, res, next)
+  //   } catch (err) {
+  //     console.error('[twitter][oauth2] connect error', err)
+  //     return res.status(500).json({ error: 'Server error initiating OAuth2' })
+  //   }
+  // });
 
 
-  router.get('/oauth2/callback', (req, res, next) => {
-    try {
-      if (hasStrategy('twitter-oauth2')) {
-        return passport.authenticate('twitter-oauth2', { failureRedirect: '/api/twitter/popup-close?twitter=failed', session: false })(req, res, async () => {
-          try {
-            const user = req.user;
-            if (user && process.env.SECRET) {
-              try {
-                const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '7d' });
-                res.cookie('token', token, {
-                  httpOnly: true,
-                  secure: process.env.NODE_ENV === 'production',
-                  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                  maxAge: 24 * 60 * 60 * 1000
-                });
-              } catch (e) {
-                console.warn('[twitter][oauth2] could not sign cookie', e && e.message);
-              }
-            }
-            return res.redirect('/api/twitter/popup-close?twitter=linked_oauth2');
-          } catch (err) {
-            console.error('[twitter][oauth2] callback error', err);
-            return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error');
-          }
-        })
-      }
-      // Fallback to manual PKCE callback handler
-      console.warn('[twitter][oauth2] strategy missing, using manual PKCE callback')
-      return twitterAuth.oauth2Callback(req, res, next)
-    } catch (err) {
-      console.error('[twitter][oauth2] callback wrapper error', err)
-      return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error')
-    }
-  });
-} else {
-  // Graceful 501 when OAuth2 not configured
-  router.get('/oauth2/connect', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
-  router.get('/oauth2/callback', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
+  // router.get('/oauth2/callback', (req, res, next) => {
+  //   try {
+  //     if (hasStrategy('twitter-oauth2')) {
+  //       return passport.authenticate('twitter-oauth2', { failureRedirect: '/api/twitter/popup-close?twitter=failed', session: false })(req, res, async () => {
+  //         try {
+  //           const user = req.user;
+  //           if (user && process.env.SECRET) {
+  //             try {
+  //               const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '7d' });
+  //               res.cookie('token', token, {
+  //                 httpOnly: true,
+  //                 secure: process.env.NODE_ENV === 'production',
+  //                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  //                 maxAge: 24 * 60 * 60 * 1000
+  //               });
+  //             } catch (e) {
+  //               console.warn('[twitter][oauth2] could not sign cookie', e && e.message);
+  //             }
+  //           }
+  //           return res.redirect('/api/twitter/popup-close?twitter=linked_oauth2');
+  //         } catch (err) {
+  //           console.error('[twitter][oauth2] callback error', err);
+  //           return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error');
+  //         }
+  //       })
+  //     }
+  //     // Fallback to manual PKCE callback handler
+  //     console.warn('[twitter][oauth2] strategy missing, using manual PKCE callback')
+  //     return twitterAuth.oauth2Callback(req, res, next)
+  //   } catch (err) {
+  //     console.error('[twitter][oauth2] callback wrapper error', err)
+  //     return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error')
+  //   }
+  // });
+// } else {
+//   // Graceful 501 when OAuth2 not configured
+//   router.get('/oauth2/connect', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
+//   router.get('/oauth2/callback', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
 }
 
 // OAuth1 Callback — ONLY ONE OF THESE
 // Manual test endpoints to force the PKCE handlers (bypass passport)
-router.get('/oauth2/manual/connect', twitterAuth.oauth2Connect);
-router.get('/oauth2/manual/callback', twitterAuth.oauth2Callback);
+router.get('/oauth2/connect', twitterAuth.oauth2Connect);
+router.get('/oauth2/callback', twitterAuth.oauth2Callback);
 
 router.get('/oauth1/callback', twitterAuth.callback);
 
