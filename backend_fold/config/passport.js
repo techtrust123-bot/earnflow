@@ -185,7 +185,7 @@ if (oauth2ClientID && oauth2ClientSecret) {
   };
 
   // passReqToCallback allows linking to an authenticated JWT user (from req.cookies)
-  passport.use(new TwitterOAuth2Strategy(twitterOptions, async (req, accessToken, refreshToken, profile, done) => {
+  const twitterStrategy = new TwitterOAuth2Strategy(twitterOptions, async (req, accessToken, refreshToken, profile, done) => {
     try {
       if (!profile?.id) return done(new Error('No Twitter ID received'), null);
 
@@ -248,7 +248,9 @@ if (oauth2ClientID && oauth2ClientSecret) {
       console.error('Twitter auth error:', err);
       return done(err, null);
     }
-  }));
+  });
+  twitterStrategy.name = 'twitter-oauth2';
+  passport.use(twitterStrategy);
   console.log('Twitter OAuth2 strategy registered');
 } else {
   console.warn('Skipping Twitter OAuth2 strategy: TWITTER_CLIENT_ID or TWITTER_CLIENT_SECRET not set');

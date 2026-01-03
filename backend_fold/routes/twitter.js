@@ -66,11 +66,60 @@ router.get('/popup-close', (req, res) => {
 // OAuth1 Connect
 router.get('/oauth1/connect', twitterAuth.connect);
 // OAuth2 Connect (Twitter API v2)
-router.get('/oauth2/connect', passport.authenticate('twitter-oauth2', { scope: [
-  'tweet.read', 'users.read', 'follows.read', 'follows.write', 'like.read', 'like.write', 'offline.access'
-], session: false }));
+if (process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
+  router.get('/oauth2/connect', (req, res, next) => {
+    try {
+      if (!passport._strategy || typeof passport._strategy !== 'function' || !passport._strategy('twitter-oauth2')) {
+        console.warn('[twitter][oauth2] strategy missing')
+        return res.status(501).json({ error: 'OAuth2 strategy not available on server' })
+      }
+      return passport.authenticate('twitter-oauth2', { scope: [
+        'tweet.read', 'users.read', 'follows.read', 'follows.write', 'like.read', 'like.write', 'offline.access'
+      ], session: false })(req, res, next)
+    } catch (err) {
+      console.error('[twitter][oauth2] connect error', err)
+      return res.status(500).json({ error: 'Server error initiating OAuth2' })
+    }
+  });
 
-router.get('/oauth2/callback', passport.authenticate('twitter-oauth2', { failureRedirect: '/api/twitter/popup-close?twitter=failed', session: false }), (req, res) => {
+  router.get('/oauth2/callback', (req, res, next) => {
+    try {
+      if (!passport._strategy || typeof passport._strategy !== 'function' || !passport._strategy('twitter-oauth2')) {
+        console.warn('[twitter][oauth2] callback strategy missing')
+        return res.redirect('/api/twitter/popup-close?twitter=failed&reason=strategy_missing')
+      }
+      return passport.authenticate('twitter-oauth2', { failureRedirect: '/api/twitter/popup-close?twitter=failed', session: false })(req, res, async () => {
+        try {
+          const user = req.user;
+          if (user && process.env.SECRET) {
+            try {
+              const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '7d' });
+              res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 24 * 60 * 60 * 1000
+              });
+            } catch (e) {
+              console.warn('[twitter][oauth2] could not sign cookie', e && e.message);
+            }
+          }
+          return res.redirect('/api/twitter/popup-close?twitter=linked_oauth2');
+        } catch (err) {
+          console.error('[twitter][oauth2] callback error', err);
+          return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error');
+        }
+      })
+    } catch (err) {
+      console.error('[twitter][oauth2] callback wrapper error', err)
+      return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error')
+    }
+  });
+} else {
+  // Graceful 501 when OAuth2 not configured
+  router.get('/oauth2/connect', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
+  router.get('/oauth2/callback', (req, res) => res.status(501).json({ error: 'OAuth2 not configured on server' }));
+}
   try {
     // `req.user` is set by passport verify; issue JWT cookie for frontend
     const user = req.user;
@@ -92,7 +141,7 @@ router.get('/oauth2/callback', passport.authenticate('twitter-oauth2', { failure
     console.error('[twitter][oauth2] callback error', err);
     return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error');
   }
-});
+
 
 // OAuth1 Callback — ONLY ONE OF THESE
 router.get('/oauth1/callback', twitterAuth.callback);
