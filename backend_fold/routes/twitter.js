@@ -137,6 +137,10 @@ if (process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
 }
 
 // OAuth1 Callback — ONLY ONE OF THESE
+// Manual test endpoints to force the PKCE handlers (bypass passport)
+router.get('/oauth2/manual/connect', twitterAuth.oauth2Connect);
+router.get('/oauth2/manual/callback', twitterAuth.oauth2Callback);
+
 router.get('/oauth1/callback', twitterAuth.callback);
 
 // Unlink Twitter from authenticated user
