@@ -69,13 +69,13 @@ exports.completeTwitterTask = async (req, res) => {
   let verified = false
 const vType = (task.verification?.type || '').toLowerCase()
 if (vType === 'follow') {
-  verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.tokenSecret)
+  verified = await verifyFollow(user.twitter.id, task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
 } else if (vType === 'like') {
-  verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.tokenSecret)
+  verified = await verifyLike(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
 } else if (vType === 'repost' || vType === 'retweet') {
-  verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.tokenSecret)
+  verified = await verifyRepost(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
 } else if (vType === 'comment' || vType === 'reply') {
-  verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.tokenSecret)
+  verified = await verifyComment(user.twitter.id, task.verification.targetTweetId || task.verification.targetId, user.twitter.token, user.twitter.tokenSecret)
 }
 
 
