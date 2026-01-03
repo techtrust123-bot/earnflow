@@ -31,6 +31,9 @@ exports.connect = async (req, res) => {
       console.error('[twitter][oauth1] missing request token response', r.data)
       return res.redirect('/api/twitter/popup-close?twitter=failed&reason=request_token_failed')
     }
+    // Debug log the tokens we received
+    console.debug('[twitter][oauth1] received request_token:', oauth_token)
+    console.debug('[twitter][oauth1] received request_token_secret:', oauth_token_secret && oauth_token_secret.substring(0,6) + '...')
 
     req.session.oauthRequestToken = oauth_token
     req.session.oauthRequestTokenSecret = oauth_token_secret
@@ -40,6 +43,8 @@ exports.connect = async (req, res) => {
         console.error('[twitter][oauth1] session save error', err)
         return res.redirect('/api/twitter/popup-close?twitter=failed&reason=session_save_failed')
       }
+      // Log that session keys were saved (sessionID and keys available)
+      try { console.debug('[twitter][oauth1] session saved keys:', Object.keys(req.session)) } catch(e){}
       const authUrl = `https://api.twitter.com/oauth/authenticate?oauth_token=${encodeURIComponent(oauth_token)}`
       return res.redirect(authUrl)
     })
@@ -55,6 +60,9 @@ exports.callback = async (req, res) => {
     const { oauth_token, oauth_verifier } = req.query || {}
     const storedToken = req.session?.oauthRequestToken
     const storedSecret = req.session?.oauthRequestTokenSecret
+
+    console.debug('[twitter][oauth1] storedToken:', storedToken)
+    console.debug('[twitter][oauth1] storedSecret present:', !!storedSecret)
 
     if (!oauth_token || !oauth_verifier) return res.redirect('/api/twitter/popup-close?twitter=failed&reason=missing_params')
     if (!storedToken || !storedSecret || storedToken !== oauth_token) return res.redirect('/api/twitter/popup-close?twitter=failed&reason=missing_request_token')
