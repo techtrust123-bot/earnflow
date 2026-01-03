@@ -26,7 +26,7 @@ const taskCompletionSchema = new mongoose.Schema({
   reason: String
 }, { timestamps: true })
 
-taskCompletionSchema.index({ user: 1, task: 1 }, { unique: true })
+// taskCompletionSchema.index({ user: 1, task: 1 }, { unique: true })
 
 const TaskCompletion = mongoose.model("TaskCompletion", taskCompletionSchema)
 
