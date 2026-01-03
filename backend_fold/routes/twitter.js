@@ -67,9 +67,21 @@ router.get('/popup-close', (req, res) => {
 router.get('/oauth1/connect', twitterAuth.connect);
 // OAuth2 Connect (Twitter API v2)
 if (process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
+  const hasStrategy = (name) => {
+    try {
+      if (typeof passport._strategy === 'function') {
+        return !!passport._strategy(name)
+      }
+      if (passport._strategies && passport._strategies[name]) return true
+      return false
+    } catch (e) {
+      return false
+    }
+  }
+
   router.get('/oauth2/connect', (req, res, next) => {
     try {
-      if (!passport._strategy || typeof passport._strategy !== 'function' || !passport._strategy('twitter-oauth2')) {
+      if (!hasStrategy('twitter-oauth2')) {
         console.warn('[twitter][oauth2] strategy missing')
         return res.status(501).json({ error: 'OAuth2 strategy not available on server' })
       }
@@ -84,7 +96,7 @@ if (process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
 
   router.get('/oauth2/callback', (req, res, next) => {
     try {
-      if (!passport._strategy || typeof passport._strategy !== 'function' || !passport._strategy('twitter-oauth2')) {
+      if (!hasStrategy('twitter-oauth2')) {
         console.warn('[twitter][oauth2] callback strategy missing')
         return res.redirect('/api/twitter/popup-close?twitter=failed&reason=strategy_missing')
       }
