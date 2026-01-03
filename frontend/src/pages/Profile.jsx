@@ -150,9 +150,11 @@ export default function Profile() {
   useEffect(() => {
     const handlePopupMessage = async (e) => {
       try {
-        if (e.origin !== window.location.origin) return
+        // Accept messages from our frontend origin or from the API/backend origin
+        const apiOrigin = (() => { try { return new URL(API_URL).origin } catch(e){ return null } })()
+        if (e.origin !== window.location.origin && e.origin !== apiOrigin) return
         const data = e.data || {}
-        if (!data.twitter) return
+         if (!data.twitter && !data.user) return
 
         if (typeof data.twitter === 'string' && data.twitter.startsWith('linked')) {
           toast.success('Twitter linked')
@@ -160,11 +162,16 @@ export default function Profile() {
           toast.error('Twitter linking failed')
         }
 
-        try {
-          const { data: res } = await axios.get('/auth/me')
-          if (res?.user) dispatch(loginSuccess({ user: res.user, token: null, balance: res.balance }))
-        } catch (err) {
-          // ignore
+        // If the popup included the user object, use it immediately; otherwise fetch
+        if (data.user) {
+          dispatch(loginSuccess({ user: data.user, token: null, balance: data.user.balance || 0 }))
+        } else {
+          try {
+            const { data: res } = await axios.get('/auth/me')
+            if (res?.user) dispatch(loginSuccess({ user: res.user, token: null, balance: res.balance }))
+          } catch (err) {
+            // ignore
+          }
         }
       } catch (err) {
         // ignore
