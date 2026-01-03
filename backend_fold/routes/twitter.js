@@ -4,6 +4,8 @@ const router = express.Router();
 const passport = require('../config/passport');
 const axios = require('axios');
 const twitterAuth = require('../controllers/twitterAuth');
+const { authMiddlewere } = require('../middleweres/authmiddlewere')
+const User = require('../models/user')
 
 
 // Debug endpoints
@@ -65,5 +67,21 @@ router.get('/oauth1/connect', twitterAuth.connect);
 
 // OAuth1 Callback — ONLY ONE OF THESE
 router.get('/oauth1/callback', twitterAuth.callback);
+
+// Unlink Twitter from authenticated user
+router.delete('/unlink', authMiddlewere, async (req, res) => {
+  try {
+    const uid = req.user && (req.user.id || req.user._id || req.user)
+    if (!uid) return res.status(401).json({ message: 'Unauthorized' })
+    const user = await User.findById(uid)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    user.twitter = undefined
+    await user.save()
+    return res.json({ success: true, message: 'Twitter unlinked' })
+  } catch (err) {
+    console.error('[twitter] unlink error', err)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
 
 module.exports = router;
