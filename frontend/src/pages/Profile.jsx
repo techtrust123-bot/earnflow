@@ -18,8 +18,8 @@ export default function Profile() {
   const navigate = useNavigate()
 
   const handleConnectTwitter = () => {
-    // Use OAuth1 3-legged connect endpoint (server-side uses 'twitter-oauth1')
-    const url = `${API_URL}/twitter/oauth1/connect`
+    // Use OAuth2 connect endpoint
+    const url = `${API_URL}/twitter/oauth2/connect`
     const width = 600
     const height = 700
     const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2)

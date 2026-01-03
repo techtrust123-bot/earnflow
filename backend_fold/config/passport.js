@@ -154,6 +154,7 @@
 
 const passport = require('passport');
 const TwitterOAuth2Strategy = require('passport-twitter-oauth2');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
 // Register OAuth2 (Twitter API v2) strategy only when credentials present
@@ -166,6 +167,7 @@ if (oauth2ClientID && oauth2ClientSecret) {
     clientID: oauth2ClientID,
     clientSecret: oauth2ClientSecret,
     callbackURL: oauth2CallbackURL,
+    passReqToCallback: true,
     authorizationURL: 'https://twitter.com/i/oauth2/authorize',
     tokenURL: 'https://api.twitter.com/2/oauth2/token',
     includeEmail: true,
@@ -182,9 +184,40 @@ if (oauth2ClientID && oauth2ClientSecret) {
     state: true
   };
 
-  passport.use(new TwitterOAuth2Strategy(twitterOptions, async (accessToken, refreshToken, profile, done) => {
+  // passReqToCallback allows linking to an authenticated JWT user (from req.cookies)
+  passport.use(new TwitterOAuth2Strategy(twitterOptions, async (req, accessToken, refreshToken, profile, done) => {
     try {
       if (!profile?.id) return done(new Error('No Twitter ID received'), null);
+
+      // Try to link to an existing JWT-authenticated user if present on the request
+      const cookieToken = req.cookies?.token;
+      const headerToken = req.get && req.get('authorization') ? req.get('authorization').split(' ')[1] : null;
+      const rawToken = cookieToken || headerToken;
+
+      if (rawToken) {
+        try {
+          const decoded = jwt.verify(rawToken, process.env.SECRET || process.env.JWT_SECRET);
+          if (decoded && decoded.id) {
+            const existing = await User.findById(decoded.id);
+            if (existing) {
+              existing.twitter = {
+                id: profile.id,
+                username: profile.username,
+                displayName: profile.displayName,
+                accessToken,
+                refreshToken,
+                linkedAt: new Date()
+              };
+              await existing.save();
+              return done(null, existing);
+            }
+          }
+        } catch (e) {
+          // ignore and fallback to find-or-create by twitter id
+        }
+      }
+
+      // Find or create by Twitter id
       let user = await User.findOne({ 'twitter.id': profile.id });
       if (!user) {
         user = new User({

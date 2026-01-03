@@ -4,6 +4,7 @@ const router = express.Router();
 const passport = require('../config/passport');
 const axios = require('axios');
 const twitterAuth = require('../controllers/twitterAuth');
+const jwt = require('jsonwebtoken');
 const { authMiddlewere } = require('../middleweres/authmiddlewere')
 const User = require('../models/user')
 
@@ -64,6 +65,34 @@ router.get('/popup-close', (req, res) => {
 
 // OAuth1 Connect
 router.get('/oauth1/connect', twitterAuth.connect);
+// OAuth2 Connect (Twitter API v2)
+router.get('/oauth2/connect', passport.authenticate('twitter-oauth2', { scope: [
+  'tweet.read', 'users.read', 'follows.read', 'follows.write', 'like.read', 'like.write', 'offline.access'
+], session: false }));
+
+router.get('/oauth2/callback', passport.authenticate('twitter-oauth2', { failureRedirect: '/api/twitter/popup-close?twitter=failed', session: false }), (req, res) => {
+  try {
+    // `req.user` is set by passport verify; issue JWT cookie for frontend
+    const user = req.user;
+    if (user && process.env.SECRET) {
+      try {
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '7d' });
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+          maxAge: 24 * 60 * 60 * 1000
+        });
+      } catch (e) {
+        console.warn('[twitter][oauth2] could not sign cookie', e && e.message);
+      }
+    }
+    return res.redirect('/api/twitter/popup-close?twitter=linked_oauth2');
+  } catch (err) {
+    console.error('[twitter][oauth2] callback error', err);
+    return res.redirect('/api/twitter/popup-close?twitter=failed&reason=server_error');
+  }
+});
 
 // OAuth1 Callback — ONLY ONE OF THESE
 router.get('/oauth1/callback', twitterAuth.callback);
