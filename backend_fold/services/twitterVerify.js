@@ -1,5 +1,6 @@
      
-    // services/twitterVerify.js — FINAL WORKING VERSION FOR OAUTH 1.0A
+
+// services/twitterVerify.js — WORKING VERSION FOR 2026
 
 const OAuth = require('oauth-1.0a');
 const crypto = require('crypto');
@@ -24,11 +25,12 @@ const requestWithUserAuth = (userToken, userTokenSecret, method, url, params = {
 
 exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecret) => {
   try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/friendships/show.json', {
-      source_id: userTwitterId,
-      target_id: targetId
+    // v2 endpoint that supports OAuth 1.0a user context
+    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/users/${userTwitterId}/following`, {
+      max_results: 1000,
+      'user.fields': 'id'
     });
-    return res.data.relationship.source.following;
+    return res.data.data?.some(u => u.id === targetId) || false;
   } catch (err) {
     console.error("Follow verify error:", err.response?.data || err.message);
     return false;
@@ -37,11 +39,10 @@ exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecre
 
 exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
   try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/favorites/list.json', {
-      user_id: userTwitterId,
-      count: 200
+    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/liking_users`, {
+      'user.fields': 'id'
     });
-    return res.data.some(tweet => tweet.id === tweetId);
+    return res.data.data?.some(u => u.id === userTwitterId) || false;
   } catch (err) {
     console.error('Like verify error:', err.response?.data || err.message);
     return false;
@@ -50,10 +51,10 @@ exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) 
 
 exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
   try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/statuses/retweeters/ids.json', {
-      id: tweetId
+    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`, {
+      'user.fields': 'id'
     });
-    return res.data.ids.some(id => id.toString() === userTwitterId);
+    return res.data.data?.some(u => u.id === userTwitterId) || false;
   } catch (err) {
     console.error('Repost verify error:', err.response?.data || err.message);
     return false;
@@ -62,16 +63,93 @@ exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret
 
 exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
   try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/search/tweets.json', {
-      q: `from:${userTwitterId} in_reply_to_tweet_id:${tweetId}`,
-      count: 10
+    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/2/tweets/search/recent', {
+      query: `conversation_id:${tweetId} from:${userTwitterId}`,
+      max_results: 10
     });
-    return res.data.statuses.length > 0;
+    return res.data.data?.length > 0 || false;
   } catch (err) {
     console.error('Comment verify error:', err.response?.data || err.message);
     return false;
   }
-}; 
+};
+
+
+
+
+//     // services/twitterVerify.js — FINAL WORKING VERSION FOR OAUTH 1.0A
+
+// const OAuth = require('oauth-1.0a');
+// const crypto = require('crypto');
+// const axios = require('axios');
+
+// const oauth = OAuth({
+//   consumer: {
+//     key: process.env.TWITTER_CONSUMER_KEY,
+//     secret: process.env.TWITTER_CONSUMER_SECRET
+//   },
+//   signature_method: 'HMAC-SHA1',
+//   hash_function(base_string, key) {
+//     return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+//   }
+// });
+
+// const requestWithUserAuth = (userToken, userTokenSecret, method, url, params = {}) => {
+//   const token = { key: userToken, secret: userTokenSecret };
+//   const authHeader = oauth.toHeader(oauth.authorize({ url, method, data: params }, token));
+//   return axios({ method, url, params, headers: { Authorization: authHeader.Authorization } });
+// };
+
+// exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/friendships/show.json', {
+//       source_id: userTwitterId,
+//       target_id: targetId
+//     });
+//     return res.data.relationship.source.following;
+//   } catch (err) {
+//     console.error("Follow verify error:", err.response?.data || err.message);
+//     return false;
+//   }
+// };
+
+// exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/favorites/list.json', {
+//       user_id: userTwitterId,
+//       count: 200
+//     });
+//     return res.data.some(tweet => tweet.id === tweetId);
+//   } catch (err) {
+//     console.error('Like verify error:', err.response?.data || err.message);
+//     return false;
+//   }
+// };
+
+// exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/statuses/retweeters/ids.json', {
+//       id: tweetId
+//     });
+//     return res.data.ids.some(id => id.toString() === userTwitterId);
+//   } catch (err) {
+//     console.error('Repost verify error:', err.response?.data || err.message);
+//     return false;
+//   }
+// };
+
+// exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/1.1/search/tweets.json', {
+//       q: `from:${userTwitterId} in_reply_to_tweet_id:${tweetId}`,
+//       count: 10
+//     });
+//     return res.data.statuses.length > 0;
+//   } catch (err) {
+//     console.error('Comment verify error:', err.response?.data || err.message);
+//     return false;
+//   }
+// }; 
      
      
      
