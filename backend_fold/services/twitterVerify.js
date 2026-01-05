@@ -2,77 +2,77 @@
 
 // services/twitterVerify.js — WORKING VERSION FOR 2026
 
-const OAuth = require('oauth-1.0a');
-const crypto = require('crypto');
-const axios = require('axios');
+// const OAuth = require('oauth-1.0a');
+// const crypto = require('crypto');
+// const axios = require('axios');
 
-const oauth = OAuth({
-  consumer: {
-    key: process.env.TWITTER_CONSUMER_KEY,
-    secret: process.env.TWITTER_CONSUMER_SECRET
-  },
-  signature_method: 'HMAC-SHA1',
-  hash_function(base_string, key) {
-    return crypto.createHmac('sha1', key).update(base_string).digest('base64');
-  }
-});
+// const oauth = OAuth({
+//   consumer: {
+//     key: process.env.TWITTER_CONSUMER_KEY,
+//     secret: process.env.TWITTER_CONSUMER_SECRET
+//   },
+//   signature_method: 'HMAC-SHA1',
+//   hash_function(base_string, key) {
+//     return crypto.createHmac('sha1', key).update(base_string).digest('base64');
+//   }
+// });
 
-const requestWithUserAuth = (userToken, userTokenSecret, method, url, params = {}) => {
-  const token = { key: userToken, secret: userTokenSecret };
-  const authHeader = oauth.toHeader(oauth.authorize({ url, method, data: params }, token));
-  return axios({ method, url, params, headers: { Authorization: authHeader.Authorization } });
-};
+// const requestWithUserAuth = (userToken, userTokenSecret, method, url, params = {}) => {
+//   const token = { key: userToken, secret: userTokenSecret };
+//   const authHeader = oauth.toHeader(oauth.authorize({ url, method, data: params }, token));
+//   return axios({ method, url, params, headers: { Authorization: authHeader.Authorization } });
+// };
 
-exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecret) => {
-  try {
-    // v2 endpoint that supports OAuth 1.0a user context
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/users/${userTwitterId}/following`, {
-      max_results: 1000,
-      'user.fields': 'id'
-    });
-    return res.data.data?.some(u => u.id === targetId) || false;
-  } catch (err) {
-    console.error("Follow verify error:", err.response?.data || err.message);
-    return false;
-  }
-};
+// exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecret) => {
+//   try {
+//     // v2 endpoint that supports OAuth 1.0a user context
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/users/${userTwitterId}/following`, {
+//       max_results: 1000,
+//       'user.fields': 'id'
+//     });
+//     return res.data.data?.some(u => u.id === targetId) || false;
+//   } catch (err) {
+//     console.error("Follow verify error:", err.response?.data || err.message);
+//     return false;
+//   }
+// };
 
-exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
-  try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/liking_users`, {
-      'user.fields': 'id'
-    });
-    return res.data.data?.some(u => u.id === userTwitterId) || false;
-  } catch (err) {
-    console.error('Like verify error:', err.response?.data || err.message);
-    return false;
-  }
-};
+// exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/liking_users`, {
+//       'user.fields': 'id'
+//     });
+//     return res.data.data?.some(u => u.id === userTwitterId) || false;
+//   } catch (err) {
+//     console.error('Like verify error:', err.response?.data || err.message);
+//     return false;
+//   }
+// };
 
-exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
-  try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`, {
-      'user.fields': 'id'
-    });
-    return res.data.data?.some(u => u.id === userTwitterId) || false;
-  } catch (err) {
-    console.error('Repost verify error:', err.response?.data || err.message);
-    return false;
-  }
-};
+// exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`, {
+//       'user.fields': 'id'
+//     });
+//     return res.data.data?.some(u => u.id === userTwitterId) || false;
+//   } catch (err) {
+//     console.error('Repost verify error:', err.response?.data || err.message);
+//     return false;
+//   }
+// };
 
-exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
-  try {
-    const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/2/tweets/search/recent', {
-      query: `conversation_id:${tweetId} from:${userTwitterId}`,
-      max_results: 10
-    });
-    return res.data.data?.length > 0 || false;
-  } catch (err) {
-    console.error('Comment verify error:', err.response?.data || err.message);
-    return false;
-  }
-};
+// exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
+//   try {
+//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/2/tweets/search/recent', {
+//       query: `conversation_id:${tweetId} from:${userTwitterId}`,
+//       max_results: 10
+//     });
+//     return res.data.data?.length > 0 || false;
+//   } catch (err) {
+//     console.error('Comment verify error:', err.response?.data || err.message);
+//     return false;
+//   }
+// };
 
 
 
@@ -164,101 +164,122 @@ exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecre
       
 
 
-// exports.verifyFollow = async (userTwitterId, targetId, userToken, userTokenSecret) => {
-//   try {
-//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/users/${userTwitterId}/following`);
-//     return res.data.data?.some(u => u.id === targetId);
-//   } catch (err) {
-//     console.error("Follow verify failed:", err.response?.data || err.message);
-//     return false;
-//   }
-// };
+     
 
-// exports.verifyLike = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
-//   try {
-//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/liking_users`);
-//     return res.data.data?.some(u => u.id === userTwitterId);
-//   } catch (err) {
-//     return false;
-//   }
-// };
+     // services/twitterVerify.js
+const axios = require('axios');
 
-// exports.verifyRepost = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
-//   try {
-//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', `https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`);
-//     return res.data.data?.some(u => u.id === userTwitterId);
-//   } catch (err) {
-//     return false;
-//   }
-// };
+const twitterClient = axios.create({
+  baseURL: 'https://api.twitter.com/2',
+  timeout: 10000
+});
 
-// exports.verifyComment = async (userTwitterId, tweetId, userToken, userTokenSecret) => {
-//   try {
-//     const res = await requestWithUserAuth(userToken, userTokenSecret, 'GET', 'https://api.twitter.com/2/tweets/search/recent', {
-//       query: `conversation_id:${tweetId} from:${userTwitterId}`,
-//       max_results: 10
-//     });
-//     return res.data.data?.length > 0;
-//   } catch (err) {
-//     return false;
-//   }
-// };
-// // services/twitterVerify.js
-// const axios = require('axios');
+/**
+ * Verify if user follows target account
+ * Required scopes:
+ * - users.read
+ * - follows.read
+ */
+exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
+  try {
+    const res = await twitterClient.get(
+      `/users/${userTwitterId}/following`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
+        params: {
+          max_results: 1000
+        }
+      }
+    );
 
-// // All verification uses OAuth 2.0 Bearer token (accessToken from user.twitter.accessToken)
+    return res.data?.data?.some(u => u.id === targetId) || false;
+  } catch (err) {
+    console.error(
+      'Follow verify error:',
+      err.response?.status,
+      err.response?.data || err.message
+    );
+    return false;
+  }
+};
 
-// exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
-//   try {
-//     const res = await axios.get(`https://api.twitter.com/2/users/${userTwitterId}/following`, {
-//       headers: { Authorization: `Bearer ${accessToken}` },
-//       params: { max_results: 1000 }
-//     });
-//     return res.data.data?.some(u => u.id === targetId) || false;
-//   } catch (err) {
-//     console.error("Follow verify error:", err.response?.data || err.message);
-//     return false;
-//   }
-// };
+/**
+ * Verify if user liked a tweet
+ * Required scopes:
+ * - users.read
+ * - like.read
+ */
+exports.verifyLike = async (userTwitterId, tweetId, accessToken) => {
+  try {
+    const res = await twitterClient.get(
+      `/users/${userTwitterId}/liked_tweets`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        },
+        params: {
+          max_results: 100
+        }
+      }
+    );
 
-// exports.verifyLike = async (userTwitterId, tweetId, accessToken) => {
-//   try {
-//     const res = await axios.get(`https://api.twitter.com/2/tweets/${tweetId}/liking_users`, {
-//       headers: { Authorization: `Bearer ${accessToken}` }
-//     });
-//     return res.data.data?.some(u => u.id === userTwitterId) || false;
-//   } catch (err) {
-//     console.error('Like verify error:', err.response?.data || err.message);
-//     return false;
-//   }
-// };
+    return res.data?.data?.some(t => t.id === tweetId) || false;
+  } catch (err) {
+    console.error(
+      'Like verify error:',
+      err.response?.status,
+      err.response?.data || err.message
+    );
+    return false;
+  }
+};
 
-// exports.verifyRepost = async (userTwitterId, tweetId, accessToken) => {
-//   try {
-//     const res = await axios.get(`https://api.twitter.com/2/tweets/${tweetId}/retweeted_by`, {
-//       headers: { Authorization: `Bearer ${accessToken}` }
-//     });
-//     return res.data.data?.some(u => u.id === userTwitterId) || false;
-//   } catch (err) {
-//     console.error('Repost verify error:', err.response?.data || err.message);
-//     return false;
-//   }
-// };
+/**
+ * Verify if user reposted (retweeted) a tweet
+ * Required scopes:
+ * - tweet.read
+ * - users.read
+ */
+exports.verifyRepost = async (userTwitterId, tweetId, accessToken) => {
+  try {
+    const res = await twitterClient.get(
+      `/tweets/${tweetId}/retweeted_by`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    );
 
-// exports.verifyComment = async (userTwitterId, tweetId, accessToken) => {
-//   try {
-//     const res = await axios.get('https://api.twitter.com/2/tweets/search/recent', {
-//       headers: { Authorization: `Bearer ${accessToken}` },
-//       params: {
-//         query: `conversation_id:${tweetId} from:${userTwitterId}`,
-//         max_results: 10
-//       }
-//     });
-//     return res.data.data?.length > 0 || false;
-//   } catch (err) {
-//     console.error('Comment verify error:', err.response?.data || err.message);
-//     return false;
-//   }
-// };
+    return res.data?.data?.some(u => u.id === userTwitterId) || false;
+  } catch (err) {
+    console.error(
+      'Repost verify error:',
+      err.response?.status,
+      err.response?.data || err.message
+    );
+    return false;
+  }
+};
 
+exports.verifyComment = async (userTwitterId, tweetId, accessToken) => {
+  try {
+    const res = await twitterClient.get(
+      `/tweets/search/recent`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        params: {
+          query: `conversation_id:${tweetId} from:${userTwitterId}`,
+          max_results: 10
+        }
+      }
+    );
 
+    return Array.isArray(res.data?.data) && res.data.data.length > 0;
+  } catch (err) {
+    console.error('Comment verify error:', err.response?.data || err.message);
+    return false;
+  }
+};
