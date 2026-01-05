@@ -180,34 +180,10 @@ const twitterClient = axios.create({
  * - users.read
  * - follows.read
  */
-// exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
-//   try {
-//     const res = await twitterClient.get(
-//       `/users/${userTwitterId}/following`,
-//       {
-//         headers: {
-//           Authorization: `Bearer ${accessToken}`
-//         },
-//         params: {
-//           max_results: 1000
-//         }
-//       }
-//     );
-
-//     return res.data?.data?.some(u => u.id === targetId) || false;
-//   } catch (err) {
-//     console.error(
-//       'Follow verify error:',
-//       err.response?.status,
-//       err.response?.data || err.message
-//     );
-//     return false;
-//   }
-// };
 exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
   try {
     const res = await twitterClient.get(
-      `/users/${targetId}/followers`,
+      `/users/${userTwitterId}/following`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -218,7 +194,7 @@ exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
       }
     );
 
-    return res.data?.data?.some(u => u.id === userTwitterId) || false;
+    return res.data?.data?.some(u => u.id === targetId) || false;
   } catch (err) {
     console.error(
       'Follow verify error:',
@@ -228,6 +204,29 @@ exports.verifyFollow = async (userTwitterId, targetId, accessToken) => {
     return false;
   }
 };
+//   try {
+//     const res = await twitterClient.get(
+//       `/users/${targetId}/followers`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${accessToken}`
+//         },
+//         params: {
+//           max_results: 1000
+//         }
+//       }
+//     );
+
+//     return res.data?.data?.some(u => u.id === userTwitterId) || false;
+//   } catch (err) {
+//     console.error(
+//       'Follow verify error:',
+//       err.response?.status,
+//       err.response?.data || err.message
+//     );
+//     return false;
+//   }
+// };
 
 /**
  * Verify if user liked a tweet
