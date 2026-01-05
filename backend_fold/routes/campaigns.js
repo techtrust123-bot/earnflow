@@ -30,6 +30,8 @@ router.get('/check-payment/:ref', protect, ensureHandler(controller, 'checkPayme
 router.post('/webhook', ensureHandler(controller, 'paymentWebhook'))
 // Monnify-specific webhook (public)
 router.post('/webhook/monnify', ensureHandler(webhookController, 'monnifyWebhook'))
+// Paystack webhook (public)
+router.post('/webhook/paystack', ensureHandler(webhookController, 'paystackWebhook'))
 
 // Get single campaign (owner or admin)
 router.get('/:id', protect, ensureHandler(controller, 'getTaskById'))

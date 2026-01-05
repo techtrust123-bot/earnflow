@@ -60,8 +60,8 @@ export default function CreateTask() {
         } else if (res.data.paymentData) {
           toast.success('Opening payment...')
           setPaymentData(res.data.paymentData)
-          // Trigger Monnify SDK
-          openMonnifyCheckout(res.data.paymentData)
+          // Trigger Paystack SDK
+          openPaystackCheckout(res.data.paymentData)
         }
       }
     } catch (err) {
@@ -71,7 +71,7 @@ export default function CreateTask() {
     }
   }
 
-  const openMonnifyCheckout = (data) => {
+  const openPaystackCheckout = (data) => {
     const loadScript = (src) => new Promise((resolve, reject) => {
       if (document.querySelector(`script[src="${src}"]`)) return resolve()
       const s = document.createElement('script')
@@ -84,42 +84,45 @@ export default function CreateTask() {
 
     const init = async () => {
       try {
-        await loadScript('https://checkout.monnify.com/monnify.js')
+        await loadScript('https://js.paystack.co/v1/inline.js')
       } catch (e) {
-        console.error('Monnify script load failed', e)
+        console.error('Paystack script load failed', e)
         toast.error('Payment gateway unavailable')
         return
       }
 
-      const sdk = window.MonnifySDK
-      if (!sdk || typeof sdk.initialize !== 'function') {
+      const publicKey = data.publicKey || process.env.REACT_APP_PAYSTACK_PUBLIC_KEY
+      const amountKobo = Math.round(Number(data.amount) * 100)
+      const email = data.customerEmail || ("")
+      const reference = data.reference || data.paymentReference || `REF_${Date.now()}`
+
+      if (!window.PaystackPop || typeof window.PaystackPop.setup !== 'function') {
         toast.error('Payment SDK not available')
         return
       }
 
-      const params = {
-        amount: data.amount,
+      const handler = window.PaystackPop.setup({
+        key: publicKey,
+        email,
+        amount: amountKobo,
         currency: data.currency || 'NGN',
-        reference: data.reference || data.paymentReference,
-        contractCode: data.contractCode || process.env.REACT_APP_MONNIFY_CONTRACT_CODE,
-        customerFullName: data.customerName || data.customerFullName || '',
-        customerEmail: data.customerEmail || data.customerEmail || '',
-        apiKey: data.apiKey || data.apiKey,
-        paymentDescription: data.paymentDescription || 'Sponsored Task Payment',
-        paymentMethods: data.paymentMethods || data.paymentMethods || []
-      }
+        ref: reference,
+        metadata: data.metadata || {},
+        callback: function(response) {
+          // Optionally verify payment via backend
+          toast.success('Payment successful, verifying...')
+          // You may call an API endpoint to verify or rely on webhook
+        },
+        onClose: function() {
+          toast('Payment window closed')
+        }
+      })
 
       try {
-        const initResult = await sdk.initialize(params)
-        // Some SDK versions return an object; some auto-open. Try `open()` if available.
-        if (sdk.open && typeof sdk.open === 'function') {
-          try { sdk.open() } catch (e) { /* ignore */ }
-        } else if (initResult && typeof initResult.open === 'function') {
-          try { initResult.open() } catch (e) { /* ignore */ }
-        }
+        handler.openIframe()
       } catch (err) {
-        console.error('Monnify init error', err)
-        toast.error('Could not initialize payment')
+        console.error('Paystack open error', err)
+        toast.error('Could not open payment window')
       }
     }
 
