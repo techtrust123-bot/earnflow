@@ -1,4 +1,4 @@
-const { initiateTransfer, verifyAccount } = require('../services/monnify')
+const { initiateTransfer, verifyAccount } = require('../services/paystack')
 const User = require('../models/user')
 
 
@@ -64,7 +64,7 @@ exports.withdraw = async (req, res) => {
 
     return res.json({ success: true, message: 'Withdrawal processing', balance: user.balance })
   } catch (err) {
-    console.error('Monnify withdraw error:', err.response?.data || err.message)
+    console.error('Paystack withdraw error:', err.response?.data || err.message)
     return res.status(500).json({ message: 'Withdrawal failed' })
   }
 }

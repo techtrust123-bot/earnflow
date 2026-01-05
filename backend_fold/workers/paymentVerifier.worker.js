@@ -1,5 +1,5 @@
 const UserTask = require('../models/userTask')
-const monnify = require('../services/monnify')
+const monnify = require('../services/paystack')
 
 let isRunning = false
 

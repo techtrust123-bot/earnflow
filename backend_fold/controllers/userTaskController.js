@@ -110,20 +110,13 @@ exports.createUserTask = async (req, res) => {
       reference: paymentReference,
       customerName: req.user.name || "User",
       customerEmail: req.user.email,
-      apiKey: process.env.MONNIFY_PUBLIC_KEY,  // ← PUBLIC KEY (safe to expose)
-      contractCode: process.env.MONNIFY_CONTRACT_CODE,
+      publicKey: process.env.PAYSTACK_PUBLIC_KEY,
       paymentDescription: title ? `Task: ${title}` : "Sponsored Task",
       metadata: {
-        taskId: "pending", // will be updated on webhook
+        taskId: "pending",
         userId: userId.toString()
       },
-      paymentMethods: paymentMethods,
-      onComplete: function(response) {
-        // This runs in frontend — handled by MonnifySDK
-      },
-      onClose: function() {
-        // User closed modal
-      }
+      paymentMethods: paymentMethods
     };
 
     // Save pending task
@@ -145,7 +138,7 @@ exports.createUserTask = async (req, res) => {
       endDate: endDate ? new Date(endDate) : null,
       paymentReference,
       paid: false,
-      paymentMethod: 'monnify',
+      paymentMethod: 'paystack',
       status: 'pending'
     });
 

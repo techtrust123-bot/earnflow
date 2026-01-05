@@ -145,4 +145,78 @@ exports.monnifyWebhook = async (req, res) => {
   })()
 }
 
+// POST /api/webhooks/paystack
+exports.paystackWebhook = async (req, res) => {
+  const signature = req.headers['x-paystack-signature']
+  const payload = req.body
+
+  const log = await WebhookLog.create({ payload, provider: 'paystack', method: req.method, path: req.originalUrl })
+  res.status(200).send('OK')
+
+  ;(async () => {
+    try {
+      const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY || '')
+        .update(JSON.stringify(payload))
+        .digest('hex')
+
+      if (!signature || hash !== signature) {
+        log.verification = { ok: false, reason: 'invalid signature' }
+        await log.save()
+        return
+      }
+
+      const event = payload.event || payload.type
+      const data = payload.data || {}
+      const paymentReference = data.reference || data.transaction && data.transaction.reference
+      const paymentStatus = (data.status || data.payment_status || '').toLowerCase()
+
+      if (!paymentReference) {
+        log.verification = { ok: false, reason: 'no reference in payload' }
+        await log.save()
+        return
+      }
+
+      const payment = await Payment.findOne({ reference: paymentReference })
+      if (!payment) {
+        log.verification = { ok: false, reason: 'payment not found' }
+        await log.save()
+        return
+      }
+
+      if (event === 'charge.success' || paymentStatus === 'success' || String(paymentStatus).includes('success')) {
+        payment.status = 'successful'
+        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+        await payment.save()
+
+        if (payment.task) {
+          await UserTask.findByIdAndUpdate(payment.task, { paid: true, status: 'active' })
+        }
+
+        try {
+          const Transaction = require('../models/transaction')
+          const tx = await Transaction.findOne({ reference: payment.reference })
+          if (tx) {
+            tx.status = 'successful'
+            await tx.save()
+          }
+        } catch (e) {
+          console.warn('webhook: could not update transaction', e.message || e)
+        }
+
+        log.verification = { ok: true, matchedPayment: payment._id }
+        log.task = payment.task
+        await log.save()
+      } else {
+        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+        await payment.save()
+        log.verification = { ok: false, reason: 'not paid', payloadStatus: paymentStatus }
+        await log.save()
+      }
+    } catch (err) {
+      console.error('paystackWebhook error', err)
+      try { log.verification = { error: err.message }; await log.save() } catch (e) {}
+    }
+  })()
+}
+
 

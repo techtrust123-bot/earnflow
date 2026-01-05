@@ -1,4 +1,4 @@
-const { verifyAccount } = require("../services/monnify")
+const { verifyAccount } = require("../services/paystack")
 
 exports.verifyBankAccount = async (req, res) => {
   const { account_number, bank_code } = req.query

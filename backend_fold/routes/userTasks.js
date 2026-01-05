@@ -1,7 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const { protect } = require('../middleweres/authmiddlewere')
-const { createUserTask, monnifyWebhook } = require('../controllers/userTaskController')
+const { createUserTask } = require('../controllers/userTaskController')
+const webhookController = require('../controllers/webhookLogController')
 
 const authorizeRoles = require('../middleweres/roleMiddlewere')
 
@@ -12,6 +13,6 @@ const safeHandler = (h, name) => {
 }
 
 router.post('/create', protect, safeHandler(createUserTask, 'createUserTask'),authorizeRoles("admin"),)
-router.post('/webhook', safeHandler(monnifyWebhook, 'monnifyWebhook'))
+router.post('/webhook', safeHandler(webhookController.paystackWebhook, 'paystackWebhook'))
 
 module.exports = router
