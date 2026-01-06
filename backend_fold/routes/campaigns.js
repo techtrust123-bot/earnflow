@@ -38,6 +38,10 @@ router.post('/webhook/paystack', ensureHandler(webhookController, 'paystackWebho
 router.get('/admin/pending-approvals', protect, authorizeRoles('admin'), ensureHandler(approvalController, 'listPending'))
 // Admin: review (approve/reject) a request
 router.patch('/admin/approve/:id', protect, authorizeRoles('admin'), ensureHandler(approvalController, 'review'))
+// Admin: list approved
+router.get('/admin/approved-approvals', protect, authorizeRoles('admin'), ensureHandler(approvalController, 'listApproved'))
+// User: initialize payment for an approved request
+router.post('/pay-approval/:id', protect, ensureHandler(approvalController, 'payApproval'))
 // Paystack webhook (public)
 router.post('/webhook/paystack', ensureHandler(webhookController, 'paystackWebhook'))
 

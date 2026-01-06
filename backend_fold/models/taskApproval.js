@@ -10,6 +10,8 @@ const taskApprovalSchema = new mongoose.Schema({
   url: { type: String },
   description: { type: String },
   status: { type: String, enum: ['requested','approved','rejected'], default: 'requested' },
+  paid: { type: Boolean, default: false },
+  currency: { type: String, enum: ['NGN','USD'], default: 'NGN' },
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'earn-users' },
   reviewedAt: { type: Date }
 }, { timestamps: true })

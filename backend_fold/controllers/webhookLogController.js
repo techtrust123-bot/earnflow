@@ -188,8 +188,48 @@ exports.paystackWebhook = async (req, res) => {
         payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
         await payment.save()
 
-        if (payment.task) {
-          await UserTask.findByIdAndUpdate(payment.task, { paid: true, status: 'active' })
+        // If this payment is tied to an approval, mark approval as paid and create a UserTask
+        if (payment.approval) {
+          try {
+            const TaskApproval = require('../models/taskApproval')
+            const approval = await TaskApproval.findById(payment.approval)
+            if (approval) {
+              approval.paid = true
+              await approval.save()
+
+              // create UserTask from approval
+              try {
+                const baseAmount = 100 * (approval.numUsers || 1)
+                const commission = Math.round(baseAmount * 0.10)
+                const totalAmount = baseAmount + commission
+
+                const newTask = await UserTask.create({
+                  user: approval.owner,
+                  socialHandle: approval.socialHandle || approval.url || approval.title || '',
+                  numUsers: approval.numUsers || 1,
+                  taskAmount: 100,
+                  totalAmount: totalAmount,
+                  commission: commission,
+                  taskDetails: approval.description || approval.title || '',
+                  paymentReference: payment.reference,
+                  paymentStatus: 'paid',
+                  isActive: true
+                })
+
+                // link payment to created task
+                payment.task = newTask._id
+                await payment.save()
+              } catch (e) {
+                console.warn('webhook: could not create UserTask from approval', e && e.message)
+              }
+            }
+          } catch (e) {
+            console.warn('webhook: approval handling error', e && e.message)
+          }
+        } else {
+          if (payment.task) {
+            await UserTask.findByIdAndUpdate(payment.task, { paid: true, status: 'active' })
+          }
         }
 
         try {

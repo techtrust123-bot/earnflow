@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 const userTaskSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'earn-users', required: true },
   socialHandle: { type: String, required: true },
   numUsers: { type: Number, required: true, min: 100 },
   taskAmount: { type: Number, required: true, min: 50 },

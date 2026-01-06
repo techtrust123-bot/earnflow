@@ -91,3 +91,21 @@ exports.verifyTransaction = async (paymentReference) => {
 exports.reserveVirtualAccount = async () => {
   throw new Error('reserveVirtualAccount not implemented for Paystack')
 }
+
+// Initialize transaction (server-side) using Paystack /transaction/initialize
+exports.initializeTransaction = async ({ email, amount, currency = 'NGN', reference, callback_url }) => {
+  try {
+    // Paystack expects amount in the smallest currency unit (kobo/cents)
+    const amt = Math.round(Number(amount) * 100)
+    const body = { email, amount: amt, currency }
+    if (reference) body.reference = reference
+    if (callback_url) body.callback_url = callback_url
+
+    const res = await paystack.post('/transaction/initialize', body, { headers: { Authorization: `Bearer ${secret}` } })
+    if (res.data && res.data.status) return { requestSuccessful: true, responseBody: res.data.data }
+    return { requestSuccessful: false, responseMessage: res.data?.message || 'Init failed' }
+  } catch (err) {
+    const body = err.response && err.response.data
+    return { requestSuccessful: false, responseMessage: body?.message || err.message, responseBody: body }
+  }
+}
