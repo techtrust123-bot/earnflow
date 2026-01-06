@@ -172,8 +172,8 @@ exports.getMyTasks = async (req, res) => {
     const userId = req.user && (req.user._id || req.user.id)
     if (!userId) return res.status(401).json({ message: 'Unauthorized' })
 
-    // Existing UserTask entries (if any)
-    const myTasks = await UserTask.find({ owner: userId })
+    // Existing UserTask entries (if any). Support both `owner` and `user` fields.
+    const myTasks = await UserTask.find({ $or: [{ owner: userId }, { user: userId }] }).populate('completedBy', 'name email')
 
     // Approved approvals belonging to user that are not paid
     const approvals = await TaskApproval.find({ owner: userId, status: 'approved', paid: false })
@@ -192,12 +192,14 @@ exports.getMyTasks = async (req, res) => {
 
     const tasksOut = (myTasks || []).map(t => ({
       _id: t._id,
-      action: t.action,
-      link: t.taskDetails || t.socialHandle,
+      action: t.action || 'campaign',
+      link: t.taskDetails || t.socialHandle || t.title || '',
       currency: t.currency || 'NGN',
-      amount: t.totalAmount || t.cost || 0,
-      slots: t.slots || t.numUsers,
-      status: t.status || 'pending'
+      amount: t.totalAmount || t.totalCost || t.cost || 0,
+      slots: t.slots || t.numUsers || t.numUsers,
+      status: t.status || t.paymentStatus || (t.isActive ? 'active' : 'pending')
+    ,
+      completedBy: (t.completedBy || []).map(u => ({ id: u._id, name: u.name, email: u.email }))
     }))
 
     return res.json({ success: true, tasks: [...mapped, ...tasksOut] })

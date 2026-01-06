@@ -42,6 +42,8 @@ router.patch('/admin/approve/:id', protect, authorizeRoles('admin'), ensureHandl
 router.get('/admin/approved-approvals', protect, authorizeRoles('admin'), ensureHandler(approvalController, 'listApproved'))
 // User: initialize payment for an approved request
 router.post('/pay-approval/:id', protect, ensureHandler(approvalController, 'payApproval'))
+// Admin: create tasks from a paid approval
+router.post('/admin/create-tasks/:id', protect, authorizeRoles('admin'), ensureHandler(approvalController, 'createTasks'))
 // Paystack webhook (public)
 router.post('/webhook/paystack', ensureHandler(webhookController, 'paystackWebhook'))
 
