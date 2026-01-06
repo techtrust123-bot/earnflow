@@ -4,6 +4,7 @@ const Payment = require('../models/payment');
 const User = require('../models/user');
 const Transaction = require('../models/transaction');
 const crypto = require('crypto');
+const TaskApproval = require('../models/taskApproval')
 
 exports.createUserTask = async (req, res) => {
   const {
@@ -164,3 +165,44 @@ exports.createUserTask = async (req, res) => {
     return res.status(500).json({ message: 'Failed to create task' });
   }
 };
+
+// Return user's tasks (existing campaigns and approved approvals pending payment)
+exports.getMyTasks = async (req, res) => {
+  try {
+    const userId = req.user && (req.user._id || req.user.id)
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' })
+
+    // Existing UserTask entries (if any)
+    const myTasks = await UserTask.find({ owner: userId })
+
+    // Approved approvals belonging to user that are not paid
+    const approvals = await TaskApproval.find({ owner: userId, status: 'approved', paid: false })
+
+    // Map approvals to a common shape expected by frontend
+    const mapped = approvals.map(a => ({
+      _id: a._id,
+      action: a.action,
+      link: a.url || a.socialHandle || a.title,
+      currency: a.currency || 'NGN',
+      amount: (100 * (a.numUsers || 1)),
+      slots: a.numUsers || 1,
+      status: 'approved',
+      approval: true
+    }))
+
+    const tasksOut = (myTasks || []).map(t => ({
+      _id: t._id,
+      action: t.action,
+      link: t.taskDetails || t.socialHandle,
+      currency: t.currency || 'NGN',
+      amount: t.totalAmount || t.cost || 0,
+      slots: t.slots || t.numUsers,
+      status: t.status || 'pending'
+    }))
+
+    return res.json({ success: true, tasks: [...mapped, ...tasksOut] })
+  } catch (err) {
+    console.error('getMyTasks error', err)
+    return res.status(500).json({ message: 'Server error' })
+  }
+}

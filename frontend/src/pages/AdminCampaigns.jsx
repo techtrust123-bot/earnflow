@@ -11,10 +11,15 @@ export default function AdminCampaigns(){
 
   useEffect(()=>{ fetchList() }, [])
 
+  const [view, setView] = useState('pending') // 'pending' or 'approved'
+
+  useEffect(()=>{ fetchList() }, [view])
+
   const fetchList = async () => {
     setLoading(true)
     try{
-      const res = await axios.get('/campaigns/admin/pending-approvals')
+      const path = view === 'approved' ? '/campaigns/admin/approved-approvals' : '/campaigns/admin/pending-approvals'
+      const res = await axios.get(path)
       setTasks(res.data.tasks || [])
     }catch(err){
       toast.error('Failed to load approval requests')
@@ -66,6 +71,11 @@ export default function AdminCampaigns(){
     <div className="min-h-screen p-6 bg-gray-50">
       <Container>
         <h1 className="text-3xl font-bold mb-6">Admin — User Campaigns</h1>
+        <div className="flex gap-3 mb-4">
+          <button onClick={()=>setView('pending')} className={`px-3 py-2 rounded ${view==='pending' ? 'bg-indigo-600 text-white' : 'bg-white'}`}>Pending</button>
+          <button onClick={()=>setView('approved')} className={`px-3 py-2 rounded ${view==='approved' ? 'bg-indigo-600 text-white' : 'bg-white'}`}>Approved</button>
+        </div>
+
         <div className="space-y-4">
           {tasks.length===0 ? <div className="bg-white p-6 rounded-lg">No approval requests</div> : (
             tasks.map(t => (
