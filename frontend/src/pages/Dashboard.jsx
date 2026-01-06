@@ -37,6 +37,7 @@ export default function Dashboard() {
   )
 
   const [recentActivity, setRecentActivity] = useState([])
+  const [notifications, setNotifications] = useState([])
 
   useEffect(() => {
     let mounted = true
@@ -47,6 +48,14 @@ export default function Dashboard() {
           axios.get('/transactions'),
           axios.get('/referral/me')
         ])
+
+        // load notifications
+        try {
+          const nres = await axios.get('/notifications')
+          if (nres.data && nres.data.notifications) setNotifications(nres.data.notifications.slice(0, 8))
+        } catch (e) {
+          console.warn('Could not load notifications', e)
+        }
 
         const txs = (txRes.status === 'fulfilled' && txRes.value?.data?.transactions) || []
         const refs = (refRes.status === 'fulfilled' && refRes.value?.data?.referral?.recentReferrals) || []
@@ -82,6 +91,13 @@ export default function Dashboard() {
     load()
     return () => { mounted = false }
   }, [user])
+
+  const markNotificationRead = async (id) => {
+    try {
+      await axios.patch(`/notifications/read/${id}`)
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n))
+    } catch (e) { console.warn('mark read failed', e) }
+  }
 
   return (
     <Container className="p-4 space-y-6">
@@ -136,8 +152,28 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl shadow">
-          <h4 className="font-semibold mb-3">Recent Activity</h4>
+        <div className="bg-white p-4 rounded-2xl shadow space-y-4">
+          <div>
+            <h4 className="font-semibold mb-3">Notifications</h4>
+            {notifications && notifications.length > 0 ? (
+              <div className="space-y-2">
+                {notifications.map(n => (
+                  <div key={n._id} className={`p-2 rounded border ${n.read ? 'bg-gray-50' : 'bg-white'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">{n.title}</div>
+                      {!n.read && <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600">Mark read</button>}
+                    </div>
+                    <div className="text-xs text-gray-600">{n.message}</div>
+                    <div className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500">No notifications</div>
+            )}
+          </div>
+
+          <h4 className="font-semibold">Recent Activity</h4>
           <div className="space-y-3 text-sm text-gray-700">
             {/** Render fetched activity items or a friendly message */}
             {recentActivity && recentActivity.length > 0 ? (

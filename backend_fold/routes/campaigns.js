@@ -4,6 +4,7 @@ const { protect } = require('../middleweres/authmiddlewere')
 const authorizeRoles = require('../middleweres/roleMiddlewere')
 const controller = require('../controllers/userTaskController')
 const webhookController = require('../controllers/webhookLogController')
+const approvalController = require('../controllers/approvalController')
 
 // Helper to ensure a handler is a function; if not, return a stub that responds 501
 const ensureHandler = (ctrl, name) => {
@@ -30,6 +31,13 @@ router.get('/check-payment/:ref', protect, ensureHandler(controller, 'checkPayme
 router.post('/webhook', ensureHandler(controller, 'paymentWebhook'))
 // Monnify-specific webhook (public)
 router.post('/webhook/monnify', ensureHandler(webhookController, 'monnifyWebhook'))
+// Paystack webhook
+router.post('/webhook/paystack', ensureHandler(webhookController, 'paystackWebhook'))
+
+// Admin: list pending approval requests
+router.get('/admin/pending-approvals', protect, authorizeRoles('admin'), ensureHandler(approvalController, 'listPending'))
+// Admin: review (approve/reject) a request
+router.patch('/admin/approve/:id', protect, authorizeRoles('admin'), ensureHandler(approvalController, 'review'))
 // Paystack webhook (public)
 router.post('/webhook/paystack', ensureHandler(webhookController, 'paystackWebhook'))
 
