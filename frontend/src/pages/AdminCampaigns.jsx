@@ -14,10 +14,10 @@ export default function AdminCampaigns(){
   const fetchList = async () => {
     setLoading(true)
     try{
-      const res = await axios.get('/campaigns/admin/list')
+      const res = await axios.get('/campaigns/admin/pending-approvals')
       setTasks(res.data.tasks || [])
     }catch(err){
-      toast.error('Failed to load campaigns')
+      toast.error('Failed to load approval requests')
       console.error(err)
     }finally{ setLoading(false) }
   }
@@ -44,6 +44,22 @@ export default function AdminCampaigns(){
     }finally{ setSaving(false) }
   }
 
+  const approve = async (id) => {
+    try{
+      await axios.patch(`/campaigns/admin/approve/${id}`, { action: 'approve' })
+      toast.success('Approved')
+      fetchList()
+    }catch(err){ toast.error('Approve failed') }
+  }
+
+  const reject = async (id) => {
+    try{
+      await axios.patch(`/campaigns/admin/approve/${id}`, { action: 'reject' })
+      toast.success('Rejected')
+      fetchList()
+    }catch(err){ toast.error('Reject failed') }
+  }
+
   if (loading) return <div className="py-20 text-center">Loading...</div>
 
   return (
@@ -51,19 +67,21 @@ export default function AdminCampaigns(){
       <Container>
         <h1 className="text-3xl font-bold mb-6">Admin — User Campaigns</h1>
         <div className="space-y-4">
-          {tasks.length===0 ? <div className="bg-white p-6 rounded-lg">No campaigns</div> : (
+          {tasks.length===0 ? <div className="bg-white p-6 rounded-lg">No approval requests</div> : (
             tasks.map(t => (
               <div key={t._id} className="bg-white p-4 rounded-lg shadow flex justify-between items-start">
                 <div>
-                  <div className="font-bold">{t.action.toUpperCase()} — {t.link}</div>
-                  <div className="text-sm text-gray-600">Owner: {t.owner?.name || t.owner?.email} • {t.currency} {t.amount} • Slots: {t.slots}</div>
-                  <div className="text-sm text-gray-600">Cost: {t.currency==='NGN' ? '₦' : '$'}{t.cost} • Commission: {t.currency==='NGN' ? '₦' : '$'}{t.commission} • Total: {t.currency==='NGN' ? '₦' : '$'}{t.totalCost}</div>
+                  <div className="font-bold">{t.action.toUpperCase()} — {t.title}</div>
+                  <div className="text-sm text-gray-600">Owner: {t.owner?.name || t.owner?.email} • Platform: {t.platform} • Slots: {t.numUsers}</div>
+                  {t.action !== 'follow' && t.url && <div className="text-sm text-gray-600">Post URL: {t.url}</div>}
+                  {t.description && <div className="text-sm text-gray-600">Description: {t.description}</div>}
+                  {t.action === 'follow' && t.socialHandle && <div className="text-sm text-gray-600">Account: {t.socialHandle}</div>}
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <div className="text-sm">Status: <strong>{t.status}</strong></div>
-                  <div className="text-sm">Paid: <strong>{t.paid ? 'Yes' : 'No'}</strong></div>
+                  <div className="text-sm">Requested: <strong>{new Date(t.createdAt).toLocaleString()}</strong></div>
                   <div className="flex gap-2 mt-2">
-                    <button onClick={()=>startEdit(t)} className="px-3 py-2 bg-yellow-500 text-white rounded">Manage</button>
+                    <button onClick={()=>approve(t._id)} className="px-3 py-2 bg-green-600 text-white rounded">Approve</button>
+                    <button onClick={()=>reject(t._id)} className="px-3 py-2 bg-red-500 text-white rounded">Reject</button>
                   </div>
                 </div>
               </div>

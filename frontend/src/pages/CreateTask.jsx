@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import axios from '../utils/axios'
 import toast from 'react-hot-toast'
 
 export default function CreateTask() {
-  const { balance = 0 } = useSelector(s => s.auth.balance || s.auth)
+  const user = useSelector(s => s.auth.user || s.auth)
 
   const [form, setForm] = useState({
     title: '',
@@ -12,135 +12,66 @@ export default function CreateTask() {
     action: 'follow',
     socialHandle: '',
     numUsers: 100,
-    taskAmount: 50,
-    paymentMethods: ['CARD'],
-    taskDetails: ''
+    url: '',
+    description: ''
   })
 
   const [loading, setLoading] = useState(false)
-  const [payWithBalance, setPayWithBalance] = useState(false)
-  const [paymentData, setPaymentData] = useState(null) // From backend
-
-  const breakdown = useMemo(() => {
-    const base = Number(form.taskAmount || 0) * Number(form.numUsers || 0)
-    const commission = Math.round(base * 0.1)
-    return { base, commission, total: base + commission }
-  }, [form.taskAmount, form.numUsers])
-
-  const insufficientBalance = payWithBalance && balance < breakdown.total
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!form.socialHandle.trim() || !form.taskDetails.trim()) {
-      toast.error('Social handle and task details are required')
-      return
+    if (!form.title.trim()) return toast.error('Title is required')
+    if (!form.platform) return toast.error('Platform is required')
+    if (!form.numUsers || Number(form.numUsers) < 1) return toast.error('Number of users must be at least 1')
+
+    if (form.action === 'follow') {
+      if (!form.socialHandle.trim()) return toast.error('Please provide the account username to follow')
+    } else {
+      if (!form.url.trim()) return toast.error('Please provide the post URL')
+      if (!form.description.trim()) return toast.error('Please provide a description for the post')
     }
 
     setLoading(true)
     try {
       const payload = {
-        title: form.title.trim() || undefined,
+        title: form.title.trim(),
         platform: form.platform,
         action: form.action,
-        socialHandle: form.socialHandle.trim(),
         numUsers: Number(form.numUsers),
-        taskAmount: Number(form.taskAmount),
-        taskDetails: form.taskDetails.trim(),
-        paymentMethods: Array.isArray(form.paymentMethods) ? form.paymentMethods : (String(form.paymentMethods || '').split(',').map(m=>m.trim()).filter(Boolean)),
-        payWithBalance
+        socialHandle: form.socialHandle.trim() || undefined,
+        url: form.url.trim() || undefined,
+        description: form.description.trim() || undefined
       }
 
-      const res = await axios.post('/user-tasks/create', payload)
+      const res = await axios.post('/user-tasks/request-approval', payload)
 
-      if (res.data.success) {
-        if (payWithBalance) {
-          toast.success('Task created and activated with wallet balance!')
-          // Refresh tasks or redirect
-        } else if (res.data.paymentData) {
-          toast.success('Opening payment...')
-          setPaymentData(res.data.paymentData)
-          // Trigger Paystack SDK
-          openPaystackCheckout(res.data.paymentData)
-        }
+      if (res.data && res.data.success) {
+        toast.success('Request submitted — awaiting admin approval')
+        setForm({ title: '', platform: 'twitter', action: 'follow', socialHandle: '', numUsers: 100, url: '', description: '' })
+      } else {
+        toast.error(res.data?.message || 'Failed to submit request')
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create task')
+      toast.error(err.response?.data?.message || 'Failed to submit request')
     } finally {
       setLoading(false)
     }
   }
 
-  const openPaystackCheckout = (data) => {
-    const loadScript = (src) => new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) return resolve()
-      const s = document.createElement('script')
-      s.src = src
-      s.async = true
-      s.onload = () => resolve()
-      s.onerror = () => reject(new Error('Failed to load script: ' + src))
-      document.head.appendChild(s)
-    })
-
-    const init = async () => {
-      try {
-        await loadScript('https://js.paystack.co/v1/inline.js')
-      } catch (e) {
-        console.error('Paystack script load failed', e)
-        toast.error('Payment gateway unavailable')
-        return
-      }
-
-      const publicKey = data.publicKey || process.env.REACT_APP_PAYSTACK_PUBLIC_KEY
-      const amountKobo = Math.round(Number(data.amount) * 100)
-      const email = data.customerEmail || ("")
-      const reference = data.reference || data.paymentReference || `REF_${Date.now()}`
-
-      if (!window.PaystackPop || typeof window.PaystackPop.setup !== 'function') {
-        toast.error('Payment SDK not available')
-        return
-      }
-
-      const handler = window.PaystackPop.setup({
-        key: publicKey,
-        email,
-        amount: amountKobo,
-        currency: data.currency || 'NGN',
-        ref: reference,
-        metadata: data.metadata || {},
-        callback: function(response) {
-          // Optionally verify payment via backend
-          toast.success('Payment successful, verifying...')
-          // You may call an API endpoint to verify or rely on webhook
-        },
-        onClose: function() {
-          toast('Payment window closed')
-        }
-      })
-
-      try {
-        handler.openIframe()
-      } catch (err) {
-        console.error('Paystack open error', err)
-        toast.error('Could not open payment window')
-      }
-    }
-
-    init()
-  }
-
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8 text-center">Create Sponsored Task</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center">Request Task Approval</h1>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title (optional)" className="p-2 border rounded w-full" />
+          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title" className="p-2 border rounded w-full" required />
 
           <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))} className="p-2 border rounded w-full">
-            <option value="twitter">Twitter</option>
-            <option value="instagram">Instagram</option>
+            <option value="twitter">Twitter (X)</option>
             <option value="tiktok">TikTok</option>
+            <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
           </select>
 
           <select value={form.action} onChange={e => setForm(f => ({ ...f, action: e.target.value }))} className="p-2 border rounded w-full">
@@ -150,89 +81,32 @@ export default function CreateTask() {
             <option value="comment">Comment/Reply</option>
           </select>
 
-          <input value={form.socialHandle} onChange={e => setForm(f => ({ ...f, socialHandle: e.target.value }))} placeholder="Social Handle or URL" className="p-2 border rounded w-full" required />
-
-          <input type="number" min="100" value={form.numUsers} onChange={e => setForm(f => ({ ...f, numUsers: Number(e.target.value) }))} className="p-2 border rounded w-full" />
-          <input type="number" min="50" value={form.taskAmount} onChange={e => setForm(f => ({ ...f, taskAmount: Number(e.target.value) }))} className="p-2 border rounded w-full" />
+          <input type="number" min="1" value={form.numUsers} onChange={e => setForm(f => ({ ...f, numUsers: Number(e.target.value) }))} className="p-2 border rounded w-full" />
         </div>
 
-        <textarea value={form.taskDetails} onChange={e => setForm(f => ({ ...f, taskDetails: e.target.value }))} placeholder="Task details / instructions" className="w-full mt-3 p-2 border rounded" rows={4} required />
-
-        {/* Payment Methods selection (single choice) */}
-        <div className="mt-4 mb-6">
-          <p className="font-semibold mb-2">Payment method</p>
-          <div className="flex flex-wrap gap-2">
-            {['CARD','ACCOUNT_TRANSFER','BANK_TRANSFER','USSD','BALANCE'].map(method => {
-              const selected = Array.isArray(form.paymentMethods) && form.paymentMethods[0] === method
-              return (
-                <label key={method} className={`px-3 py-2 border rounded cursor-pointer ${selected ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    checked={selected}
-                    onChange={() => {
-                      setForm(f => ({ ...f, paymentMethods: [method] }))
-                      if (method === 'BALANCE') setPayWithBalance(true)
-                      else setPayWithBalance(false)
-                    }}
-                    className="mr-2"
-                  />
-                  {method}
-                </label>
-              )
-            })}
+        {form.action === 'follow' ? (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Account username to follow</label>
+            <input value={form.socialHandle} onChange={e => setForm(f => ({ ...f, socialHandle: e.target.value }))} placeholder="e.g. @username" className="p-2 border rounded w-full" required />
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Post URL</label>
+              <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://..." className="p-2 border rounded w-full" required />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Post description / instructions</label>
+              <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Details for performers" className="w-full p-2 border rounded" rows={4} required />
+            </div>
+          </>
+        )}
 
-        {/* Payment Breakdown */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl mb-6">
-          <h3 className="font-bold text-lg mb-4">Payment Breakdown</h3>
-          <div className="grid grid-cols-3 text-center">
-            <div>
-              <p className="text-gray-600">Base Amount</p>
-              <p className="text-2xl font-bold">₦{breakdown.base.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Commission (10%)</p>
-              <p className="text-2xl font-bold text-orange-600">₦{breakdown.commission.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Total</p>
-              <p className="text-3xl font-bold text-blue-600">₦{breakdown.total.toLocaleString()}</p>
-            </div>
-          </div>
+        <div className="flex justify-end">
+          <button type="submit" disabled={loading} className="bg-blue-600 text-white py-2 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
+            {loading ? 'Submitting...' : 'Request Approval'}
+          </button>
         </div>
-
-        {/* Pay with Balance Toggle */}
-        <div className="mb-6 flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={payWithBalance}
-              onChange={e => {
-                const checked = e.target.checked
-                setPayWithBalance(checked)
-                setForm(f => ({ ...f, paymentMethods: checked ? ['BALANCE'] : (Array.isArray(f.paymentMethods) && f.paymentMethods.length ? f.paymentMethods : ['CARD']) }))
-              }}
-              className="w-5 h-5"
-            />
-            <div>
-              <p className="font-medium">Pay with Wallet Balance</p>
-              <p className="text-sm text-gray-600">Available: ₦{balance.toLocaleString()}</p>
-            </div>
-          </label>
-          {insufficientBalance && (
-            <p className="text-red-600 font-medium">Insufficient balance</p>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading || insufficientBalance}
-          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-xl font-bold text-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {loading ? 'Processing...' : payWithBalance ? 'Pay with Balance' : 'Proceed to Payment'}
-        </button>
       </form>
     </div>
   )
