@@ -79,6 +79,16 @@ export default function MyTasks(){
                           {t.approval && <button onClick={()=>payFor(t)} className="px-3 py-1 bg-blue-600 text-white rounded">Pay</button>}
                         </div>
                       </div>
+                      {t.completedBy && t.completedBy.length > 0 && (
+                        <div className="mt-3 text-sm text-gray-700">
+                          <div className="font-medium mb-1">Completed By:</div>
+                          <ul className="list-disc pl-5">
+                            {t.completedBy.map(u => (
+                              <li key={u.id}>{u.name || u.email} {u.email ? `(${u.email})` : ''}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </>

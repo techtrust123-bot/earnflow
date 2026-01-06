@@ -2,6 +2,8 @@ const TaskApproval = require('../models/taskApproval')
 const User = require('../models/user')
 const Notification = require('../models/notification')
 const transporter = require('../transporter/transporter')
+const Payment = require('../models/payment')
+const UserTask = require('../models/userTask')
 
 exports.requestApproval = async (req, res) => {
   try {
@@ -140,6 +142,64 @@ exports.review = async (req, res) => {
       return res.json({ success: true, message: `Request ${doc.status}` })
   } catch (err) {
     console.error('review error', err)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+}
+
+// Admin: create UserTask(s) from a paid approval
+exports.createTasks = async (req, res) => {
+  try {
+    const id = req.params.id
+    const approval = await TaskApproval.findById(id)
+    if (!approval) return res.status(404).json({ success: false, message: 'Approval not found' })
+    if (approval.status !== 'approved') return res.status(400).json({ success: false, message: 'Approval is not approved' })
+    if (!approval.paid) return res.status(400).json({ success: false, message: 'Approval not paid yet' })
+
+    // create a UserTask record representing the campaign
+    const perUserAmount = 100
+    const baseAmount = perUserAmount * (approval.numUsers || 1)
+    const commission = Math.round(baseAmount * 0.10)
+    const totalAmount = baseAmount + commission
+
+    const newTask = await UserTask.create({
+      user: approval.owner,
+      socialHandle: approval.socialHandle || approval.url || approval.title || '',
+      numUsers: approval.numUsers || 1,
+      taskAmount: perUserAmount,
+      totalAmount: totalAmount,
+      commission: commission,
+      taskDetails: approval.description || approval.title || '',
+      paymentReference: null,
+      paymentStatus: 'paid',
+      isActive: true
+    })
+
+    // link any payment record for this approval to the created task
+    try {
+      const payment = await Payment.findOne({ approval: approval._id })
+      if (payment) {
+        payment.task = newTask._id
+        await payment.save()
+      }
+    } catch (e) { console.warn('link payment to task failed', e && e.message) }
+
+    // mark approval as completed (optional)
+    approval.status = 'completed'
+    await approval.save()
+
+    // notify owner
+    try {
+      await Notification.create({ user: approval.owner, title: 'Tasks Created', message: `Your approved campaign "${approval.title}" has been turned into active tasks by admin.` , meta: { approvalId: approval._id, taskId: newTask._id } })
+      const owner = await User.findById(approval.owner)
+      if (owner && owner.email) {
+        const mailOptions = { from: process.env.GMAIL_USER, to: owner.email, subject: 'Your campaign is live', text: `Your campaign "${approval.title}" is now live.` }
+        transporter.sendMail(mailOptions).catch(err => console.warn('email send failed', err && err.message))
+      }
+    } catch (e) { console.warn('notify owner after createTasks failed', e && e.message) }
+
+    return res.json({ success: true, task: newTask })
+  } catch (err) {
+    console.error('createTasks error', err)
     return res.status(500).json({ success: false, message: 'Server error' })
   }
 }

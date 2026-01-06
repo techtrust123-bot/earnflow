@@ -188,7 +188,8 @@ exports.paystackWebhook = async (req, res) => {
         payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
         await payment.save()
 
-        // If this payment is tied to an approval, mark approval as paid and create a UserTask
+        // If this payment is tied to an approval, mark approval as paid.
+        // Admin will create the actual UserTask(s) from the paid approval.
         if (payment.approval) {
           try {
             const TaskApproval = require('../models/taskApproval')
@@ -197,31 +198,9 @@ exports.paystackWebhook = async (req, res) => {
               approval.paid = true
               await approval.save()
 
-              // create UserTask from approval
-              try {
-                const baseAmount = 100 * (approval.numUsers || 1)
-                const commission = Math.round(baseAmount * 0.10)
-                const totalAmount = baseAmount + commission
-
-                const newTask = await UserTask.create({
-                  user: approval.owner,
-                  socialHandle: approval.socialHandle || approval.url || approval.title || '',
-                  numUsers: approval.numUsers || 1,
-                  taskAmount: 100,
-                  totalAmount: totalAmount,
-                  commission: commission,
-                  taskDetails: approval.description || approval.title || '',
-                  paymentReference: payment.reference,
-                  paymentStatus: 'paid',
-                  isActive: true
-                })
-
-                // link payment to created task
-                payment.task = newTask._id
-                await payment.save()
-              } catch (e) {
-                console.warn('webhook: could not create UserTask from approval', e && e.message)
-              }
+              // link payment to approval (leave task creation to admin)
+              payment.meta = Object.assign({}, payment.meta || {}, { approvalHandled: true })
+              await payment.save()
             }
           } catch (e) {
             console.warn('webhook: approval handling error', e && e.message)

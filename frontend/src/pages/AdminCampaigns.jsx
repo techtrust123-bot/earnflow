@@ -65,6 +65,16 @@ export default function AdminCampaigns(){
     }catch(err){ toast.error('Reject failed') }
   }
 
+  const createTasks = async (id) => {
+    try{
+      await axios.post(`/campaigns/admin/create-tasks/${id}`)
+      toast.success('Tasks created')
+      fetchList()
+    }catch(err){
+      toast.error(err.response?.data?.message || 'Create tasks failed')
+    }
+  }
+
   if (loading) return <div className="py-20 text-center">Loading...</div>
 
   return (
@@ -90,8 +100,15 @@ export default function AdminCampaigns(){
                 <div className="flex flex-col items-end gap-2">
                   <div className="text-sm">Requested: <strong>{new Date(t.createdAt).toLocaleString()}</strong></div>
                   <div className="flex gap-2 mt-2">
-                    <button onClick={()=>approve(t._id)} className="px-3 py-2 bg-green-600 text-white rounded">Approve</button>
-                    <button onClick={()=>reject(t._id)} className="px-3 py-2 bg-red-500 text-white rounded">Reject</button>
+                    {view === 'pending' && (
+                      <>
+                        <button onClick={()=>approve(t._id)} className="px-3 py-2 bg-green-600 text-white rounded">Approve</button>
+                        <button onClick={()=>reject(t._id)} className="px-3 py-2 bg-red-500 text-white rounded">Reject</button>
+                      </>
+                    )}
+                    {view === 'approved' && t.paid && !t._created && (
+                      <button onClick={()=>createTasks(t._id)} className="px-3 py-2 bg-blue-600 text-white rounded">Create Tasks</button>
+                    )}
                   </div>
                 </div>
               </div>

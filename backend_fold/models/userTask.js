@@ -12,7 +12,7 @@ const userTaskSchema = new mongoose.Schema({
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
   isActive: { type: Boolean, default: false },
   completedCount: { type: Number, default: 0 },
-  completedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  completedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'earn-users' }]
 }, { timestamps: true })
 
 module.exports = mongoose.model('UserTask', userTaskSchema)
