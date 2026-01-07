@@ -131,8 +131,40 @@ exports.payApproval = async (req, res) => {
     const payCurrency = currency === 'USD' ? 'USD' : 'NGN'
     const payAmount = payCurrency === 'USD' ? chargeAmount : totalNgn
 
-    const init = await paystack.initializeTransaction({ email: user.email, amount: payAmount, currency: payCurrency, reference })
-    if (!init.requestSuccessful) return res.status(500).json({ success: false, message: init.responseMessage })
+    let init = await paystack.initializeTransaction({ email: user.email, amount: payAmount, currency: payCurrency, reference })
+
+    // If Paystack rejects the requested currency (merchant doesn't support USD), retry in NGN
+    if (!init.requestSuccessful) {
+      const msg = String(init.responseMessage || '').toLowerCase()
+      const bodyMsg = String((init.responseBody && init.responseBody.message) || '').toLowerCase()
+      const currencyError = msg.includes('currency not supported') || bodyMsg.includes('currency not supported') || bodyMsg.includes('currency') && bodyMsg.includes('not supported')
+      if (currency === 'USD' && currencyError) {
+        try {
+          // retry initializing in NGN using the NGN total
+          const fallbackReference = `${reference}_NGN`
+          const retry = await paystack.initializeTransaction({ email: user.email, amount: totalNgn, currency: 'NGN', reference: fallbackReference })
+          if (retry.requestSuccessful) {
+            // swap to the successful init and adjust the reference/currency/amount used for records
+            init = retry
+            payCurrency = 'NGN'
+            // record that the backend fell back from USD -> NGN
+            // create Payment using actual initialized amount
+            try { await Payment.create({ user: userId, approval: id, reference: fallbackReference, amount: totalNgn, status: 'pending', method: 'paystack', currency: 'NGN' }) } catch (e) { console.warn('create Payment failed', e && e.message) }
+
+            // include fallback info (rate) for frontend display
+            let rate = null
+            try { rate = await exchangeRate.getRate() } catch (e) { /* ignore */ }
+            const responsePayload = { ...init.responseBody, chargedAmount: totalNgn, chargedCurrency: 'NGN', fallback: { from: 'USD', to: 'NGN', rate } }
+            if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount }
+            return res.json({ success: true, data: responsePayload })
+          }
+        } catch (e) {
+          console.warn('fallback NGN init failed', e && e.message)
+        }
+      }
+
+      return res.status(500).json({ success: false, message: init.responseMessage || init.responseBody || 'Payment initialization failed' })
+    }
 
     // create a Payment record to track (store what was actually initialized with Paystack)
     try {
