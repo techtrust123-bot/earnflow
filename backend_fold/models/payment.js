@@ -6,6 +6,8 @@ const paymentSchema = new mongoose.Schema({
   approval: { type: mongoose.Schema.Types.ObjectId, ref: 'TaskApproval' },
   reference: { type: String, required: true },
   amount: { type: Number, required: true },
+  requestedAmount: { type: Number },
+  requestedCurrency: { type: String, enum: ['NGN','USD'] },
   currency: { type: String, enum: ['NGN','USD'], default: 'NGN' },
   status: { type: String, enum: ['pending', 'successful', 'failed'], default: 'pending' },
   method: { type: String },

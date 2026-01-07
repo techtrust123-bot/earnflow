@@ -121,6 +121,12 @@ exports.payApproval = async (req, res) => {
       }
     }
 
+    // fetch current rate for frontend display when USD requested
+    let currentRate = null
+    if (currency === 'USD') {
+      try { currentRate = await exchangeRate.getRate() } catch (e) { /* ignore */ }
+    }
+
     // initialize paystack transaction
     const paystack = require('../services/paystack')
     const user = await User.findById(userId)
@@ -141,11 +147,11 @@ exports.payApproval = async (req, res) => {
       if (hasCheckout) {
         const usedRef = rb.reference || reference
         try {
-          await Payment.create({ user: userId, approval: id, reference: usedRef, amount: payAmount, status: 'pending', method: 'paystack', currency: payCurrency })
+          await Payment.create({ user: userId, approval: id, reference: usedRef, amount: payAmount, requestedAmount: currency === 'USD' ? chargeAmount : undefined, requestedCurrency: currency === 'USD' ? 'USD' : undefined, status: 'pending', method: 'paystack', currency: payCurrency })
         } catch (e) { console.warn('create Payment failed', e && e.message) }
 
         const responsePayload = { ...rb, chargedAmount: payAmount, chargedCurrency: payCurrency }
-        if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount }
+        if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
         return res.json({ success: true, data: responsePayload })
       }
 
@@ -163,13 +169,13 @@ exports.payApproval = async (req, res) => {
             payCurrency = 'NGN'
             // record that the backend fell back from USD -> NGN
             // create Payment using actual initialized amount
-            try { await Payment.create({ user: userId, approval: id, reference: fallbackReference, amount: totalNgn, status: 'pending', method: 'paystack', currency: 'NGN' }) } catch (e) { console.warn('create Payment failed', e && e.message) }
+            try { await Payment.create({ user: userId, approval: id, reference: fallbackReference, amount: totalNgn, requestedAmount: chargeAmount, requestedCurrency: 'USD', status: 'pending', method: 'paystack', currency: 'NGN' }) } catch (e) { console.warn('create Payment failed', e && e.message) }
 
             // include fallback info (rate) for frontend display
             let rate = null
             try { rate = await exchangeRate.getRate() } catch (e) { /* ignore */ }
             const responsePayload = { ...init.responseBody, chargedAmount: totalNgn, chargedCurrency: 'NGN', fallback: { from: 'USD', to: 'NGN', rate } }
-            if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount }
+            if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
             return res.json({ success: true, data: responsePayload })
           }
         } catch (e) {
@@ -182,12 +188,12 @@ exports.payApproval = async (req, res) => {
 
     // create a Payment record to track (store what was actually initialized with Paystack)
     try {
-      await Payment.create({ user: userId, approval: id, reference, amount: payAmount, status: 'pending', method: 'paystack', currency: payCurrency })
+      await Payment.create({ user: userId, approval: id, reference, amount: payAmount, requestedAmount: currency === 'USD' ? chargeAmount : undefined, requestedCurrency: currency === 'USD' ? 'USD' : undefined, status: 'pending', method: 'paystack', currency: payCurrency })
     } catch (e) { console.warn('create Payment failed', e && e.message) }
 
     // Return init response plus conversion info if user requested USD so frontend can display equivalents
     const responsePayload = { ...init.responseBody, chargedAmount: payAmount, chargedCurrency: payCurrency }
-    if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount }
+    if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
 
     return res.json({ success: true, data: responsePayload })
   } catch (err) {
