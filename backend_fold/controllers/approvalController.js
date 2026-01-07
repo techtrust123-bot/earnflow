@@ -126,20 +126,21 @@ exports.payApproval = async (req, res) => {
     const user = await User.findById(userId)
     const reference = `APR_${Date.now()}_${id}`
 
-    // Paystack merchant may not accept USD — always initialize in NGN and charge NGN amount.
-    const payAmountNgn = totalNgn
-    const payCurrency = 'NGN'
+    // Initialize payment in the currency requested by the user.
+    // If user requested USD, use the converted USD amount; otherwise use NGN.
+    const payCurrency = currency === 'USD' ? 'USD' : 'NGN'
+    const payAmount = payCurrency === 'USD' ? chargeAmount : totalNgn
 
-    const init = await paystack.initializeTransaction({ email: user.email, amount: payAmountNgn, currency: payCurrency, reference })
+    const init = await paystack.initializeTransaction({ email: user.email, amount: payAmount, currency: payCurrency, reference })
     if (!init.requestSuccessful) return res.status(500).json({ success: false, message: init.responseMessage })
 
-    // create a Payment record to track (store NGN values)
+    // create a Payment record to track (store what was actually initialized with Paystack)
     try {
-      await Payment.create({ user: userId, approval: id, reference, amount: payAmountNgn, status: 'pending', method: 'paystack', currency: payCurrency })
+      await Payment.create({ user: userId, approval: id, reference, amount: payAmount, status: 'pending', method: 'paystack', currency: payCurrency })
     } catch (e) { console.warn('create Payment failed', e && e.message) }
 
     // Return init response plus conversion info if user requested USD so frontend can display equivalents
-    const responsePayload = { ...init.responseBody, chargedAmount: payAmountNgn, chargedCurrency: payCurrency }
+    const responsePayload = { ...init.responseBody, chargedAmount: payAmount, chargedCurrency: payCurrency }
     if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount }
 
     return res.json({ success: true, data: responsePayload })
