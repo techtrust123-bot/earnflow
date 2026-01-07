@@ -4,6 +4,7 @@ const Notification = require('../models/notification')
 const transporter = require('../transporter/transporter')
 const Payment = require('../models/payment')
 const UserTask = require('../models/userTask')
+const exchangeRate = require('../services/exchangeRate')
 
 exports.requestApproval = async (req, res) => {
   try {
@@ -37,7 +38,21 @@ exports.requestApproval = async (req, res) => {
 exports.listPending = async (req, res) => {
   try {
     const docs = await TaskApproval.find({ status: 'requested' }).sort({ createdAt: -1 }).populate('owner', 'name email')
-    return res.json({ success: true, tasks: docs })
+    const ids = docs.map(d => d._id)
+    // find payments for these approvals, sort newest first and pick latest per approval
+    const payments = await Payment.find({ approval: { $in: ids } }).sort({ createdAt: -1 }).lean()
+    const payMap = {}
+    for (const p of payments) {
+      if (!p || !p.approval) continue
+      const key = String(p.approval)
+      if (!payMap[key]) payMap[key] = p // first occurrence is the latest due to sort
+    }
+    const out = docs.map(d => {
+      const obj = d.toObject ? d.toObject() : d
+      obj.payment = payMap[String(d._id)] || null
+      return obj
+    })
+    return res.json({ success: true, tasks: out })
   } catch (err) {
     console.error('listPending error', err)
     return res.status(500).json({ success: false, message: 'Server error' })
@@ -48,7 +63,20 @@ exports.listPending = async (req, res) => {
 exports.listApproved = async (req, res) => {
   try {
     const docs = await TaskApproval.find({ status: 'approved' }).sort({ createdAt: -1 }).populate('owner', 'name email')
-    return res.json({ success: true, tasks: docs })
+    const ids = docs.map(d => d._id)
+    const payments = await Payment.find({ approval: { $in: ids } }).sort({ createdAt: -1 }).lean()
+    const payMap = {}
+    for (const p of payments) {
+      if (!p || !p.approval) continue
+      const key = String(p.approval)
+      if (!payMap[key]) payMap[key] = p
+    }
+    const out = docs.map(d => {
+      const obj = d.toObject ? d.toObject() : d
+      obj.payment = payMap[String(d._id)] || null
+      return obj
+    })
+    return res.json({ success: true, tasks: out })
   } catch (err) {
     console.error('listApproved error', err)
     return res.status(500).json({ success: false, message: 'Server error' })
@@ -77,32 +105,19 @@ exports.payApproval = async (req, res) => {
     // get conversion if needed
     let chargeAmount = totalNgn
     if (currency === 'USD') {
-      // convert NGN -> USD using exchangerate.host (robust handling)
       try {
-        const axios = require('axios')
-        const conv = await axios.get(`https://api.exchangerate.host/convert?from=NGN&to=USD&amount=${totalNgn}`)
-        let usd = null
-        if (conv && conv.data) {
-          if (typeof conv.data.result === 'number') usd = conv.data.result
-          else if (conv.data.rates && typeof conv.data.rates.USD === 'number') usd = conv.data.rates.USD * totalNgn
-          else if (conv.data.info && typeof conv.data.info.rate === 'number') usd = conv.data.info.rate * totalNgn
-        }
-
-        // fallback to /latest endpoint if needed
-        if (!usd) {
-          const latest = await require('axios').get('https://api.exchangerate.host/latest?base=NGN&symbols=USD')
-          const rate = latest && latest.data && latest.data.rates && latest.data.rates.USD
-          if (typeof rate === 'number') usd = rate * totalNgn
-        }
-
-        if (!usd) {
-          console.warn('currency conversion failed', { totalNgn, conv: conv && conv.data })
+        // convert NGN -> USD using exchangeRate.ngnToUsd (exchangeRate service uses USD->NGN internally)
+        chargeAmount = await exchangeRate.ngnToUsd(totalNgn)
+      } catch (e) {
+        console.error('conversion error (exchangeRate)', e && e.message)
+        // fallback: allow admin override USD_NGN_RATE to derive USD amount
+        const override = parseFloat(process.env.USD_NGN_RATE || '')
+        if (!isNaN(override) && override > 0) {
+          chargeAmount = Number((totalNgn / override).toFixed(2))
+          console.warn('using env override USD_NGN_RATE for conversion', { override, totalNgn, chargeAmount })
+        } else {
           return res.status(500).json({ success: false, message: 'Conversion failed' })
         }
-        chargeAmount = usd
-      } catch (e) {
-        console.error('conversion error', e && e.message)
-        return res.status(500).json({ success: false, message: 'Conversion failed' })
       }
     }
 

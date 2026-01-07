@@ -16,6 +16,7 @@ router.use('/campaigns', require('./campaigns.js'))
 router.use('/transactions', require('./transactions.js'))
 router.use('/user-tasks', require('./userTasks.js'));
 router.use('/referral', require('./referral.js'));
+router.use('/admin/settings', require('./adminSettings.js'))
 router.use('/admin', require('./adminWebhookRoutes.js'));
 router.use('/notifications', require('./notifications.js'))
 

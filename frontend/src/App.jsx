@@ -14,6 +14,8 @@ import CreateTask from './pages/CreateTask'
 import MyTasks from './pages/MyTasks'
 import AdminCampaigns from './pages/AdminCampaigns'
 import AdminPendingPayments from './pages/AdminPendingPayments'
+import AdminExchangeRate from './pages/AdminExchangeRate'
+import AdminExchangeRateAudit from './pages/AdminExchangeRateAudit'
 import CampaignPayment from './pages/CampaignPayment'
 import History from './pages/History'
 import Referral from './pages/Referral'
@@ -51,6 +53,8 @@ function App() {
           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
           <Route path="/admin/campaigns" element={<ProtectedRoute><AdminCampaigns /></ProtectedRoute>} />
           <Route path="/admin/pending-payments" element={<ProtectedRoute><AdminPendingPayments /></ProtectedRoute>} />
+          <Route path="/admin/exchange-rate" element={<ProtectedRoute><AdminExchangeRate /></ProtectedRoute>} />
+           <Route path="/admin/exchange-rate/audit" element={<ProtectedRoute><AdminExchangeRateAudit /></ProtectedRoute>} />
           <Route path="/campaigns/pay/:id" element={<ProtectedRoute><CampaignPayment /></ProtectedRoute>} />
           {/* <Route path="/withdraw" element={<Withdraw />} /> */}
           <Route path="/withdraw" element={<ProtectedRoute><Withdraw /></ProtectedRoute>} />
