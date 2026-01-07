@@ -27,6 +27,14 @@ async function fetchRateFromAPI() {
   return rate
 }
 
+// Expose a helper to fetch the external API rate directly (bypasses overrides/cache)
+async function getExternalRate() {
+  const res = await http.get('https://api.exchangerate.host/latest', { params: { base: 'USD', symbols: 'NGN' } })
+  const rate = res?.data?.rates?.NGN
+  if (typeof rate !== 'number' || rate <= 0) throw new Error('Invalid API exchange rate')
+  return rate
+}
+
 async function getRate() {
   // 1. Admin override (DB first, then env)
   try {
@@ -95,4 +103,4 @@ function clearCachedRate() {
   console.info('exchangeRate: cache cleared')
 }
 
-module.exports = { getRate, usdToNgn, ngnToUsd, setCachedRate, clearCachedRate }
+module.exports = { getRate, getExternalRate, usdToNgn, ngnToUsd, setCachedRate, clearCachedRate }
