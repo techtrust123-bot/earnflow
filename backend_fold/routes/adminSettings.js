@@ -8,5 +8,7 @@ router.get('/exchange-rate', authMiddlewere, authorizeRoles('admin'), controller
 router.put('/exchange-rate', authMiddlewere, authorizeRoles('admin'), controller.setExchangeRate)
 router.delete('/exchange-rate', authMiddlewere, authorizeRoles('admin'), controller.clearExchangeRate)
 router.get('/exchange-rate/audit', authMiddlewere, authorizeRoles('admin'), controller.listExchangeRateAudits)
+router.get('/exchange-rate/preview', authMiddlewere, authorizeRoles('admin'), controller.previewExternalRate)
+router.get('/exchange-rate/history', authMiddlewere, authorizeRoles('admin'), controller.previewExternalHistory)
 
 module.exports = router

@@ -1,3 +1,4 @@
+const axios = require('axios')
 const Setting = require('../models/setting')
 const SettingAudit = require('../models/settingAudit')
 const exchangeRate = require('../services/exchangeRate')
@@ -82,5 +83,40 @@ exports.listExchangeRateAudits = async (req, res) => {
   } catch (err) {
     console.error('listExchangeRateAudits error', err && err.message)
     return res.status(500).json({ success: false, message: 'Server error' })
+  }
+}
+
+// GET /api/admin/settings/exchange-rate/preview
+exports.previewExternalRate = async (req, res) => {
+  try {
+    const rate = await exchangeRate.getExternalRate()
+    return res.json({ success: true, rate, source: 'api' })
+  } catch (err) {
+    console.error('previewExternalRate error', err && err.message)
+    return res.status(500).json({ success: false, message: 'Failed to fetch API rate' })
+  }
+}
+
+// GET /api/admin/settings/exchange-rate/history
+exports.previewExternalHistory = async (req, res) => {
+  try {
+    const days = Math.min(30, Math.max(1, parseInt(req.query.days || '7', 10)))
+    const end = new Date()
+    const start = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000)
+    const fmt = d => d.toISOString().slice(0, 10)
+    const url = 'https://api.exchangerate.host/timeseries'
+    const r = await axios.get(url, { params: { start_date: fmt(start), end_date: fmt(end), base: 'USD', symbols: 'NGN' }, timeout: 8000 })
+    const ratesObj = r.data && r.data.rates
+    const series = []
+    if (ratesObj && typeof ratesObj === 'object') {
+      Object.keys(ratesObj).sort().forEach(date => {
+        const v = ratesObj[date] && ratesObj[date].NGN
+        if (typeof v === 'number') series.push({ date, rate: v })
+      })
+    }
+    return res.json({ success: true, series, days })
+  } catch (err) {
+    console.error('previewExternalHistory error', err && err.message)
+    return res.status(500).json({ success: false, message: 'Failed to fetch rate history' })
   }
 }

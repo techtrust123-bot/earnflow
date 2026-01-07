@@ -99,14 +99,14 @@ export default function AdminCampaigns(){
             <Link to="/admin/exchange-rate/audit" className="text-sm text-indigo-600 underline">Exchange Rate Audit</Link>
           </div>
         </div>
-        <div className="flex gap-3 mb-4 items-center">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center">
+          <div className="flex gap-3 w-full sm:w-auto">
             <button onClick={()=>setView('pending')} className={`px-3 py-2 rounded ${view==='pending' ? 'bg-indigo-600 text-white' : 'bg-white'}`}>Pending</button>
             <button onClick={()=>setView('approved')} className={`px-3 py-2 rounded ${view==='approved' ? 'bg-indigo-600 text-white' : 'bg-white'}`}>Approved</button>
           </div>
-          <div className="ml-4">
+          <div className="ml-0 sm:ml-4 w-full sm:w-auto">
             <label className="text-sm mr-2">Payment:</label>
-            <select value={paymentFilter} onChange={e=>setPaymentFilter(e.target.value)} className="p-2 border rounded">
+            <select value={paymentFilter} onChange={e=>setPaymentFilter(e.target.value)} className="p-2 border rounded w-full sm:w-auto">
               <option value="all">All</option>
               <option value="successful">Successful</option>
               <option value="pending">Pending</option>
@@ -126,8 +126,8 @@ export default function AdminCampaigns(){
               })
               if (filtered.length === 0) return <div className="bg-white p-6 rounded-lg">No approval requests match filter</div>
               return filtered.map(t => (
-                <div key={t._id} className="bg-white p-4 rounded-lg shadow flex justify-between items-start">
-                  <div>
+                <div key={t._id} className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row justify-between items-start">
+                  <div className="flex-1">
                     <div className="font-bold">{t.action.toUpperCase()} — {t.title}</div>
                     <div className="text-sm text-gray-600">Owner: {t.owner?.name || t.owner?.email} • Platform: {t.platform} • Slots: {t.numUsers}</div>
                     <div className="text-sm text-gray-600 mt-1">
@@ -149,9 +149,9 @@ export default function AdminCampaigns(){
                     {t.description && <div className="text-sm text-gray-600">Description: {t.description}</div>}
                     {t.action === 'follow' && t.socialHandle && <div className="text-sm text-gray-600">Account: {t.socialHandle}</div>}
                   </div>
-                  <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-col sm:items-end gap-2 mt-4 sm:mt-0 sm:ml-4">
                     <div className="text-sm">Requested: <strong>{new Date(t.createdAt).toLocaleString()}</strong></div>
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-2 mt-2 flex-wrap">
                       {view === 'pending' && (
                         <>
                           <button onClick={()=>approve(t._id)} className="px-3 py-2 bg-green-600 text-white rounded">Approve</button>
