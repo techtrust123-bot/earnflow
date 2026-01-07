@@ -133,11 +133,25 @@ exports.payApproval = async (req, res) => {
 
     let init = await paystack.initializeTransaction({ email: user.email, amount: payAmount, currency: payCurrency, reference })
 
-    // If Paystack rejects the requested currency (merchant doesn't support USD), retry in NGN
+    // Normal failure handling: but sometimes Paystack returns useful `data` even when `status` is false.
+    // If `responseBody` already contains checkout details (authorization_url/access_code/reference), treat it as success.
     if (!init.requestSuccessful) {
+      const rb = init.responseBody || {}
+      const hasCheckout = !!(rb.authorization_url || rb.access_code || rb.reference)
+      if (hasCheckout) {
+        const usedRef = rb.reference || reference
+        try {
+          await Payment.create({ user: userId, approval: id, reference: usedRef, amount: payAmount, status: 'pending', method: 'paystack', currency: payCurrency })
+        } catch (e) { console.warn('create Payment failed', e && e.message) }
+
+        const responsePayload = { ...rb, chargedAmount: payAmount, chargedCurrency: payCurrency }
+        if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount }
+        return res.json({ success: true, data: responsePayload })
+      }
+
       const msg = String(init.responseMessage || '').toLowerCase()
       const bodyMsg = String((init.responseBody && init.responseBody.message) || '').toLowerCase()
-      const currencyError = msg.includes('currency not supported') || bodyMsg.includes('currency not supported') || bodyMsg.includes('currency') && bodyMsg.includes('not supported')
+      const currencyError = msg.includes('currency not supported') || bodyMsg.includes('currency not supported') || (bodyMsg.includes('currency') && bodyMsg.includes('not supported'))
       if (currency === 'USD' && currencyError) {
         try {
           // retry initializing in NGN using the NGN total

@@ -27,6 +27,7 @@ export default function Dashboard() {
     features.push({ icon: '🛠️', title: 'Admin Users', to: '/admin/users' })
     features.push({ icon: '🛠️', title: 'Create Task', to: '/create-task' })
     features.push({ icon: '🛠️', title: 'My Tasks', to: '/my-tasks' })
+    features.push({ icon: '🛠️', title: 'Exchange Rate', to: '/admin/exchange-rate' })
     features.push({ icon: '🛠️', title: 'Exchange Rate Audit', to: '/admin/exchange-rate/audit' })
   }
 
