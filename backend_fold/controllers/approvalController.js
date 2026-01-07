@@ -128,7 +128,7 @@ exports.payApproval = async (req, res) => {
 
     // Initialize payment in the currency requested by the user.
     // If user requested USD, use the converted USD amount; otherwise use NGN.
-    const payCurrency = currency === 'USD' ? 'USD' : 'NGN'
+    let payCurrency = currency === 'USD' ? 'USD' : 'NGN'
     const payAmount = payCurrency === 'USD' ? chargeAmount : totalNgn
 
     let init = await paystack.initializeTransaction({ email: user.email, amount: payAmount, currency: payCurrency, reference })
