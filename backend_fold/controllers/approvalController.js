@@ -77,11 +77,33 @@ exports.payApproval = async (req, res) => {
     // get conversion if needed
     let chargeAmount = totalNgn
     if (currency === 'USD') {
-      // convert NGN -> USD using exchangerate.host
-      const conv = await require('axios').get(`https://api.exchangerate.host/convert?from=NGN&to=USD&amount=${totalNgn}`)
-      const usd = conv.data && conv.data.result ? conv.data.result : null
-      if (!usd) return res.status(500).json({ success: false, message: 'Conversion failed' })
-      chargeAmount = usd
+      // convert NGN -> USD using exchangerate.host (robust handling)
+      try {
+        const axios = require('axios')
+        const conv = await axios.get(`https://api.exchangerate.host/convert?from=NGN&to=USD&amount=${totalNgn}`)
+        let usd = null
+        if (conv && conv.data) {
+          if (typeof conv.data.result === 'number') usd = conv.data.result
+          else if (conv.data.rates && typeof conv.data.rates.USD === 'number') usd = conv.data.rates.USD * totalNgn
+          else if (conv.data.info && typeof conv.data.info.rate === 'number') usd = conv.data.info.rate * totalNgn
+        }
+
+        // fallback to /latest endpoint if needed
+        if (!usd) {
+          const latest = await require('axios').get('https://api.exchangerate.host/latest?base=NGN&symbols=USD')
+          const rate = latest && latest.data && latest.data.rates && latest.data.rates.USD
+          if (typeof rate === 'number') usd = rate * totalNgn
+        }
+
+        if (!usd) {
+          console.warn('currency conversion failed', { totalNgn, conv: conv && conv.data })
+          return res.status(500).json({ success: false, message: 'Conversion failed' })
+        }
+        chargeAmount = usd
+      } catch (e) {
+        console.error('conversion error', e && e.message)
+        return res.status(500).json({ success: false, message: 'Conversion failed' })
+      }
     }
 
     // initialize paystack transaction
