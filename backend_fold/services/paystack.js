@@ -102,8 +102,19 @@ exports.initializeTransaction = async ({ email, amount, currency = 'NGN', refere
     if (callback_url) body.callback_url = callback_url
 
     const res = await paystack.post('/transaction/initialize', body, { headers: { Authorization: `Bearer ${secret}` } })
-    if (res.data && res.data.status) return { requestSuccessful: true, responseBody: res.data.data }
-    return { requestSuccessful: false, responseMessage: res.data?.message || 'Init failed' }
+
+    const respData = res.data || {}
+    const data = respData.data || null
+
+    // Normalise: treat a response that contains checkout details as successful
+    // (authorization_url / access_code / reference) even if the wrapper's status is falsy.
+    const hasCheckout = data && (data.authorization_url || data.access_code || data.reference)
+    if (respData.status || hasCheckout) {
+      return { requestSuccessful: true, responseBody: data }
+    }
+
+    // Return responseBody as well so callers can inspect fields when status is falsy
+    return { requestSuccessful: false, responseMessage: respData?.message || 'Init failed', responseBody: data }
   } catch (err) {
     const body = err.response && err.response.data
     return { requestSuccessful: false, responseMessage: body?.message || err.message, responseBody: body }
