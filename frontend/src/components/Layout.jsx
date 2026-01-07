@@ -182,6 +182,8 @@ function SidebarContent({ user, userType, balance, isAuthenticated, onLogout, is
     navItems.push({ to: '/admin', label: 'Admin', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
     navItems.push({ to: '/admin/campaigns', label: 'Campaigns', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
     navItems.push({ to: '/admin/pending-payments', label: 'Pending Payments', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
+      navItems.push({ to: '/admin/exchange-rate', label: 'Exchange Rate', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
+      navItems.push({ to: '/admin/exchange-rate/audit', label: 'Exchange Rate Audit', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
   }
 
   useEffect(() => {
