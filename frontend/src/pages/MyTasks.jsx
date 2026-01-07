@@ -14,9 +14,12 @@ export default function MyTasks(){
       if (res.data && res.data.success && res.data.data) {
         const data = res.data.data
         // open paystack
-        if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') {
+        // If Paystack returns an authorization_url (hosted payment page), redirect to it.
+        if (data.authorization_url) {
+          window.location.href = data.authorization_url
+        } else if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') {
           const handler = window.PaystackPop.setup({
-            key: data.authorization_url ? (process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || data.publicKey) : (process.env.REACT_APP_PAYSTACK_PUBLIC_KEY),
+            key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || data.publicKey,
             email: data.customer?.email || '',
             amount: data.amount || data.display_amount || 0,
             ref: data.reference || data.tx_ref || `PAY_${Date.now()}`,
@@ -24,9 +27,8 @@ export default function MyTasks(){
             callback: function(response){ alert('Payment complete; verify via webhook') }
           })
           try{ handler.openIframe() }catch(e){ console.warn(e) }
-        } else if (data.authorization_url) {
-          // fallback redirect
-          window.location.href = data.authorization_url
+        } else {
+          alert('Payment cannot be started. Missing Paystack public key or payment URL.')
         }
       } else {
         alert(res.data?.message || 'Could not initialize payment')
