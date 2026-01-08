@@ -6,6 +6,49 @@ export default function MyTasks(){
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currency, setCurrency] = useState('NGN')
+  const [exchangeRate, setExchangeRate] = useState(null)
+  const [convertedTasks, setConvertedTasks] = useState([])
+
+  // Fetch exchange rate when component mounts
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        const res = await axios.get('/campaigns/exchange-rate/current')
+        if (res.data.success && res.data.rate) {
+          setExchangeRate(res.data.rate)
+        }
+      } catch (err) {
+        console.error('Failed to fetch exchange rate:', err)
+      }
+    }
+    fetchExchangeRate()
+  }, [])
+
+  // Convert task amounts when currency or exchange rate changes
+  useEffect(() => {
+    if (!tasks.length) return
+    
+    const converted = tasks.map(t => {
+      let amount = t.amount
+      
+      // If user selects USD and task is in NGN, convert NGN to USD
+      if (currency === 'USD' && t.currency === 'NGN' && exchangeRate) {
+        amount = Number((t.amount / exchangeRate).toFixed(2))
+      }
+      // If user selects NGN and task is in USD, convert USD to NGN
+      else if (currency === 'NGN' && t.currency === 'USD' && exchangeRate) {
+        amount = Math.round(t.amount * exchangeRate)
+      }
+      
+      return {
+        ...t,
+        displayAmount: amount,
+        displayCurrency: currency
+      }
+    })
+    
+    setConvertedTasks(converted)
+  }, [tasks, currency, exchangeRate])
 
   const payFor = async (task) => {
     try {
@@ -62,23 +105,32 @@ export default function MyTasks(){
             <div className="space-y-4">
               {tasks.length===0 ? <div className="text-gray-600">No tasks created yet.</div> : (
                 <>
-                  <div className="mb-3 flex items-center gap-3">
-                    <label className="text-sm font-medium">Currency</label>
-                    <select value={currency} onChange={e=>setCurrency(e.target.value)} className="p-2 border rounded">
-                      <option value="NGN">NGN</option>
-                      <option value="USD">USD</option>
-                    </select>
+                  <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium">Currency</label>
+                      <select value={currency} onChange={e=>setCurrency(e.target.value)} className="p-2 border rounded">
+                        <option value="NGN">NGN</option>
+                        <option value="USD">USD</option>
+                      </select>
+                    </div>
+                    {exchangeRate && (
+                      <div className="text-sm text-gray-600">
+                        Exchange Rate: 1 USD = ₦{exchangeRate.toFixed(2)}
+                      </div>
+                    )}
                   </div>
-                  {tasks.map(t=> (
+                  {convertedTasks.map(t=> (
                     <div key={t._id} className="bg-white p-4 rounded-xl shadow-sm w-full">
-                      <div className="flex justify-between items-center">
-                        <div>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="flex-1">
                           <div className="font-semibold">{t.action.toUpperCase()} — {t.link}</div>
-                          <div className="text-sm text-gray-600">Amount: {t.currency==='NGN' ? '₦' : '$'}{t.amount} • Slots: {t.slots}</div>
+                          <div className="text-sm text-gray-600">
+                            Amount: {t.displayCurrency === 'NGN' ? '₦' : '$'}{t.displayAmount.toLocaleString()} • Slots: {t.slots}
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
                           <div className="text-sm font-medium">{t.status}</div>
-                          {t.approval && <button onClick={()=>payFor(t)} className="px-3 py-1 bg-blue-600 text-white rounded">Pay</button>}
+                          {t.approval && <button onClick={()=>payFor(t)} className="px-3 py-1 bg-blue-600 text-white rounded whitespace-nowrap">Pay</button>}
                         </div>
                       </div>
                       {t.completedBy && t.completedBy.length > 0 && (
