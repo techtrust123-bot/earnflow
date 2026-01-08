@@ -107,6 +107,9 @@ app.use(
 // API Routes
 app.use("/api", require("./routes"));
 
+// Serve uploaded files (screenshots, images)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Referral redirect (public) - redirects to frontend signup with ref code
 app.get('/r/:code', async (req, res) => {
   try {

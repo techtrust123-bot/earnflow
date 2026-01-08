@@ -126,8 +126,8 @@ export default function AdminCampaigns(){
               })
               if (filtered.length === 0) return <div className="bg-white p-6 rounded-lg">No approval requests match filter</div>
               return filtered.map(t => (
-                <div key={t._id} className="bg-white p-4 rounded-lg shadow flex flex-col sm:flex-row justify-between items-start">
-                  <div className="flex-1">
+                <div key={t._id} className="bg-white p-4 rounded-lg shadow flex flex-col lg:flex-row justify-between items-start gap-4">
+                  <div className="flex-1 min-w-0">
                     <div className="font-bold">{t.action.toUpperCase()} — {t.title}</div>
                     <div className="text-sm text-gray-600">Owner: {t.owner?.name || t.owner?.email} • Platform: {t.platform} • Slots: {t.numUsers}</div>
                     <div className="text-sm text-gray-600 mt-1">
@@ -147,19 +147,35 @@ export default function AdminCampaigns(){
                     </div>
                     {t.action !== 'follow' && t.url && <div className="text-sm text-gray-600">Post URL: {t.url}</div>}
                     {t.description && <div className="text-sm text-gray-600">Description: {t.description}</div>}
+                    {t.accountUsername && <div className="text-sm text-gray-600">Account Username: <strong>{t.accountUsername}</strong></div>}
                     {t.action === 'follow' && t.socialHandle && <div className="text-sm text-gray-600">Account: {t.socialHandle}</div>}
+                    
+                    {/* Screenshot Display */}
+                    {t.screenshotUrl && (
+                      <div className="mt-3 w-full">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Screenshot:</p>
+                        <img 
+                          src={t.screenshotUrl} 
+                          alt="Task screenshot" 
+                          className="w-full max-w-xs h-auto rounded border border-gray-200 object-contain"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23e5e7eb%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2216%22 fill=%22%23999%22%3EImage not found%3C/text%3E%3C/svg%3E'
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex flex-col sm:items-end gap-2 mt-4 sm:mt-0 sm:ml-4">
+                  <div className="flex flex-col sm:items-end gap-2 w-full lg:w-auto">
                     <div className="text-sm">Requested: <strong>{new Date(t.createdAt).toLocaleString()}</strong></div>
-                    <div className="flex gap-2 mt-2 flex-wrap">
+                    <div className="flex gap-2 mt-2 flex-wrap lg:flex-nowrap">
                       {view === 'pending' && (
                         <>
-                          <button onClick={()=>approve(t._id)} className="px-3 py-2 bg-green-600 text-white rounded">Approve</button>
-                          <button onClick={()=>reject(t._id)} className="px-3 py-2 bg-red-500 text-white rounded">Reject</button>
+                          <button onClick={()=>approve(t._id)} className="px-3 py-2 bg-green-600 text-white rounded text-sm whitespace-nowrap">Approve</button>
+                          <button onClick={()=>reject(t._id)} className="px-3 py-2 bg-red-500 text-white rounded text-sm whitespace-nowrap">Reject</button>
                         </>
                       )}
                       {view === 'approved' && t.paid && !t._created && (
-                        <button onClick={()=>createTasks(t._id)} className="px-3 py-2 bg-blue-600 text-white rounded">Create Tasks</button>
+                        <button onClick={()=>createTasks(t._id)} className="px-3 py-2 bg-blue-600 text-white rounded text-sm whitespace-nowrap">Create Tasks</button>
                       )}
                     </div>
                   </div>

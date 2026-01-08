@@ -74,6 +74,30 @@ exports.completeTwitterTask = async (req, res) => {
 
     let verified = false
     const vType = (task.verification?.type || '').toLowerCase()
+    
+    // For screenshot-based tasks (repost, like, comment with manual verification)
+    // Skip automatic Twitter verification and mark as pending admin review
+    if (task.verification?.requiresScreenshot) {
+      // These tasks require manual admin verification of screenshots
+      // Create completion record with "pending_review" status
+      await TaskCompletion.create({
+        user: user._id,
+        task: taskId,
+        status: "pending_review",
+        createdAt: new Date(),
+        verificationType: task.verification?.type || null,
+        targetId: task.verification?.targetId || null,
+        targetTweetId: task.verification?.targetTweetId || null,
+        reason: 'awaiting_admin_verification'
+      })
+
+      return res.json({
+        success: true,
+        message: "Task submitted for admin verification. You'll be notified once verified.",
+        status: "pending_review"
+      })
+    }
+
     if (vType === 'follow') {
       verified = await verifyFollow(user.twitter.id, task.verification.targetId, authArg1, authArg2)
     } else if (vType === 'like') {

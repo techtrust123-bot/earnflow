@@ -4,6 +4,7 @@ const { protect } = require('../middleweres/authmiddlewere')
 const { createUserTask } = require('../controllers/userTaskController')
 const webhookController = require('../controllers/webhookLogController')
 const approvalController = require('../controllers/approvalController')
+const upload = require('../middleweres/multer')
 
 const authorizeRoles = require('../middleweres/roleMiddlewere')
 
@@ -14,8 +15,8 @@ const safeHandler = (h, name) => {
 }
 
 router.post('/create', protect, safeHandler(createUserTask, 'createUserTask'),authorizeRoles("admin"),)
-// Request approval (user)
-router.post('/request-approval', protect, safeHandler(approvalController.requestApproval, 'requestApproval'))
+// Request approval (user) - with file upload for screenshots
+router.post('/request-approval', protect, upload.single('screenshot'), safeHandler(approvalController.requestApproval, 'requestApproval'))
 router.post('/webhook', safeHandler(webhookController.paystackWebhook, 'paystackWebhook'))
 
 module.exports = router
