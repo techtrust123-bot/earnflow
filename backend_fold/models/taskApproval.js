@@ -8,7 +8,7 @@ const taskApprovalSchema = new mongoose.Schema({
   socialHandle: { type: String },
   numUsers: { type: Number, default: 100 },
   url: { type: String },
-  description: { type: String },
+  description: { type: String, trim: true },
   // For repost, like, comment actions: username/handle of the user's account
   accountUsername: { type: String },
   // For repost, like, comment actions: screenshot/image proof of the post
