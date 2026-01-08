@@ -47,6 +47,18 @@ router.post('/admin/create-tasks/:id', protect, authorizeRoles('admin'), ensureH
 // Paystack webhook (public)
 router.post('/webhook/paystack', ensureHandler(webhookController, 'paystackWebhook'))
 
+// Public: Get current exchange rate (for currency conversion)
+router.get('/exchange-rate/current', async (req, res) => {
+  try {
+    const exchangeRate = require('../services/exchangeRate')
+    const rate = await exchangeRate.getRate()
+    return res.json({ success: true, rate })
+  } catch (err) {
+    console.error('exchange rate error', err && err.message)
+    return res.status(500).json({ success: false, message: 'Could not fetch exchange rate' })
+  }
+})
+
 // Get single campaign (owner or admin)
 router.get('/:id', protect, ensureHandler(controller, 'getTaskById'))
 
