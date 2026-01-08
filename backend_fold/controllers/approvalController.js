@@ -11,8 +11,24 @@ exports.requestApproval = async (req, res) => {
     const userId = req.user && (req.user._id || req.user.id)
     if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' })
 
-    const { title, platform, action, socialHandle, numUsers, url, description } = req.body
+    const { title, platform, action, socialHandle, accountUsername, numUsers, url, description } = req.body
     if (!title || !platform || !action) return res.status(400).json({ success: false, message: 'Missing required fields' })
+
+    // For repost, like, comment actions: require accountUsername and screenshot
+    if (['repost', 'like', 'comment'].includes(action)) {
+      if (!accountUsername) return res.status(400).json({ success: false, message: 'Account username is required for this action' })
+      if (!req.file) return res.status(400).json({ success: false, message: 'Screenshot is required for this action' })
+      if (!description) return res.status(400).json({ success: false, message: 'Description is required' })
+    }
+
+    // Generate screenshot URL (from multer file path)
+    let screenshotUrl = undefined
+    if (req.file) {
+      // Assuming files are stored in a public directory or uploaded to cloud storage
+      // For local storage: /uploads/filename
+      // For cloud (e.g., AWS S3): https://bucket.s3.amazonaws.com/filename
+      screenshotUrl = req.file.path || `/uploads/${req.file.filename}`
+    }
 
     const doc = await TaskApproval.create({
       owner: userId,
@@ -20,9 +36,11 @@ exports.requestApproval = async (req, res) => {
       platform,
       action,
       socialHandle: socialHandle ? socialHandle.trim() : undefined,
+      accountUsername: accountUsername ? accountUsername.trim() : undefined,
       numUsers: numUsers ? Number(numUsers) : undefined,
       url: url ? url.trim() : undefined,
-      description: description ? description.trim() : undefined
+      description: description ? description.trim() : undefined,
+      screenshotUrl: screenshotUrl
     })
 
     // Optionally: notify admins (out of scope here)
@@ -127,74 +145,69 @@ exports.payApproval = async (req, res) => {
       try { currentRate = await exchangeRate.getRate() } catch (e) { /* ignore */ }
     }
 
-    // initialize paystack transaction
+    // initialize payment: use Flutterwave for USD, Paystack for NGN
     const paystack = require('../services/paystack')
+    const flutterwave = require('../services/flutterwave')
     const user = await User.findById(userId)
     const reference = `APR_${Date.now()}_${id}`
 
-    // Initialize payment in the currency requested by the user.
-    // If user requested USD, use the converted USD amount; otherwise use NGN.
-    let payCurrency = currency === 'USD' ? 'USD' : 'NGN'
-    const payAmount = payCurrency === 'USD' ? chargeAmount : totalNgn
-
-    let init = await paystack.initializeTransaction({ email: user.email, amount: payAmount, currency: payCurrency, reference })
-
-    // Normal failure handling: but sometimes Paystack returns useful `data` even when `status` is false.
-    // If `responseBody` already contains checkout details (authorization_url/access_code/reference), treat it as success.
-    if (!init.requestSuccessful) {
-      const rb = init.responseBody || {}
-      const hasCheckout = !!(rb.authorization_url || rb.access_code || rb.reference)
-      if (hasCheckout) {
+    if (currency === 'USD') {
+      // Try Flutterwave for USD checkout
+      const fwInit = await flutterwave.initializeTransaction({ email: user.email, amount: chargeAmount, currency: 'USD', reference, callback_url: process.env.FLW_CALLBACK_URL })
+      if (fwInit.requestSuccessful) {
+        const rb = fwInit.responseBody || {}
         const usedRef = rb.reference || reference
         try {
-          await Payment.create({ user: userId, approval: id, reference: usedRef, amount: payAmount, requestedAmount: currency === 'USD' ? chargeAmount : undefined, requestedCurrency: currency === 'USD' ? 'USD' : undefined, status: 'pending', method: 'paystack', currency: payCurrency })
+          await Payment.create({ user: userId, approval: id, reference: usedRef, amount: chargeAmount, currency: 'USD', status: 'pending', method: 'flutterwave' })
         } catch (e) { console.warn('create Payment failed', e && e.message) }
 
-        const responsePayload = { ...rb, chargedAmount: payAmount, chargedCurrency: payCurrency }
-        if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
+        const responsePayload = { ...rb, chargedAmount: chargeAmount, chargedCurrency: 'USD', provider: 'flutterwave' }
+        responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
         return res.json({ success: true, data: responsePayload })
       }
 
-      const msg = String(init.responseMessage || '').toLowerCase()
-      const bodyMsg = String((init.responseBody && init.responseBody.message) || '').toLowerCase()
-      const currencyError = msg.includes('currency not supported') || bodyMsg.includes('currency not supported') || (bodyMsg.includes('currency') && bodyMsg.includes('not supported'))
-      if (currency === 'USD' && currencyError) {
-        try {
-          // retry initializing in NGN using the NGN total
-          const fallbackReference = `${reference}_NGN`
-          const retry = await paystack.initializeTransaction({ email: user.email, amount: totalNgn, currency: 'NGN', reference: fallbackReference })
-          if (retry.requestSuccessful) {
-            // swap to the successful init and adjust the reference/currency/amount used for records
-            init = retry
-            payCurrency = 'NGN'
-            // record that the backend fell back from USD -> NGN
-            // create Payment using actual initialized amount
-            try { await Payment.create({ user: userId, approval: id, reference: fallbackReference, amount: totalNgn, requestedAmount: chargeAmount, requestedCurrency: 'USD', status: 'pending', method: 'paystack', currency: 'NGN' }) } catch (e) { console.warn('create Payment failed', e && e.message) }
-
-            // include fallback info (rate) for frontend display
-            let rate = null
-            try { rate = await exchangeRate.getRate() } catch (e) { /* ignore */ }
-            const responsePayload = { ...init.responseBody, chargedAmount: totalNgn, chargedCurrency: 'NGN', fallback: { from: 'USD', to: 'NGN', rate } }
-            if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
-            return res.json({ success: true, data: responsePayload })
-          }
-        } catch (e) {
-          console.warn('fallback NGN init failed', e && e.message)
+      // Flutterwave failed: fall back to NGN Paystack initialization
+      console.warn('flutterwave init failed, falling back to NGN Paystack', fwInit.responseMessage || fwInit.responseBody)
+      const fallbackReference = `${reference}_NGN`
+      try {
+        const retry = await paystack.initializeTransaction({ email: user.email, amount: totalNgn, currency: 'NGN', reference: fallbackReference })
+        if (retry.requestSuccessful) {
+          try { await Payment.create({ user: userId, approval: id, reference: fallbackReference, amount: totalNgn, requestedAmount: chargeAmount, requestedCurrency: 'USD', status: 'pending', method: 'paystack', currency: 'NGN' }) } catch (e) { console.warn('create Payment failed', e && e.message) }
+          const rate = currentRate
+          const responsePayload = { ...retry.responseBody, chargedAmount: totalNgn, chargedCurrency: 'NGN', fallback: { from: 'USD', to: 'NGN', rate } }
+          responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
+          return res.json({ success: true, data: responsePayload })
         }
-      }
+      } catch (e) { console.warn('fallback NGN init failed', e && e.message) }
 
-      return res.status(500).json({ success: false, message: init.responseMessage || init.responseBody || 'Payment initialization failed' })
+      return res.status(500).json({ success: false, message: fwInit.responseMessage || fwInit.responseBody || 'Payment initialization failed' })
     }
 
-    // create a Payment record to track (store what was actually initialized with Paystack)
+    // NGN flow (Paystack)
+    let payCurrency = 'NGN'
+    const payAmount = totalNgn
+    let init = await paystack.initializeTransaction({ email: user.email, amount: payAmount, currency: payCurrency, reference })
+
+    // Normal failure handling: but sometimes Paystack returns useful `data` even when `status` is false.
+    const rb = init.responseBody || {}
+    const hasCheckout = !!(rb.authorization_url || rb.access_code || rb.reference)
+    if (!init.requestSuccessful && hasCheckout) {
+      const usedRef = rb.reference || reference
+      try {
+        await Payment.create({ user: userId, approval: id, reference: usedRef, amount: payAmount, status: 'pending', method: 'paystack', currency: payCurrency })
+      } catch (e) { console.warn('create Payment failed', e && e.message) }
+
+      const responsePayload = { ...rb, chargedAmount: payAmount, chargedCurrency: payCurrency }
+      return res.json({ success: true, data: responsePayload })
+    }
+
+    if (!init.requestSuccessful) return res.status(500).json({ success: false, message: init.responseMessage || init.responseBody || 'Payment initialization failed' })
+
     try {
-      await Payment.create({ user: userId, approval: id, reference, amount: payAmount, requestedAmount: currency === 'USD' ? chargeAmount : undefined, requestedCurrency: currency === 'USD' ? 'USD' : undefined, status: 'pending', method: 'paystack', currency: payCurrency })
+      await Payment.create({ user: userId, approval: id, reference, amount: payAmount, status: 'pending', method: 'paystack', currency: payCurrency })
     } catch (e) { console.warn('create Payment failed', e && e.message) }
 
-    // Return init response plus conversion info if user requested USD so frontend can display equivalents
     const responsePayload = { ...init.responseBody, chargedAmount: payAmount, chargedCurrency: payCurrency }
-    if (currency === 'USD') responsePayload.requested = { currency: 'USD', amount: chargeAmount, rate: currentRate }
-
     return res.json({ success: true, data: responsePayload })
   } catch (err) {
     console.error('payApproval error', err)

@@ -2,6 +2,9 @@
 const crypto = require('crypto')
 const Payment = require('../models/payment')
 const UserTask = require('../models/userTask')
+const Notification = require('../models/notification')
+const transporter = require('../transporter/transporter')
+const User = require('../models/user')
 
 
 /**
@@ -132,6 +135,20 @@ exports.monnifyWebhook = async (req, res) => {
         log.verification = { ok: true, matchedPayment: payment._id }
         log.task = payment.task
         await log.save()
+        // Notify admins about the successful payment
+        try {
+          const admins = await User.find({ role: 'admin' }).lean()
+          const title = 'Payment Received'
+          const message = `Payment ${payment.reference} of ${payment.amount} ${payment.currency} received.`
+          for (const a of admins) {
+            try {
+              await Notification.create({ user: a._id, title, message, meta: { payment: payment._id } })
+              if (a.email) {
+                transporter.sendMail({ from: process.env.SENDER_EMAIL, to: a.email, subject: title, text: message }).catch(() => {})
+              }
+            } catch (e) { console.warn('notify admin failed', e && e.message) }
+          }
+        } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
       } else {
         payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
         await payment.save()
@@ -225,6 +242,20 @@ exports.paystackWebhook = async (req, res) => {
         log.verification = { ok: true, matchedPayment: payment._id }
         log.task = payment.task
         await log.save()
+        // Notify admins about the successful payment
+        try {
+          const admins = await User.find({ role: 'admin' }).lean()
+          const title = 'Payment Received'
+          const message = `Payment ${payment.reference} of ${payment.amount} ${payment.currency} received.`
+          for (const a of admins) {
+            try {
+              await Notification.create({ user: a._id, title, message, meta: { payment: payment._id } })
+              if (a.email) {
+                transporter.sendMail({ from: process.env.SENDER_EMAIL, to: a.email, subject: title, text: message }).catch(() => {})
+              }
+            } catch (e) { console.warn('notify admin failed', e && e.message) }
+          }
+        } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
       } else {
         payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
         await payment.save()
@@ -233,6 +264,103 @@ exports.paystackWebhook = async (req, res) => {
       }
     } catch (err) {
       console.error('paystackWebhook error', err)
+      try { log.verification = { error: err.message }; await log.save() } catch (e) {}
+    }
+  })()
+}
+
+// POST /api/webhooks/flutterwave
+exports.flutterwaveWebhook = async (req, res) => {
+  const payload = req.body
+  const log = await WebhookLog.create({ payload, provider: 'flutterwave', method: req.method, path: req.originalUrl })
+  res.status(200).send('OK')
+
+  ;(async () => {
+    // Verify Flutterwave signature (HMAC-SHA256 of raw JSON using FLW_SECRET_HASH)
+    try {
+      const signature = req.headers['verif-hash'] || req.headers['x-flw-signature'] || req.headers['verif_hash']
+      const secret = process.env.FLW_SECRET_HASH || process.env.FLW_SECRET_KEY || ''
+      if (!signature || !secret) {
+        log.verification = { ok: false, reason: 'missing signature or server secret' }
+        await log.save()
+        return
+      }
+
+      const computed = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex')
+      if (computed !== String(signature)) {
+        log.verification = { ok: false, reason: 'invalid signature' }
+        await log.save()
+        return
+      }
+    } catch (e) {
+      // if signature verification throws, record and stop processing
+      try { log.verification = { ok: false, reason: 'signature verification error', error: e.message }; await log.save() } catch (ee) {}
+      return
+    }
+    try {
+      // payload may contain data: { id, tx_ref, status, status_message }
+      const data = payload.data || payload
+      const paymentReference = data.tx_ref || data.txref || data.flw_ref || (data.data && (data.data.tx_ref || data.data.txref))
+      const paymentStatus = (data.status || data.event || '').toLowerCase()
+
+      if (!paymentReference) {
+        log.verification = { ok: false, reason: 'no reference in payload' }
+        await log.save()
+        return
+      }
+
+      const payment = await Payment.findOne({ reference: paymentReference })
+      if (!payment) {
+        log.verification = { ok: false, reason: 'payment not found' }
+        await log.save()
+        return
+      }
+
+      if (String(paymentStatus).includes('successful') || String(paymentStatus).includes('success')) {
+        payment.status = 'successful'
+        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+        await payment.save()
+
+        if (payment.approval) {
+          try {
+            const TaskApproval = require('../models/taskApproval')
+            const approval = await TaskApproval.findById(payment.approval)
+            if (approval) { approval.paid = true; await approval.save(); payment.meta = Object.assign({}, payment.meta || {}, { approvalHandled: true }); await payment.save() }
+          } catch (e) { console.warn('webhook: approval handling error', e && e.message) }
+        } else {
+          if (payment.task) await UserTask.findByIdAndUpdate(payment.task, { paid: true, status: 'active' })
+        }
+
+        try {
+          const Transaction = require('../models/transaction')
+          const tx = await Transaction.findOne({ reference: payment.reference })
+          if (tx) { tx.status = 'successful'; await tx.save() }
+        } catch (e) { console.warn('webhook: could not update transaction', e.message || e) }
+
+        log.verification = { ok: true, matchedPayment: payment._id }
+        log.task = payment.task
+        await log.save()
+
+        // Notify admins
+        try {
+          const admins = await User.find({ role: 'admin' }).lean()
+          const title = 'Payment Received'
+          const message = `Payment ${payment.reference} of ${payment.amount} ${payment.currency} received via Flutterwave.`
+          for (const a of admins) {
+            try {
+              await Notification.create({ user: a._id, title, message, meta: { payment: payment._id } })
+              if (a.email) transporter.sendMail({ from: process.env.SENDER_EMAIL, to: a.email, subject: title, text: message }).catch(() => {})
+            } catch (e) { console.warn('notify admin failed', e && e.message) }
+          }
+        } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
+      } else {
+        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+        await payment.save()
+        log.verification = { ok: false, reason: 'not paid', payloadStatus: paymentStatus }
+        await log.save()
+      }
+    } catch (err) {
+      console.error('flutterwaveWebhook error', err)
       try { log.verification = { error: err.message }; await log.save() } catch (e) {}
     }
   })()

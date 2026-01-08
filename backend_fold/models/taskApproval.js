@@ -9,6 +9,10 @@ const taskApprovalSchema = new mongoose.Schema({
   numUsers: { type: Number, default: 100 },
   url: { type: String },
   description: { type: String },
+  // For repost, like, comment actions: username/handle of the user's account
+  accountUsername: { type: String },
+  // For repost, like, comment actions: screenshot/image proof of the post
+  screenshotUrl: { type: String },
   status: { type: String, enum: ['requested','approved','rejected'], default: 'requested' },
   paid: { type: Boolean, default: false },
   currency: { type: String, enum: ['NGN','USD'], default: 'NGN' },
