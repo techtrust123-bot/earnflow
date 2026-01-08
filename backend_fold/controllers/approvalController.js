@@ -24,10 +24,9 @@ exports.requestApproval = async (req, res) => {
     // Generate screenshot URL (from multer file path)
     let screenshotUrl = undefined
     if (req.file) {
-      // Assuming files are stored in a public directory or uploaded to cloud storage
-      // For local storage: /uploads/filename
-      // For cloud (e.g., AWS S3): https://bucket.s3.amazonaws.com/filename
-      screenshotUrl = req.file.path || `/uploads/${req.file.filename}`
+      // Store just the filename and construct URL from it
+      // This works with the static middleware: app.use('/uploads', express.static(...))
+      screenshotUrl = `/uploads/${req.file.filename}`
     }
 
     const doc = await TaskApproval.create({

@@ -11,6 +11,13 @@ export default function AdminCampaigns(){
   const [saving, setSaving] = useState(false)
   const [paymentFilter, setPaymentFilter] = useState('all') // all | successful | pending | failed | notPaid
 
+  // Get base URL for image requests
+  const getImageUrl = (screenshotPath) => {
+    if (!screenshotPath) return null
+    if (screenshotPath.startsWith('http')) return screenshotPath
+    const baseUrl = window.location.origin
+    return `${baseUrl}${screenshotPath}`
+  }
   useEffect(()=>{ fetchList() }, [])
 
   const [view, setView] = useState('pending') // 'pending' or 'approved'
@@ -155,7 +162,7 @@ export default function AdminCampaigns(){
                       <div className="mt-3 w-full">
                         <p className="text-sm font-semibold text-gray-700 mb-2">Screenshot:</p>
                         <img 
-                          src={t.screenshotUrl} 
+                            src={getImageUrl(t.screenshotUrl)} 
                           alt="Task screenshot" 
                           className="w-full max-w-xs h-auto rounded border border-gray-200 object-contain"
                           onError={(e) => {
