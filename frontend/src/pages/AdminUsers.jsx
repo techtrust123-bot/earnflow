@@ -11,6 +11,8 @@ export default function AdminUsers() {
 	const [q, setQ] = useState('')
 	const [loading, setLoading] = useState(true)
 	const [deletingId, setDeletingId] = useState(null)
+	const [editingRole, setEditingRole] = useState(null)
+	const [updatingRoleId, setUpdatingRoleId] = useState(null)
 
 	useEffect(() => {
 		fetchUsersAndStats()
@@ -49,6 +51,25 @@ export default function AdminUsers() {
 			toast.error(err.response?.data?.message || 'Failed to delete user')
 		} finally {
 			setDeletingId(null)
+		}
+	}
+
+	const handleUpdateRole = async (userId, newRole) => {
+		if (!window.confirm(`Change this user's role to ${newRole}?`)) return
+		setUpdatingRoleId(userId)
+		try {
+			const res = await axios.patch(`/admin/users/${userId}/role`, { role: newRole })
+			if (res.data.success) {
+				// Update user in UI
+				setUsers((prev) => prev.map((u) => (u._id === userId ? { ...u, role: newRole } : u)))
+				toast.success(`Role updated to ${newRole}`)
+				setEditingRole(null)
+			}
+		} catch (err) {
+			console.error(err)
+			toast.error(err.response?.data?.message || 'Failed to update role')
+		} finally {
+			setUpdatingRoleId(null)
 		}
 	}
 
@@ -113,6 +134,7 @@ export default function AdminUsers() {
 													<th>Email</th>
 													<th>Balance</th>
 													<th>Tasks</th>
+													<th>Role</th>
 													<th>Joined</th>
 													<th>Verified</th>
 													<th>Status</th>
@@ -126,6 +148,11 @@ export default function AdminUsers() {
 														<td>{u.email || '—'}</td>
 														<td className="font-semibold text-green-600">₦{Number(u.balance || 0).toLocaleString()}</td>
 														<td>{u.tasksCompleted || 0}</td>
+														<td>
+															<span className={`px-3 py-1 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+																{u.role || 'user'}
+															</span>
+														</td>
 														<td className="text-sm text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</td>
 														<td>
 															<span className={`px-2 py-1 rounded-full text-xs font-semibold ${u.isAccountVerify ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
@@ -135,11 +162,17 @@ export default function AdminUsers() {
 														<td>
 															<UserStatus lastActive={u.lastActive} />
 														</td>
-														<td>
+														<td className="space-y-1">
+															<button
+																onClick={() => setEditingRole(u._id)}
+																className="block w-full px-3 py-2 rounded-md bg-blue-500 text-white text-sm hover:bg-blue-600"
+															>
+																Change Role
+															</button>
 															<button
 																onClick={() => handleDeleteUser(u._id)}
 																disabled={deletingId === u._id}
-																className="px-3 py-2 rounded-md bg-red-500 text-white"
+																className="block w-full px-3 py-2 rounded-md bg-red-500 text-white text-sm hover:bg-red-600"
 															>
 																{deletingId === u._id ? 'Deleting…' : 'Delete'}
 															</button>
@@ -164,14 +197,34 @@ export default function AdminUsers() {
 														<div className="text-xs text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</div>
 													</div>
 												</div>
-												<div className="flex items-center justify-between mt-3">
+												<div className="flex items-center justify-between mt-3 mb-3">
 													<div className="text-sm">Tasks: {u.tasksCompleted || 0}</div>
-													<div className="flex items-center gap-3">
+													<span className={`px-3 py-1 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+														{u.role || 'user'}
+													</span>
+												</div>
+												<div className="flex items-center justify-between">
+													<div className="flex items-center gap-2">
 														<span className={`px-2 py-1 rounded-full text-xs font-semibold ${u.isAccountVerify ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
 															{u.isAccountVerify ? 'Verified' : 'Unverified'}
 														</span>
 														<UserStatus lastActive={u.lastActive} />
 													</div>
+												</div>
+												<div className="grid grid-cols-2 gap-2 mt-3">
+													<button
+														onClick={() => setEditingRole(u._id)}
+														className="px-3 py-2 rounded-md bg-blue-500 text-white text-sm hover:bg-blue-600"
+													>
+														Change Role
+													</button>
+													<button
+														onClick={() => handleDeleteUser(u._id)}
+														disabled={deletingId === u._id}
+														className="px-3 py-2 rounded-md bg-red-500 text-white text-sm hover:bg-red-600"
+													>
+														{deletingId === u._id ? 'Deleting…' : 'Delete'}
+													</button>
 												</div>
 											</div>
 										))}
@@ -182,6 +235,41 @@ export default function AdminUsers() {
 					</div>
 				</section>
 			</div>
+
+			{/* Role Edit Modal */}
+			{editingRole && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+					<div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+						<h3 className="text-lg font-bold mb-4">Change User Role</h3>
+						<div className="space-y-4">
+							<div>
+								<label className="block text-sm font-medium mb-2">Select New Role</label>
+								<select
+									defaultValue={users.find((u) => u._id === editingRole)?.role || 'user'}
+									onChange={(e) => {
+										const newRole = e.target.value
+										handleUpdateRole(editingRole, newRole)
+									}}
+									disabled={updatingRoleId === editingRole}
+									className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2"
+								>
+									<option value="user">User</option>
+									<option value="admin">Admin</option>
+								</select>
+							</div>
+							<div className="flex justify-end gap-2">
+								<button
+									onClick={() => setEditingRole(null)}
+									disabled={updatingRoleId === editingRole}
+									className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</Container>
 	)
 }

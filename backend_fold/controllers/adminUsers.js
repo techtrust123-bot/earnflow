@@ -56,6 +56,39 @@ exports.deleteUser = async (req, res) => {
   }
 }
 
+// PATCH /api/admin/users/:id/role
+exports.updateUserRole = async (req, res) => {
+  try {
+    const userId = req.params.id
+    const { role } = req.body
+
+    if (!userId) return res.status(400).json({ message: 'User id required' })
+    if (!role) return res.status(400).json({ message: 'Role is required' })
+
+    // Validate role
+    if (!['admin', 'user'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be "admin" or "user"' })
+    }
+
+    // Prevent admin changing their own role via admin panel
+    if (req.user && req.user.id && req.user.id.toString() === userId.toString()) {
+      return res.status(400).json({ message: 'Cannot change your own role from admin panel' })
+    }
+
+    const user = await User.findById(userId)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    // Update role
+    user.role = role
+    await user.save()
+
+    res.json({ success: true, message: `User role updated to ${role}`, user: { _id: user._id, name: user.name, email: user.email, role: user.role } })
+  } catch (err) {
+    console.error('updateUserRole error', err)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
 
 
 
