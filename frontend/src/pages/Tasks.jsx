@@ -7,10 +7,12 @@ import { motion } from 'framer-motion'
 import axios from '../utils/axios'
 import Container from '../components/Container'
 import { useNavigate } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
 
 export default function Tasks() {
   const dispatch = useDispatch()
   const { balance = 0 } = useSelector(state => state.auth)
+  const { isDark } = useTheme()
 
   const [search, setSearch] = useState('')
   const [platformFilter, setPlatformFilter] = useState('all')
@@ -143,7 +145,7 @@ const copyLink = async (task) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'} flex items-center justify-center transition-colors`}>
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -154,20 +156,20 @@ const copyLink = async (task) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-6 px-4 sm:py-8 lg:py-12">
+    <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'} py-6 px-4 sm:py-8 lg:py-12 transition-colors`}>
       <Container>
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-800 mb-4">
+          <h1 className={`text-3xl sm:text-4xl md:text-5xl font-bold ${isDark ? 'text-slate-50' : 'text-blue-800'} mb-4 transition-colors`}>
             Complete Tasks & Earn
           </h1>
 
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className="inline-block bg-white rounded-2xl sm:rounded-3xl shadow-md border border-blue-100 p-6 sm:p-8 max-w-sm mx-auto w-full"
+            className={`inline-block ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-blue-100'} rounded-2xl sm:rounded-3xl shadow-md border p-6 sm:p-8 max-w-sm mx-auto w-full transition-colors`}
           >
-            <p className="text-lg sm:text-xl font-semibold text-blue-800 mb-2">Balance</p>
-            <p className="text-4xl sm:text-5xl font-bold text-blue-600">
+            <p className={`text-lg sm:text-xl font-semibold ${isDark ? 'text-slate-300' : 'text-blue-800'} mb-2 transition-colors`}>Balance</p>
+            <p className={`text-4xl sm:text-5xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
               ₦{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </motion.div>
@@ -177,40 +179,40 @@ const copyLink = async (task) => {
         <div className="mb-16">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks" className="w-full sm:w-64 p-3 rounded-lg border border-gray-200" />
-              <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} className="p-3 rounded-lg border border-gray-200">
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks" className={`w-full sm:w-64 p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'border-gray-200 bg-white text-gray-900'} transition-colors`} />
+              <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} className={`p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-gray-200 bg-white text-gray-900'} transition-colors`}>
                 <option value="all">All Platforms</option>
                 <option value="X">X (Twitter)</option>
                 <option value="Instagram">Instagram</option>
                 <option value="TikTok">TikTok</option>
               </select>
             </div>
-            <div className="text-sm text-gray-600">Available tasks are updated frequently</div>
+            <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Available tasks are updated frequently</div>
           </div>
 
           {/* Confirmation modal */}
           {showConfirm && pendingConfirm && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/40" onClick={() => setShowConfirm(false)} />
-              <div className="relative bg-white rounded-2xl p-6 shadow-lg max-w-md w-full">
-                <h3 className="text-lg font-semibold mb-2">Confirm completion</h3>
-                <p className="text-sm text-gray-600 mb-4">Are you sure you completed: <strong>{pendingConfirm.title}</strong> ?</p>
+              <div className={`absolute inset-0 ${isDark ? 'bg-black/60' : 'bg-black/40'} transition-colors`} onClick={() => setShowConfirm(false)} />
+              <div className={`relative ${isDark ? 'bg-slate-800' : 'bg-white'} rounded-2xl p-6 shadow-lg max-w-md w-full transition-colors`}>
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-slate-50' : 'text-gray-900'} mb-2`}>Confirm completion</h3>
+                <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'} mb-4`}>Are you sure you completed: <strong>{pendingConfirm.title}</strong> ?</p>
                 <div className="flex gap-3 justify-end">
-                  <button onClick={() => { setShowConfirm(false); setPendingConfirm(null) }} className="px-4 py-2 rounded-md border">Cancel</button>
-                  <button onClick={confirmComplete} className="px-4 py-2 rounded-md bg-blue-600 text-white">Yes, verify</button>
+                  <button onClick={() => { setShowConfirm(false); setPendingConfirm(null) }} className={`px-4 py-2 rounded-md border ${isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : 'border-gray-300 text-gray-900 hover:bg-gray-50'} transition-colors`}>Cancel</button>
+                  <button onClick={confirmComplete} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">Yes, verify</button>
                 </div>
               </div>
             </div>
           )}
 
-          <h2 className="text-2xl sm:text-3xl font-semibold text-blue-800 mb-6 text-center sm:text-left">
+          <h2 className={`text-2xl sm:text-3xl font-semibold ${isDark ? 'text-slate-50' : 'text-blue-800'} mb-6 text-center sm:text-left transition-colors`}>
             Active Tasks ({activeTasks.length})
           </h2>
 
           {activeTasks.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-3xl shadow-md border border-blue-100">
-              <p className="text-xl text-gray-600">No active tasks right now</p>
-              <p className="text-gray-500 mt-2">Check back soon!</p>
+            <div className={`text-center py-12 ${isDark ? 'bg-slate-800' : 'bg-white'} rounded-3xl shadow-md ${isDark ? 'border-slate-700' : 'border-blue-100'} border transition-colors`}>
+              <p className={`text-xl ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>No active tasks right now</p>
+              <p className={`${isDark ? 'text-slate-400' : 'text-gray-500'} mt-2`}>Check back soon!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
@@ -223,7 +225,7 @@ const copyLink = async (task) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
                   whileHover={{ scale: 1.02 }}
-                  className="bg-white rounded-3xl shadow-md border border-blue-100 p-6 transition-all hover:shadow-lg flex flex-col h-full"
+                  className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-blue-100'} rounded-3xl shadow-md border p-6 transition-all hover:shadow-lg flex flex-col h-full`}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <span className="bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-semibold">
@@ -278,7 +280,7 @@ const copyLink = async (task) => {
         {/* Completed Tasks */}
         {completedTasksList.length > 0 && (
           <div>
-            <h2 className="text-2xl sm:text-3xl font-semibold text-green-800 mb-6 text-center sm:text-left">
+            <h2 className={`text-2xl sm:text-3xl font-semibold ${isDark ? 'text-emerald-400' : 'text-green-800'} mb-6 text-center sm:text-left transition-colors`}>
               Completed Tasks ({completedTasksList.length})
             </h2>
 
@@ -289,7 +291,7 @@ const copyLink = async (task) => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="bg-green-50 rounded-3xl shadow-md border border-green-100 p-6 opacity-80"
+                  className={`${isDark ? 'bg-emerald-900/30 border-emerald-800' : 'bg-green-50 border-green-100'} rounded-3xl shadow-md border p-6 opacity-80 transition-colors`}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <span className="bg-green-100 text-green-600 px-4 py-2 rounded-full text-sm font-semibold">

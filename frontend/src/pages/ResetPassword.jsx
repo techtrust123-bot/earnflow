@@ -5,8 +5,10 @@ import toast from 'react-hot-toast'
 import axios from '../utils/axios'
 import { motion } from 'framer-motion'
 import Container from '../components/Container'
+import { useTheme } from '../context/ThemeContext'
 
 export default function ResetPassword() {
+  const { isDark } = useTheme()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
@@ -62,17 +64,17 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors ${isDark ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
       <Container>
         <motion.div
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-white rounded-3xl shadow-md p-6 sm:p-8 w-full max-w-md"
+          className={`rounded-3xl shadow-md p-6 sm:p-8 w-full max-w-md transition-colors ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white'}`}
         >
           <div className="text-center mb-4">
-            <h1 className="text-2xl sm:text-3xl font-bold text-blue-700">Reset Password</h1>
-            <p className="text-gray-600 mt-1">Enter the code sent to your email</p>
-            {email && <div className="text-sm font-mono text-gray-500 mt-2">{email}</div>}
+            <h1 className={`text-2xl sm:text-3xl font-bold transition-colors ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>Reset Password</h1>
+            <p className={`mt-1 transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Enter the code sent to your email</p>
+            {email && <div className={`text-sm font-mono mt-2 transition-colors ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>{email}</div>}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -81,7 +83,7 @@ export default function ResetPassword() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="000000"
-              className="w-full text-center text-3xl sm:text-4xl font-mono tracking-widest py-3 rounded-xl border-2 border-gray-200 focus:border-blue-600 outline-none"
+              className={`w-full text-center text-3xl sm:text-4xl font-mono tracking-widest py-3 rounded-xl border-2 transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-500 focus:border-blue-400' : 'border-gray-200 focus:border-blue-600 outline-none'}`}
               required
             />
 
@@ -90,7 +92,7 @@ export default function ResetPassword() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="New Password"
-              className="w-full px-3 py-2 rounded-lg border-2 border-gray-200 focus:border-blue-600 outline-none"
+              className={`w-full px-3 py-2 rounded-lg border-2 transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400 focus:border-blue-400' : 'border-gray-200 focus:border-blue-600 outline-none'}`}
               required
             />
 
@@ -99,7 +101,7 @@ export default function ResetPassword() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm Password"
-              className="w-full px-3 py-2 rounded-lg border-2 border-gray-200 focus:border-blue-600 outline-none"
+              className={`w-full px-3 py-2 rounded-lg border-2 transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400 focus:border-blue-400' : 'border-gray-200 focus:border-blue-600 outline-none'}`}
               required
             />
 
@@ -109,7 +111,7 @@ export default function ResetPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="w-full px-3 py-2 rounded-lg border-2 border-gray-200 focus:border-blue-600 outline-none"
+                className={`w-full px-3 py-2 rounded-lg border-2 transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400 focus:border-blue-400' : 'border-gray-200 focus:border-blue-600 outline-none'}`}
                 required
               />
             )}
@@ -121,8 +123,8 @@ export default function ResetPassword() {
               disabled={loading}
               className={`w-full py-3 rounded-lg font-semibold text-lg transition-all ${
                 loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md'
+                  ? (isDark ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-400 cursor-not-allowed')
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md hover:shadow-lg'
               }`}
             >
               {loading ? 'Processing...' : 'Reset Password'}
@@ -130,7 +132,7 @@ export default function ResetPassword() {
           </form>
 
           <div className="text-center mt-4">
-            <button onClick={() => navigate('/forgot-password')} className="text-blue-600 hover:underline font-medium">
+            <button onClick={() => navigate('/forgot-password')} className={`hover:underline font-medium transition-colors ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
               Resend OTP
             </button>
           </div>

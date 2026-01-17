@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import axios from '../utils/axios'
 import Container from '../components/Container'
+import { useTheme } from '../context/ThemeContext'
 
 export default function MyTasks(){
+  const { isDark } = useTheme()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [currency, setCurrency] = useState('NGN')
@@ -97,45 +99,45 @@ export default function MyTasks(){
   },[])
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-b from-white via-sky-50 to-indigo-50">
+    <div className={`min-h-screen p-6 ${isDark ? 'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-b from-white via-sky-50 to-indigo-50'} transition-colors`}>
       <Container>
         <div className="max-w-4xl mx-auto w-full sm:mx-0 px-2 sm:px-0">
-          <h2 className="text-xl font-bold mb-4">My Tasks</h2>
-          {loading ? <div>Loading...</div> : (
+          <h2 className={`text-xl font-bold mb-4 transition-colors ${isDark ? 'text-slate-50' : 'text-gray-900'}`}>My Tasks</h2>
+          {loading ? <div className={isDark ? 'text-slate-400' : 'text-gray-600'}>Loading...</div> : (
             <div className="space-y-4">
-              {tasks.length===0 ? <div className="text-gray-600">No tasks created yet.</div> : (
+              {tasks.length===0 ? <div className={isDark ? 'text-slate-400' : 'text-gray-600'}>No tasks created yet.</div> : (
                 <>
                   <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex items-center gap-3">
-                      <label className="text-sm font-medium">Currency</label>
-                      <select value={currency} onChange={e=>setCurrency(e.target.value)} className="p-2 border rounded">
+                      <label className={`text-sm font-medium transition-colors ${isDark ? 'text-slate-300' : 'text-gray-900'}`}>Currency</label>
+                      <select value={currency} onChange={e=>setCurrency(e.target.value)} className={`p-2 border rounded transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50' : 'border-gray-300 bg-white text-gray-900'}`}>
                         <option value="NGN">NGN</option>
                         <option value="USD">USD</option>
                       </select>
                     </div>
                     {exchangeRate && (
-                      <div className="text-sm text-gray-600">
+                      <div className={`text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                         Exchange Rate: 1 USD = ₦{exchangeRate.toFixed(2)}
                       </div>
                     )}
                   </div>
                   {convertedTasks.map(t=> (
-                    <div key={t._id} className="bg-white p-4 rounded-xl shadow-sm w-full">
+                    <div key={t._id} className={`p-4 rounded-xl shadow-sm w-full transition-colors ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white'}`}>
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <div className="flex-1">
-                          <div className="font-semibold">{t.action.toUpperCase()} — {t.link}</div>
-                          <div className="text-sm text-gray-600">
+                          <div className={`font-semibold transition-colors ${isDark ? 'text-slate-50' : 'text-gray-900'}`}>{t.action.toUpperCase()} — {t.link}</div>
+                          <div className={`text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                             Amount: {t.displayCurrency === 'NGN' ? '₦' : '$'}{t.displayAmount.toLocaleString()} • Slots: {t.slots}
                           </div>
                         </div>
                         <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
-                          <div className="text-sm font-medium">{t.status}</div>
-                          {t.approval && <button onClick={()=>payFor(t)} className="px-3 py-1 bg-blue-600 text-white rounded whitespace-nowrap">Pay</button>}
+                          <div className={`text-sm font-medium transition-colors ${isDark ? 'text-slate-300' : 'text-gray-900'}`}>{t.status}</div>
+                          {t.approval && <button onClick={()=>payFor(t)} className="px-3 py-1 bg-blue-600 text-white rounded whitespace-nowrap hover:bg-blue-700 transition-colors">Pay</button>}
                         </div>
                       </div>
                       {t.completedBy && t.completedBy.length > 0 && (
-                        <div className="mt-3 text-sm text-gray-700">
-                          <div className="font-medium mb-1">Completed By:</div>
+                        <div className={`mt-3 text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-gray-700'}`}>
+                          <div className={`font-medium mb-1 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-900'}`}>Completed By:</div>
                           <ul className="list-disc pl-5">
                             {t.completedBy.map(u => (
                               <li key={u.id}>{u.name || u.email} {u.email ? `(${u.email})` : ''}</li>

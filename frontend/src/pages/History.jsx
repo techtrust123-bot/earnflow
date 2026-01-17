@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import axios from '../utils/axios'
 import Container from '../components/Container'
+import { useTheme } from '../context/ThemeContext'
 
 export default function History() {
   const { balance } = useSelector(state => state.auth)
+  const { isDark } = useTheme()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all') // all, credit, debit
@@ -95,18 +97,18 @@ export default function History() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gradient-to-br from-blue-50 to-indigo-50'} flex items-center justify-center transition-colors`}>
         <div className="w-full max-w-4xl">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mx-auto" />
+            <div className={`h-8 ${isDark ? 'bg-slate-700' : 'bg-gray-200'} rounded w-1/3 mx-auto`} />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="h-24 bg-gray-200 rounded" />
-              <div className="h-24 bg-gray-200 rounded" />
-              <div className="h-24 bg-gray-200 rounded" />
+              <div className={`h-24 ${isDark ? 'bg-slate-700' : 'bg-gray-200'} rounded`} />
+              <div className={`h-24 ${isDark ? 'bg-slate-700' : 'bg-gray-200'} rounded`} />
+              <div className={`h-24 ${isDark ? 'bg-slate-700' : 'bg-gray-200'} rounded`} />
             </div>
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-20 bg-gray-100 rounded" />
+                <div key={i} className={`h-20 ${isDark ? 'bg-slate-700' : 'bg-gray-100'} rounded`} />
               ))}
             </div>
           </div>
@@ -116,7 +118,7 @@ export default function History() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-6 px-4 sm:py-8 lg:py-12">
+    <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'} py-6 px-4 sm:py-8 lg:py-12 transition-colors`}>
       <Container className="max-w-5xl">
         {/* Header */}
         <motion.div initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center mb-10">
@@ -160,35 +162,35 @@ export default function History() {
 
         {/* Controls (responsive) */}
         <div className="mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-            <input aria-label="Search description" placeholder="Search description" value={search} onChange={e => setSearch(e.target.value)} className="p-3 rounded-lg border w-full" />
-            <select aria-label="Filter type" value={filter} onChange={e => setFilter(e.target.value)} className="p-3 rounded-lg border w-full">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3 `}>
+            <input aria-label="Search description" placeholder="Search description" value={search} onChange={e => setSearch(e.target.value)} className={`p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'} transition-colors`} />
+            <select aria-label="Filter type" value={filter} onChange={e => setFilter(e.target.value)} className={`p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-gray-300 bg-white text-gray-900'} transition-colors`}>
               <option value="all">All</option>
               <option value="credit">Earnings</option>
               <option value="debit">Withdrawals</option>
             </select>
-            <input aria-label="Date from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="p-3 rounded-lg border w-full" />
-            <input aria-label="Date to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="p-3 rounded-lg border w-full" />
+            <input aria-label="Date from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={`p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-gray-300 bg-white text-gray-900'} transition-colors`} />
+            <input aria-label="Date to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={`p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-gray-300 bg-white text-gray-900'} transition-colors`} />
           </div>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <button onClick={() => exportCSV(filteredTransactions)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Export CSV</button>
-              <button onClick={() => { setSearch(''); setFilter('all'); setDateFrom(''); setDateTo(''); }} className="px-4 py-2 border rounded-lg">Reset</button>
+              <button onClick={() => exportCSV(filteredTransactions)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Export CSV</button>
+              <button onClick={() => { setSearch(''); setFilter('all'); setDateFrom(''); setDateTo(''); }} className={`px-4 py-2 border rounded-lg ${isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : 'border-gray-300 text-gray-900 hover:bg-gray-50'} transition-colors`}>Reset</button>
             </div>
-            <div className="text-sm text-gray-600">Showing <strong>{filteredTransactions.length}</strong> records</div>
+            <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Showing <strong>{filteredTransactions.length}</strong> records</div>
           </div>
         </div>
 
         {/* Transaction List */}
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-blue-100 overflow-hidden">
-          <div className="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-between">
+        <div className={`${isDark ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl rounded-3xl shadow-2xl border overflow-hidden transition-colors`}>
+          <div className={`p-6 ${isDark ? 'bg-gradient-to-r from-slate-800 to-slate-700' : 'bg-gradient-to-r from-blue-600 to-indigo-700'} flex items-center justify-between transition-colors`}>
             <h2 className="text-2xl font-bold text-white">
               {filter === 'all' ? 'All Transactions' : filter === 'credit' ? 'Earnings' : 'Withdrawals'}
             </h2>
             <div className="text-white/90">{filteredTransactions.length} records</div>
           </div>
 
-          <div className="divide-y divide-gray-200">
+          <div className={`divide-y ${isDark ? 'divide-slate-700' : 'divide-gray-200'} transition-colors`}>
             {filteredTransactions.length === 0 ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 text-gray-500 text-xl">
                 No {filter === 'all' ? '' : filter === 'credit' ? 'earnings' : 'withdrawals'} yet
@@ -282,7 +284,7 @@ export default function History() {
           animate={{ scale: 1 }}
           className="fixed bottom-20 right-6 md:hidden z-50"
         >
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-5 rounded-full shadow-2xl border-4 border-white">
+          <div className={`${isDark ? 'bg-gradient-to-br from-slate-700 to-slate-800' : 'bg-gradient-to-br from-blue-600 to-indigo-700'} text-white p-5 rounded-full shadow-2xl border-4 border-white transition-colors`}>
             <p className="text-center">
               <span className="block text-xs font-bold">Balance</span>
               <span className="text-2xl font-extrabold">₦{(balance || 0).toLocaleString()}</span>
