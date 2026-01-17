@@ -474,7 +474,7 @@ export default function Home() {
               <ul className={`space-y-2 ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                 <li><a href="mailto:support@earnflow.com" className="hover:text-indigo-600">Contact Us</a></li>
                 <li><a href="#" className="hover:text-indigo-600">FAQ</a></li>
-                <li><a href="#" className="hover:text-indigo-600">Terms</a></li>
+                <li><Link to="/terms" className="hover:text-indigo-600">Terms</Link></li>
               </ul>
             </motion.div>
             <motion.div variants={fadeInUp}>
@@ -494,7 +494,7 @@ export default function Home() {
             whileInView="animate"
             viewport={{ once: true }}
           >
-            <p>© {new Date().getFullYear()} Earnflow. All rights reserved. | <a href="#" className="hover:text-indigo-600">Privacy Policy</a> | <a href="#" className="hover:text-indigo-600">Terms of Service</a></p>
+            <p>© {new Date().getFullYear()} Earnflow. All rights reserved. | <Link to="/privacy" className="hover:text-indigo-600">Privacy Policy</Link> | <Link to="/terms" className="hover:text-indigo-600">Terms of Service</Link></p>
           </motion.div>
         </Container>
       </motion.footer>

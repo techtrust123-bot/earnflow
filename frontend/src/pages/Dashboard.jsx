@@ -2,11 +2,12 @@ import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import axios from '../utils/axios'
-
+import { useTheme } from '../context/ThemeContext'
 import Container from '../components/Container'
 
 export default function Dashboard() {
   const { user, balance } = useSelector(state => state.auth)
+  const { isDark } = useTheme()
 
   const features = [
     { icon: '📋', title: 'Tasks', to: '/tasks' },
@@ -32,9 +33,9 @@ export default function Dashboard() {
   }
 
   const stat = (label, value, tone = 'text-gray-700') => (
-    <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center">
-      <div className={`text-xs font-medium text-gray-500`}>{label}</div>
-      <div className={`text-lg font-bold ${tone}`}>{value}</div>
+    <div className={`${isDark ? 'bg-slate-800/60 border border-slate-700' : 'bg-white/60'} backdrop-blur-sm p-4 rounded-xl text-center transition-colors`}>
+      <div className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{label}</div>
+      <div className={`text-lg font-bold ${isDark && tone.includes('gray') ? 'text-slate-200' : tone}`}>{value}</div>
     </div>
   )
 
@@ -134,7 +135,7 @@ export default function Dashboard() {
         <h3 className="text-lg font-semibold mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {features.map((f, i) => (
-            <Link key={i} to={f.to} className="bg-white rounded-xl p-4 flex flex-col items-center justify-center gap-2 shadow hover:shadow-md transition">
+            <Link key={i} to={f.to} className={`${isDark ? 'bg-slate-800 border border-slate-700 hover:bg-slate-700' : 'bg-white hover:shadow-md'} rounded-xl p-4 flex flex-col items-center justify-center gap-2 shadow transition-colors`}>
               <div className="text-2xl">{f.icon}</div>
               <div className="text-sm font-medium">{f.title}</div>
             </Link>
@@ -160,33 +161,33 @@ export default function Dashboard() {
             {notifications && notifications.length > 0 ? (
               <div className="space-y-2">
                 {notifications.map(n => (
-                  <div key={n._id} className={`p-2 rounded border ${n.read ? 'bg-gray-50' : 'bg-white'}`}>
+                  <div key={n._id} className={`p-2 rounded border ${isDark ? (n.read ? 'bg-slate-700 border-slate-600' : 'bg-slate-800 border-slate-600') : (n.read ? 'bg-gray-50' : 'bg-white')} transition-colors`}>
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">{n.title}</div>
+                      <div className={`text-sm font-medium ${isDark ? 'text-slate-200' : ''}`}>{n.title}</div>
                       {!n.read && <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600">Mark read</button>}
                     </div>
-                    <div className="text-xs text-gray-600">{n.message}</div>
-                    <div className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</div>
+                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{n.message}</div>
+                    <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-400'} mt-1`}>{new Date(n.createdAt).toLocaleString()}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-xs text-gray-500">No notifications</div>
+              <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>No notifications</div>
             )}
           </div>
 
           <h4 className="font-semibold">Recent Activity</h4>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className={`space-y-3 text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
             {/** Render fetched activity items or a friendly message */}
             {recentActivity && recentActivity.length > 0 ? (
               recentActivity.map((it) => (
                 <div key={it.key} className="flex items-center justify-between">
                   <div className="truncate">{it.text}</div>
-                  <div className={`${it.type === 'credit' ? 'text-green-600' : it.type === 'debit' ? 'text-red-600' : 'text-gray-600'} font-bold`}>{it.displayAmount}</div>
+                  <div className={`${it.type === 'credit' ? 'text-green-600' : it.type === 'debit' ? 'text-red-600' : isDark ? 'text-slate-400' : 'text-gray-600'} font-bold`}>{it.displayAmount}</div>
                 </div>
               ))
             ) : (
-              <div className="text-xs text-gray-500">No recent activity yet</div>
+              <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>No recent activity yet</div>
             )}
           </div>
           <Link to="/history" className="block text-center mt-4 text-indigo-600 font-medium">View Full History</Link>

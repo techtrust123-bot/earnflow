@@ -22,6 +22,8 @@ import Referral from './pages/Referral'
 import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import TermsAndConditions from './pages/TermsAndConditions'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 function App() {
   return (
@@ -34,6 +36,8 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           {/* <Route path="/admin" element={<AdminTasks />} /> */}
           {/* <Route path="/admin/users" element={<AdminUsers />} /> */}
           {/* <Route path="/history" element={<History />} />

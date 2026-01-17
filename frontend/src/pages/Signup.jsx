@@ -6,6 +6,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import axios from '../utils/axios'
 import Container from '../components/Container'
+import { useTheme } from '../context/ThemeContext'
 
 export default function Signup() {
   const formDatas={
@@ -13,9 +14,11 @@ export default function Signup() {
     email: '',
     password: '',
     confirmPassword: '',
+    agreeTerms: false
   };
   const [formData, setFormData] = useState(formDatas)
   const [loading, setLoading] = useState(false)
+  const { isDark } = useTheme()
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -24,9 +27,9 @@ export default function Signup() {
   const refParam = q.get('ref') || q.get('referral') || q.get('r')
 
   const handleChange = (e) => {
-    const {name, value} = e.target;
-    console.log(name,value)
-    setFormData({ ...formData, [name]:value })
+    const {name, value, type, checked} = e.target;
+    console.log(name, type === 'checkbox' ? checked : value)
+    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value })
   }
 
 
@@ -36,6 +39,11 @@ export default function Signup() {
 
     if (!formData.name || !formData.email || !formData.password) {
       toast.error('Name, email and password are required')
+      return
+    }
+
+    if (!formData.agreeTerms) {
+      toast.error('You must agree to the Terms and Conditions to sign up')
       return
     }
 
@@ -76,18 +84,18 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-slate-950' : 'bg-slate-50'} px-4 transition-colors`}>
       <Container>
-        <div className="max-w-md mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full sm:w-auto mx-2 sm:mx-auto">
+        <div className={`max-w-md mx-auto ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white'} p-6 sm:p-8 rounded-xl shadow-lg w-full sm:w-auto mx-2 sm:mx-auto transition-colors`}>
           <div className="text-center mb-4">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold mb-3">E</div>
             <h2 className="text-2xl font-bold">Create Your Account</h2>
-            <p className="text-sm text-gray-500">Start earning in under 60 seconds</p>
+            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Start earning in under 60 seconds</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block">
-              <span className="text-sm text-gray-600">Full name</span>
+              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Full name</span>
               <input
                 type="text"
                 name="name"
@@ -95,12 +103,12 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="Your full name"
                 required
-                className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
               />
             </label>
 
             <label className="block">
-              <span className="text-sm text-gray-600">Email</span>
+              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Email</span>
               <input
                 type="email"
                 name="email"
@@ -108,13 +116,13 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="you@example.com"
                 required
-                className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
               />
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="block">
-                <span className="text-sm text-gray-600">Password</span>
+                <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Password</span>
                 <input
                   type="password"
                   name="password"
@@ -123,12 +131,12 @@ export default function Signup() {
                   placeholder="Password"
                   required
                   minLength="6"
-                  className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm text-gray-600">Confirm</span>
+                <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Confirm</span>
                 <input
                   type="password"
                   name="confirmPassword"
@@ -136,21 +144,43 @@ export default function Signup() {
                   onChange={handleChange}
                   placeholder="Confirm password"
                   required
-                  className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
                 />
               </label>
             </div>
 
+            <label className={`flex items-start gap-3 p-3 rounded-lg border-2 ${formData.agreeTerms ? (isDark ? 'bg-indigo-900/20 border-indigo-600' : 'bg-indigo-50 border-indigo-300') : (isDark ? 'bg-slate-800 border-slate-600' : 'bg-gray-50 border-gray-300')} transition-colors cursor-pointer`}>
+              <input
+                type="checkbox"
+                name="agreeTerms"
+                checked={formData.agreeTerms}
+                onChange={handleChange}
+                className={`mt-1 w-4 h-4 rounded cursor-pointer ${isDark ? 'accent-indigo-500' : 'accent-indigo-600'}`}
+              />
+              <div className="flex-1 text-sm">
+                <span className={isDark ? 'text-slate-300' : 'text-gray-700'}>
+                  I agree to the{' '}
+                  <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline font-semibold">
+                    Terms and Conditions
+                  </Link>
+                  {' '}and{' '}
+                  <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline font-semibold">
+                    Privacy Policy
+                  </Link>
+                </span>
+              </div>
+            </label>
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !formData.agreeTerms}
               className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating Account...' : 'Sign Up Free'}
             </button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-600">
+          <p className={`text-center mt-6 text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
             Already have an account?{' '}
             <Link to="/login" className="text-green-600 font-semibold hover:underline">
               Login here
