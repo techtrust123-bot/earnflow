@@ -6,12 +6,14 @@ import { logout } from '../features/auth/authSlice'
 import axios from '../utils/axios'
 import toast from 'react-hot-toast'
 import Container from './Container'
+import { useTheme } from '../context/ThemeContext'
 
 export default function Layout({ children }) {
   const { isAuthenticated, user, balance, userType } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
+  const { isDark, toggleTheme } = useTheme()
 
   const handleLogout = async () => {
     try {
@@ -49,10 +51,10 @@ export default function Layout({ children }) {
   }, [mobileOpen])
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex">
+    <div className={`min-h-screen ${isDark ? 'bg-slate-950 text-slate-50' : 'bg-slate-50 text-slate-800'} flex transition-colors duration-300`}>
   
       {isAuthenticated && user && user.isAccountVerify && (
-        <aside className="hidden md:flex md:flex-col bg-white border-r border-gray-100 shadow-sm p-4 sticky top-0 h-screen transition-all">
+        <aside className={`hidden md:flex md:flex-col ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'} border-r shadow-sm p-4 sticky top-0 h-screen transition-all transition-colors`}>
           <SidebarContent
             user={user}
             userType={userType}
@@ -64,12 +66,12 @@ export default function Layout({ children }) {
       )}
 
       <div className="flex-1 flex flex-col">
-        <header className="bg-white border-b border-gray-100 p-4 sticky top-0 z-30">
+        <header className={`${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'} border-b p-4 sticky top-0 z-30 transition-colors`}>
           <Container>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
               {isAuthenticated && user && user.isAccountVerify && (
-                <button aria-label="Toggle menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(prev => !prev)} className="md:hidden p-2 rounded-md hover:bg-gray-100 text-gray-700">
+                <button aria-label="Toggle menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(prev => !prev)} className={`md:hidden p-2 rounded-md ${isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-gray-100 text-gray-700'}`}>
                   <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
               )}
@@ -79,25 +81,37 @@ export default function Layout({ children }) {
             <div className="flex items-center gap-4">
               {isAuthenticated && user && user.isAccountVerify ? (
                 <div className="hidden sm:flex items-center gap-3" aria-hidden={!isAuthenticated}>
-                  <div className="text-sm text-gray-500">Balance</div>
+                  <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Balance</div>
                   <div className="font-semibold">₦{(Number(balance) || 0).toLocaleString()}</div>
                 </div>
               ) : null}
 
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-md ${isDark ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                aria-label="Toggle dark mode"
+              >
+                {isDark ? (
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v1m0 16v1m8.485-8.485h1m-17.97 0h1M19.828 4.172l-.707.707m-12.242 0l-.707-.707M19.828 19.828l-.707-.707m-12.242 0l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/></svg>
+                ) : (
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                )}
+              </button>
+
               {/* If not authenticated show login/signup. If authenticated but not verified show verify CTA + logout */}
               {!isAuthenticated ? (
                 <div className="flex items-center gap-3">
-                  <Link to="/login" className="px-3 py-2 rounded-md hover:bg-gray-100">Login</Link>
+                  <Link to="/login" className={`px-3 py-2 rounded-md ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Login</Link>
                   <Link to="/signup" className="px-3 py-2 bg-indigo-600 text-white rounded-md">Sign Up</Link>
                 </div>
               ) : user && !user.isAccountVerify ? (
                 <div className="flex items-center gap-3">
-                  <Link to="/verify-email" className="px-3 py-2 rounded-md hover:bg-gray-100">Verify</Link>
+                  <Link to="/verify-email" className={`px-3 py-2 rounded-md ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Verify</Link>
                   <button onClick={handleLogout} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Logout</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <Link to="/profile" className="hidden sm:inline-block px-3 py-2 rounded-md hover:bg-gray-100">Profile</Link>
+                  <Link to="/profile" className={`hidden sm:inline-block px-3 py-2 rounded-md ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Profile</Link>
                   <button onClick={handleLogout} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Logout</button>
                 </div>
               )}
@@ -108,7 +122,7 @@ export default function Layout({ children }) {
 
         {/* Show verification prompt for logged in but unverified users */}
         {isAuthenticated && user && !user.isAccountVerify && (
-          <div className="bg-yellow-50 border-b border-yellow-200 text-yellow-800 p-3 text-center">
+          <div className={`${isDark ? 'bg-yellow-900 border-yellow-700 text-yellow-200' : 'bg-yellow-50 border-yellow-200 text-yellow-800'} border-b p-3 text-center`}>
             Your email is not verified. <Link to="/verify-email" className="font-semibold underline">Verify now</Link>
           </div>
         )}
@@ -120,7 +134,7 @@ export default function Layout({ children }) {
         </main>
 
         {isAuthenticated && user && user.isAccountVerify && (
-          <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-white rounded-2xl shadow-lg p-3 z-40" role="navigation" aria-label="Primary mobile navigation">
+          <nav className={`md:hidden fixed bottom-4 left-4 right-4 ${isDark ? 'bg-slate-900 shadow-2xl' : 'bg-white shadow-lg'} rounded-2xl p-3 z-40 transition-colors`} role="navigation" aria-label="Primary mobile navigation">
             <div className="flex justify-around">
               <Link to="/dashboard" className="flex flex-col items-center text-xs" aria-label="Home">🏠<span>Home</span></Link>
               <Link to="/tasks" className="flex flex-col items-center text-xs" aria-label="Tasks">📝<span>Tasks</span></Link>
@@ -134,14 +148,14 @@ export default function Layout({ children }) {
         {mobileOpen && isAuthenticated && user && user.isAccountVerify && (
           <div className="md:hidden fixed inset-0 z-50 flex">
             <div className="fixed inset-0 bg-black/40" onClick={() => setMobileOpen(false)} aria-hidden="true" />
-            <div className="relative w-72 bg-white h-full shadow-xl">
+            <div className={`relative w-72 ${isDark ? 'bg-slate-900' : 'bg-white'} h-full shadow-xl transition-colors`}>
               <div className="p-4 border-b">
                 <div className="flex items-center justify-between">
                   <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">E</div>
                     <div className="text-lg font-semibold">Earnflow</div>
                   </Link>
-                  <button aria-label="Close menu" onClick={() => setMobileOpen(false)} className="p-2 rounded-md hover:bg-gray-100">
+                  <button aria-label="Close menu" onClick={() => setMobileOpen(false)} className={`p-2 rounded-md ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
                 </div>
