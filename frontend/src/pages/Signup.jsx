@@ -80,7 +80,7 @@ export default function Signup() {
       <Container>
         <div className="max-w-md mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full sm:w-auto mx-2 sm:mx-auto">
           <div className="text-center mb-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-teal-600 text-white font-bold mb-3">E</div>
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold mb-3">E</div>
             <h2 className="text-2xl font-bold">Create Your Account</h2>
             <p className="text-sm text-gray-500">Start earning in under 60 seconds</p>
           </div>
@@ -95,7 +95,7 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="Your full name"
                 required
-                className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
             </label>
 
@@ -144,7 +144,7 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-teal-700 transition disabled:opacity-70"
+              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating Account...' : 'Sign Up Free'}
             </button>
