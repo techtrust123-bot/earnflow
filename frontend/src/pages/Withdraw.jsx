@@ -6,6 +6,7 @@ import axios from '../utils/axios'
 import { motion } from 'framer-motion'
 import Container from '../components/Container'
 import { updateBalance } from '../features/auth/authSlice'
+import { useTheme } from '../context/ThemeContext'
 
 const MIN_WITHDRAW = 500
 
@@ -35,6 +36,7 @@ const NIGERIAN_BANKS = [
 
 export default function Withdraw() {
   const { balance = 0 } = useSelector(state => state.auth)
+  const { isDark } = useTheme()
   const [amount, setAmount] = useState('')
   const [selectedBank, setSelectedBank] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
@@ -143,17 +145,17 @@ export default function Withdraw() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-b from-white via-sky-50 to-indigo-50">
+    <div className={`min-h-screen p-4 sm:p-6 ${isDark ? 'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-b from-white via-sky-50 to-indigo-50'} transition-colors`}>
       <Container>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-4xl mx-2 sm:mx-0">
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
-            <div className="bg-white p-6 rounded-2xl shadow-md">
+            <div className={`${isDark ? 'bg-slate-800' : 'bg-white'} p-6 rounded-2xl shadow-md transition-colors`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-gray-500">Available Balance</div>
-                  <div className="text-3xl font-extrabold text-gray-900">₦{balance.toLocaleString()}</div>
+                  <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Available Balance</div>
+                  <div className={`text-3xl font-extrabold ${isDark ? 'text-slate-50' : 'text-gray-900'}`}>₦{balance.toLocaleString()}</div>
                 </div>
                 <div className="flex gap-2">
                   <div className="grid grid-cols-2 sm:flex sm:gap-2 gap-2 w-full sm:w-auto">
@@ -167,49 +169,49 @@ export default function Withdraw() {
               <form onSubmit={handleWithdraw} className="mt-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="text-sm text-gray-600">Amount</label>
+                    <label className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Amount</label>
                     <div className="mt-2 relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-700">₦</span>
+                      <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-lg ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>₦</span>
                       <input
                         type="number"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         placeholder={`${MIN_WITHDRAW}.00`}
-                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-lg outline-none"
+                        className={`w-full pl-12 pr-4 py-3 rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'border-gray-200 bg-gray-50 text-gray-900'} text-lg outline-none transition-colors`}
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm text-gray-600">Fee</label>
-                    <div className="mt-2 rounded-xl bg-gray-50 border border-gray-200 py-3 px-4 text-lg text-gray-800">₦{calcFee(amount)}</div>
+                    <label className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Fee</label>
+                    <div className={`mt-2 rounded-xl ${isDark ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-gray-50 border-gray-200 text-gray-800'} border py-3 px-4 text-lg transition-colors`}>₦{calcFee(amount)}</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm text-gray-600">Bank</label>
-                    <select value={selectedBank} onChange={(e) => setSelectedBank(e.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 bg-white py-3 px-3">
+                    <label className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Bank</label>
+                    <select value={selectedBank} onChange={(e) => setSelectedBank(e.target.value)} className={`mt-2 w-full rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-gray-200 text-gray-900'} py-3 px-3 transition-colors`}>
                       <option value="">Choose bank</option>
                       {NIGERIAN_BANKS.map(b => <option key={b.code} value={b.name}>{b.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600">Account Number</label>
-                    <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="0123456789" className="mt-2 w-full rounded-xl border border-gray-200 bg-white py-3 px-3 font-mono" />
+                    <label className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Account Number</label>
+                    <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="0123456789" className={`mt-2 w-full rounded-xl border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-white border-gray-200 text-gray-900'} py-3 px-3 font-mono transition-colors`} />
                   </div>
                 </div>
 
                 <div>
                   {verifying ? (
-                    <div className="flex items-center gap-3 text-blue-600"> <div className="w-5 h-5 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"/> <span>Verifying account...</span> </div>
+                    <div className={`flex items-center gap-3 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}> <div className="w-5 h-5 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"/> <span>Verifying account...</span> </div>
                   ) : accountName ? (
-                    <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-                      <div className="text-sm text-green-700 font-semibold">Account Verified</div>
-                      <div className="text-lg text-green-800">{accountName}</div>
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-emerald-900/30 border-emerald-800' : 'bg-green-50 border-green-100'} border transition-colors`}>
+                      <div className={`text-sm font-semibold ${isDark ? 'text-emerald-400' : 'text-green-700'}`}>Account Verified</div>
+                      <div className={`text-lg ${isDark ? 'text-emerald-300' : 'text-green-800'}`}>{accountName}</div>
                     </div>
                   ) : (accountNumber.length === 10 && selectedBank) ? (
-                    <div className="text-sm text-red-600">Invalid account details</div>
+                    <div className={`text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>Invalid account details</div>
                   ) : null}
                 </div>
 
@@ -220,9 +222,9 @@ export default function Withdraw() {
             </div>
           </div>
 
-          <aside className="bg-white p-6 rounded-2xl shadow-md md:sticky md:top-28">
-            <h3 className="text-lg font-bold mb-3">Withdrawal Info</h3>
-            <ul className="text-sm text-gray-600 space-y-2">
+          <aside className={`${isDark ? 'bg-slate-800' : 'bg-white'} p-6 rounded-2xl shadow-md md:sticky md:top-28 transition-colors`}>
+            <h3 className={`text-lg font-bold ${isDark ? 'text-slate-50' : 'text-gray-900'} mb-3`}>Withdrawal Info</h3>
+            <ul className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'} space-y-2`}>
               <li>Minimum withdrawal: <strong>₦{MIN_WITHDRAW}</strong></li>
               <li>Fee: 1.5% (min ₦50)</li>
               <li>Processing time: <strong>Within 24 hours</strong></li>
@@ -230,8 +232,8 @@ export default function Withdraw() {
             </ul>
 
             <div className="mt-6">
-              <h4 className="text-sm font-semibold mb-2">Need help?</h4>
-              <a href="/support" className="text-sm text-blue-600">Contact Support</a>
+              <h4 className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-gray-900'} mb-2`}>Need help?</h4>
+              <a href="/support" className={`text-sm ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Contact Support</a>
             </div>
           </aside>
         </div>

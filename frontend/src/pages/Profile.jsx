@@ -8,10 +8,12 @@ import Container from '../components/Container'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import API_URL from '../config/api'
+import { useTheme } from '../context/ThemeContext'
 
 export default function Profile() {
   const { user, balance } = useSelector(state => state.auth)
   const dispatch = useDispatch()
+  const { isDark } = useTheme()
 
   const [loading, setLoading] = useState(false)
   const [showRetry, setShowRetry] = useState(false)
@@ -183,10 +185,10 @@ export default function Profile() {
   }, [dispatch])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-sky-50 to-indigo-50 p-6">
+    <div className={`min-h-screen ${isDark ? 'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-b from-white via-sky-50 to-indigo-50'} p-6 transition-colors`}>
       {showRetry && (
-        <div className="max-w-3xl mx-auto mb-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-between gap-4">
-          <div className="text-sm text-yellow-800">Twitter linking failed — you can retry connecting your account.</div>
+        <div className={`max-w-3xl mx-auto mb-4 p-4 rounded-lg ${isDark ? 'bg-yellow-900/20 border-yellow-800' : 'bg-yellow-50 border-yellow-200'} border flex items-center justify-between gap-4 transition-colors`}>
+          <div className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-800'}`}>Twitter linking failed — you can retry connecting your account.</div>
           <div className="flex items-center gap-2">
             <button onClick={() => { setShowRetry(false); handleConnectTwitter() }} className="px-3 py-2 bg-yellow-600 text-white rounded-full text-sm hover:bg-yellow-700">Retry Connect</button>
             <button onClick={() => setShowRetry(false)} className="px-3 py-2 bg-white border rounded-full text-sm">Dismiss</button>
@@ -197,7 +199,7 @@ export default function Profile() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+          className={`${isDark ? 'bg-slate-800' : 'bg-white'} rounded-2xl shadow-xl p-6 sm:p-8 transition-colors`}>
 
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white mx-auto sm:mx-0">
@@ -206,15 +208,15 @@ export default function Profile() {
 
           <div className="flex-1 text-center sm:text-left">
             <div className="flex items-center gap-3 justify-center sm:justify-start">
-              <h2 className="text-2xl font-extrabold text-gray-800">{user?.name || 'Your Name'}</h2>
+              <h2 className={`text-2xl font-extrabold ${isDark ? 'text-slate-50' : 'text-gray-800'}`}>{user?.name || 'Your Name'}</h2>
               {user?.role === 'admin' && (
                 <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold">Admin</span>
               )}
             </div>
-            <p className="text-sm text-gray-500">{user?.email || 'No email provided'}</p>
+            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{user?.email || 'No email provided'}</p>
             <div className="mt-3 flex items-center justify-center sm:justify-start gap-4">
-              <div className="px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-700">Balance: ₦{(balance || 0).toLocaleString()}</div>
-              <div className="px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-700">Role: {user?.role || 'user'}</div>
+              <div className={`px-3 py-1 rounded-full text-sm ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-gray-100 text-gray-700'}`}>Balance: ₦{(balance || 0).toLocaleString()}</div>
+              <div className={`px-3 py-1 rounded-full text-sm ${isDark ? 'bg-slate-700 text-slate-200' : 'bg-gray-100 text-gray-700'}`}>Role: {user?.role || 'user'}</div>
             </div>
           </div>
 
@@ -231,17 +233,17 @@ export default function Profile() {
         </div>
 
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-white to-slate-50 p-4 rounded-lg shadow-sm">
-            <div className="text-xs text-gray-500">Tasks Completed</div>
-            <div className="text-xl font-bold text-gray-800">{user?.tasksCompleted || 0}</div>
+          <div className={`${isDark ? 'bg-gradient-to-br from-slate-700 to-slate-600' : 'bg-gradient-to-br from-white to-slate-50'} p-4 rounded-lg shadow-sm transition-colors`}>
+            <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Tasks Completed</div>
+            <div className={`text-xl font-bold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>{user?.tasksCompleted || 0}</div>
           </div>
-          <div className="bg-gradient-to-br from-white to-slate-50 p-4 rounded-lg shadow-sm">
-            <div className="text-xs text-gray-500">Referrals</div>
-            <div className="text-xl font-bold text-gray-800">{user?.referrals || 0}</div>
+          <div className={`${isDark ? 'bg-gradient-to-br from-slate-700 to-slate-600' : 'bg-gradient-to-br from-white to-slate-50'} p-4 rounded-lg shadow-sm transition-colors`}>
+            <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Referrals</div>
+            <div className={`text-xl font-bold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>{user?.referrals || 0}</div>
           </div>
-          <div className="bg-gradient-to-br from-white to-slate-50 p-4 rounded-lg shadow-sm">
-            <div className="text-xs text-gray-500">Account Status</div>
-            <div className="text-xl font-bold text-gray-800">{user?.accountStatus || 'Active'}</div>
+          <div className={`${isDark ? 'bg-gradient-to-br from-slate-700 to-slate-600' : 'bg-gradient-to-br from-white to-slate-50'} p-4 rounded-lg shadow-sm transition-colors`}>
+            <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Account Status</div>
+            <div className={`text-xl font-bold ${isDark ? 'text-slate-200' : 'text-gray-800'}`}>{user?.accountStatus || 'Active'}</div>
           </div>
         </div>
 

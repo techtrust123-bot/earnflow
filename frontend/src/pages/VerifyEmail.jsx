@@ -4,8 +4,10 @@ import toast from 'react-hot-toast'
 import axios from '../utils/axios'
 import { motion } from 'framer-motion'
 import Container from '../components/Container'
+import { useTheme } from '../context/ThemeContext'
 
 export default function VerifyEmail() {
+  const { isDark } = useTheme()
   const [otp, setOtp] = useState('')
   const [resending, setResending] = useState(false)
   const location = useLocation()
@@ -53,16 +55,16 @@ export default function VerifyEmail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors ${isDark ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
       <Container>
         <motion.div
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-white rounded-3xl shadow-md p-6 sm:p-8 w-full max-w-md"
+          className={`rounded-3xl shadow-md p-6 sm:p-8 w-full max-w-md transition-colors ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white'}`}
         >
           <div className="text-center mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-blue-700">Verify Your Email</h1>
-            <p className="text-gray-600 mt-2">We sent a 6-digit code to your email</p>
+            <h1 className={`text-2xl sm:text-3xl font-bold transition-colors ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>Verify Your Email</h1>
+            <p className={`mt-2 transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>We sent a 6-digit code to your email</p>
           </div>
 
           <form onSubmit={handleVerify} className="space-y-4">
@@ -71,7 +73,7 @@ export default function VerifyEmail() {
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="000000"
-              className="w-full text-center text-3xl sm:text-4xl font-mono tracking-widest py-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 outline-none"
+              className={`w-full text-center text-3xl sm:text-4xl font-mono tracking-widest py-4 rounded-xl border-2 transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-500 focus:border-blue-400' : 'border-gray-200 focus:border-blue-500 outline-none bg-white text-gray-900'}`}
               required
             />
 
@@ -84,16 +86,16 @@ export default function VerifyEmail() {
           </form>
 
           <div className="text-center mt-4">
-            <p className="text-gray-600">Didn't receive code?</p>
+            <p className={`transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Didn't receive code?</p>
             <div className="flex items-center justify-center gap-4 mt-3">
               <button
                 onClick={handleResend}
                 disabled={resending}
-                className="text-blue-600 font-semibold hover:underline disabled:opacity-50"
+                className={`font-semibold hover:underline disabled:opacity-50 transition-colors ${isDark ? 'text-blue-400' : 'text-blue-600'}`}
               >
                 {resending ? 'Sending...' : 'Resend OTP'}
               </button>
-              <button onClick={handleOtp} className="text-sm text-gray-500 hover:underline">Send new code</button>
+              <button onClick={handleOtp} className={`text-sm hover:underline transition-colors ${isDark ? 'text-slate-500 hover:text-slate-400' : 'text-gray-500 hover:text-gray-700'}`}>Send new code</button>
             </div>
           </div>
         </motion.div>

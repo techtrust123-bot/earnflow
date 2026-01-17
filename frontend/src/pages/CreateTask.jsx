@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import axios from '../utils/axios'
 import toast from 'react-hot-toast'
+import { useTheme } from '../context/ThemeContext'
 
 export default function CreateTask() {
   const user = useSelector(s => s.auth.user || s.auth)
+  const { isDark } = useTheme()
 
   const [form, setForm] = useState({
     title: '',
@@ -101,45 +103,45 @@ export default function CreateTask() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8 text-center">Request Task Approval</h1>
+    <div className={`max-w-3xl mx-auto p-6 min-h-screen ${isDark ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gray-50'} transition-colors`}>
+      <h1 className={`text-3xl font-bold mb-8 text-center ${isDark ? 'text-slate-50' : 'text-gray-900'} transition-colors`}>Request Task Approval</h1>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8">
+      <form onSubmit={handleSubmit} className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white'} rounded-2xl shadow-xl p-8 transition-colors`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title" className="p-2 border rounded w-full" required />
+          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Task title" className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} required />
 
-          <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))} className="p-2 border rounded w-full">
+          <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))} className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50' : 'border-gray-300 bg-white text-gray-900'}`}>
             <option value="twitter">Twitter (X)</option>
             <option value="tiktok">TikTok</option>
             <option value="instagram">Instagram</option>
             <option value="facebook">Facebook</option>
           </select>
 
-          <select value={form.action} onChange={e => setForm(f => ({ ...f, action: e.target.value }))} className="p-2 border rounded w-full">
+          <select value={form.action} onChange={e => setForm(f => ({ ...f, action: e.target.value }))} className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50' : 'border-gray-300 bg-white text-gray-900'}`}>
             <option value="follow">Follow</option>
             <option value="like">Like</option>
             <option value="repost">Repost/Retweet</option>
             <option value="comment">Comment/Reply</option>
           </select>
 
-          <input type="number" min="1" value={form.numUsers} onChange={e => setForm(f => ({ ...f, numUsers: Number(e.target.value) }))} className="p-2 border rounded w-full" />
+          <input type="number" min="1" value={form.numUsers} onChange={e => setForm(f => ({ ...f, numUsers: Number(e.target.value) }))} className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} />
         </div>
 
         {form.action === 'follow' ? (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Account username to follow</label>
-            <input value={form.socialHandle} onChange={e => setForm(f => ({ ...f, socialHandle: e.target.value }))} placeholder="e.g. @username" className="p-2 border rounded w-full" required />
+            <label className={`block text-sm font-medium mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Account username to follow</label>
+            <input value={form.socialHandle} onChange={e => setForm(f => ({ ...f, socialHandle: e.target.value }))} placeholder="e.g. @username" className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} required />
           </div>
         ) : (
           <>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Your Account Username/Handle</label>
-              <input value={form.accountUsername} onChange={e => setForm(f => ({ ...f, accountUsername: e.target.value }))} placeholder="e.g. @yourhandle" className="p-2 border rounded w-full" required />
+              <label className={`block text-sm font-medium mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Your Account Username/Handle</label>
+              <input value={form.accountUsername} onChange={e => setForm(f => ({ ...f, accountUsername: e.target.value }))} placeholder="e.g. @yourhandle" className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} required />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Screenshot/Image of the Post</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition">
+              <label className={`block text-sm font-medium mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Upload Screenshot/Image of the Post</label>
+              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDark ? 'border-slate-600 hover:border-blue-500' : 'border-gray-300 hover:border-blue-500'}`}>
                 <input
                   type="file"
                   accept="image/*"
@@ -152,12 +154,12 @@ export default function CreateTask() {
                   {form.screenshotPreview ? (
                     <div className="space-y-2">
                       <img src={form.screenshotPreview} alt="Preview" className="max-h-48 mx-auto rounded" />
-                      <p className="text-sm text-gray-600">Click to change image</p>
+                      <p className={`text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Click to change image</p>
                     </div>
                   ) : (
                     <div>
-                      <p className="text-gray-500 mb-2">📷 Click to upload or drag and drop</p>
-                      <p className="text-xs text-gray-400">PNG, JPG, GIF up to 200KB</p>
+                      <p className={`mb-2 transition-colors ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>📷 Click to upload or drag and drop</p>
+                      <p className={`text-xs transition-colors ${isDark ? 'text-slate-500' : 'text-gray-400'}`}>PNG, JPG, GIF up to 200KB</p>
                     </div>
                   )}
                 </label>
@@ -165,8 +167,8 @@ export default function CreateTask() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Post Description / Instructions</label>
-              <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Details for performers about this post" className="w-full p-2 border rounded" rows={4} required />
+              <label className={`block text-sm font-medium mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Post Description / Instructions</label>
+              <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Details for performers about this post" className={`w-full p-2 border rounded transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} rows={4} required />
             </div>
           </>
         )}
