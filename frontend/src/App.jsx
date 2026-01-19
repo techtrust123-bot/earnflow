@@ -24,6 +24,9 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import TermsAndConditions from './pages/TermsAndConditions'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import CustomerSupport from './pages/CustomerSupport'
+import BuyDataAirtime from './pages/BuyDataAirtime'
+import AdminDataAirtimePackages from './pages/AdminDataAirtimePackages'
 
 function App() {
   return (
@@ -44,7 +47,10 @@ function App() {
           <Route path="/referral" element={<Referral />} /> */}
           <Route path="/referral" element={<ProtectedRoute><Referral /></ProtectedRoute>} /> 
            <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} /> 
+          <Route path="/support" element={<ProtectedRoute><CustomerSupport /></ProtectedRoute>} />
+          <Route path="/buy-data-airtime" element={<ProtectedRoute><BuyDataAirtime /></ProtectedRoute>} /> 
           <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+          <Route path="/admin/data-airtime-packages" element={<ProtectedRoute><AdminDataAirtimePackages /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminTasks /></ProtectedRoute>} />
           {/* Protected Routes */}
           {/* <Route path="/profile" element={<Profile />} /> */}

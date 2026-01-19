@@ -13,12 +13,13 @@ export default function Dashboard() {
     { icon: '📋', title: 'Tasks', to: '/tasks' },
     { icon: '💰', title: 'Withdraw', to: '/withdraw' },
     { icon: '👤', title: 'Profile', to: '/profile' },
-    { icon: '🎁', title: 'Rewards', to: '/rewards' },
+    // { icon: '🎁', title: 'Rewards', to: '/rewards' },
     { icon: '📊', title: 'History', to: '/history' },
     { icon: '➕', title: 'Referral', to: '/referral' },
-    // { icon: '➕', title: 'Referral', to: '/referral' },
-    // { icon: '➕', title: 'Create Task', to: '/create-task' },
-    // { icon: '➕', title: 'My Tasks', to: '/my-tasks' }
+    { icon: '➕', title: 'Create Task', to: '/create-task' },
+    { icon: '➕', title: 'My Tasks', to: '/my-tasks' },
+    { icon: '💬', title: 'Support', to: '/support' },
+    { icon: '📶', title: 'Buy Data & Airtime', to: '/buy-data-airtime' }
   ]
 
   // Show admin panel to users with role 'admin'
@@ -155,29 +156,29 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl shadow space-y-4">
+        <div className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white'} p-4 rounded-2xl shadow space-y-4 transition-colors`}>
           <div>
-            <h4 className="font-semibold mb-3">Notifications</h4>
+            <h4 className={`font-semibold mb-3 transition-colors ${isDark ? 'text-slate-50' : ''}`}>Notifications</h4>
             {notifications && notifications.length > 0 ? (
               <div className="space-y-2">
                 {notifications.map(n => (
-                  <div key={n._id} className={`p-2 rounded border ${isDark ? (n.read ? 'bg-slate-700 border-slate-600' : 'bg-slate-800 border-slate-600') : (n.read ? 'bg-gray-50' : 'bg-white')} transition-colors`}>
+                  <div key={n._id} className={`p-2 rounded border transition-colors ${isDark ? (n.read ? 'bg-slate-700 border-slate-600' : 'bg-slate-800 border-slate-600') : (n.read ? 'bg-gray-50' : 'bg-white')}`}>
                     <div className="flex items-center justify-between">
-                      <div className={`text-sm font-medium ${isDark ? 'text-slate-200' : ''}`}>{n.title}</div>
+                      <div className={`text-sm font-medium transition-colors ${isDark ? 'text-slate-200' : ''}`}>{n.title}</div>
                       {!n.read && <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600">Mark read</button>}
                     </div>
-                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{n.message}</div>
-                    <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-400'} mt-1`}>{new Date(n.createdAt).toLocaleString()}</div>
+                    <div className={`text-xs transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{n.message}</div>
+                    <div className={`text-xs transition-colors ${isDark ? 'text-slate-500' : 'text-gray-400'} mt-1`}>{new Date(n.createdAt).toLocaleString()}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>No notifications</div>
+              <div className={`text-xs transition-colors ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>No notifications</div>
             )}
           </div>
 
-          <h4 className="font-semibold">Recent Activity</h4>
-          <div className={`space-y-3 text-sm ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
+          <h4 className={`font-semibold transition-colors ${isDark ? 'text-slate-50' : ''}`}>Recent Activity</h4>
+          <div className={`space-y-3 text-sm transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
             {/** Render fetched activity items or a friendly message */}
             {recentActivity && recentActivity.length > 0 ? (
               recentActivity.map((it) => (
@@ -187,10 +188,10 @@ export default function Dashboard() {
                 </div>
               ))
             ) : (
-              <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>No recent activity yet</div>
+              <div className={`text-xs transition-colors ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>No recent activity yet</div>
             )}
           </div>
-          <Link to="/history" className="block text-center mt-4 text-indigo-600 font-medium">View Full History</Link>
+          <Link to="/history" className="block text-center mt-4 text-indigo-600 font-medium transition-colors hover:text-indigo-700">View Full History</Link>
         </div>
       </div>
 
