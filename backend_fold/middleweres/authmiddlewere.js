@@ -16,7 +16,12 @@ exports.authMiddlewere = async(req, res, next)=>{
   try {
     const decoded = jwt.verify(token, process.env.SECRET || process.env.JWT_SECRET)
     if(decoded && decoded.id){
-      req.user = { id: decoded.id, role: decoded.role }
+      // Fetch full user data from database
+      const user = await User.findById(decoded.id)
+      if (!user) {
+        return res.status(401).json({message:"Not authorized - user not found"})
+      }
+      req.user = user
       // update lastActive timestamp (non-blocking)
       try {
         User.findByIdAndUpdate(decoded.id, { lastActive: Date.now() }).exec()
