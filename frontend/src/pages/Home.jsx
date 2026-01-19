@@ -480,9 +480,12 @@ export default function Home() {
             <motion.div variants={fadeInUp}>
               <h4 className="font-bold mb-4">Follow Us</h4>
               <div className="flex gap-4">
-                <a href="#" className="text-indigo-600 hover:text-purple-600 text-2xl">𝕏</a>
-                <a href="#" className="text-indigo-600 hover:text-purple-600 text-2xl">📘</a>
-                <a href="#" className="text-indigo-600 hover:text-purple-600 text-2xl">📷</a>
+                <a href="https://twitter.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">𝕏</a>
+                <a href="https://facebook.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">📘</a>
+                <a href="https://instagram.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">📷</a>
+                <a href="https://linkedin.com/in/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">🔗</a>
+                <a href="https://tiktok.com/@earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">🎵</a>
+                <a href="https://youtube.com/@earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">📺</a>
               </div>
             </motion.div>
           </motion.div>

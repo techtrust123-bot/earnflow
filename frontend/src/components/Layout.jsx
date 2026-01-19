@@ -98,6 +98,17 @@ export default function Layout({ children }) {
                 )}
               </button>
 
+              {isAuthenticated && user && user.isAccountVerify && (
+                <Link 
+                  to="/support" 
+                  className={`p-2 rounded-md ${isDark ? 'hover:bg-slate-800 text-cyan-400' : 'hover:bg-gray-100 text-cyan-600'}`}
+                  aria-label="Customer Support"
+                  title="Customer Support"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                </Link>
+              )}
+
               {/* If not authenticated show login/signup. If authenticated but not verified show verify CTA + logout */}
               {!isAuthenticated ? (
                 <div className="flex items-center gap-3">
@@ -138,7 +149,7 @@ export default function Layout({ children }) {
             <div className="flex justify-around">
               <Link to="/dashboard" className="flex flex-col items-center text-xs" aria-label="Home">🏠<span>Home</span></Link>
               <Link to="/tasks" className="flex flex-col items-center text-xs" aria-label="Tasks">📝<span>Tasks</span></Link>
-              <Link to="/history" className="flex flex-col items-center text-xs" aria-label="History">⏳<span>History</span></Link>
+              <Link to="/support" className="flex flex-col items-center text-xs" aria-label="Support">💬<span>Support</span></Link>
               <Link to="/withdraw" className="flex flex-col items-center text-xs" aria-label="Withdraw">💸<span>Withdraw</span></Link>
               <Link to="/profile" className="flex flex-col items-center text-xs" aria-label="Profile">👤<span>Profile</span></Link>
             </div>
@@ -187,6 +198,7 @@ function SidebarContent({ user, userType, balance, isAuthenticated, onLogout, is
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 13h8V3H3v10zM13 21h8V11h-8v10z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>) },
     { to: '/tasks', label: 'Tasks', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>) },
+    { to: '/buy-data-airtime', label: 'Buy Data & Airtime', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M2 12h20" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>) },
     { to: '/withdraw', label: 'Withdraw', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 12h8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>) },
     { to: '/profile', label: 'Profile', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>) },
     { to: '/history', label: 'History', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 0-3 6.7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 7v5l3 3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>) }
@@ -198,6 +210,7 @@ function SidebarContent({ user, userType, balance, isAuthenticated, onLogout, is
     navItems.push({ to: '/admin/pending-payments', label: 'Pending Payments', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
       navItems.push({ to: '/admin/exchange-rate', label: 'Exchange Rate', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
       navItems.push({ to: '/admin/exchange-rate/audit', label: 'Exchange Rate Audit', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
+    navItems.push({ to: '/admin/data-airtime-packages', label: 'Data & Airtime', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M2 12h20" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
   }
 
   useEffect(() => {
