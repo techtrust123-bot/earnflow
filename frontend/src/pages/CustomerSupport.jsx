@@ -17,9 +17,14 @@ export default function CustomerSupport() {
     userMessages: [5, 8, 6, 10, 14, 18],
     adminResponses: [3, 5, 4, 7, 10, 12],
     activeConversations: [2, 4, 3, 5, 8, 10],
+    support: [2, 3, 2, 4, 5, 6],
+    resolved: [1, 2, 1, 3, 4, 5],
     avgUserMessages: 10,
     avgAdminResponses: 7,
-    avgActiveConversations: 5
+    avgActiveConversations: 5,
+    avgCustomers: 10,
+    avgSupport: 3,
+    avgResolved: 2
   })
 
   // Load support messages and chart data from backend
@@ -236,13 +241,13 @@ export default function CustomerSupport() {
               <div className={`p-3 rounded-lg transition-colors ${isDark ? 'bg-slate-700' : 'bg-gray-50'}`}>
                 <div className={`text-xs transition-colors ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Active Support Team</div>
                 <div className="text-2xl font-bold text-purple-600">
-                  {Math.max(...chartData.support)}
+                  {chartData.support && chartData.support.length > 0 ? Math.max(...chartData.support) : 0}
                 </div>
               </div>
               <div className={`p-3 rounded-lg transition-colors ${isDark ? 'bg-slate-700' : 'bg-gray-50'}`}>
                 <div className={`text-xs transition-colors ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Resolved Today</div>
                 <div className="text-2xl font-bold text-green-600">
-                  {chartData.resolved.reduce((a, b) => a + b, 0)}
+                  {chartData.resolved && chartData.resolved.length > 0 ? chartData.resolved.reduce((a, b) => a + b, 0) : 0}
                 </div>
               </div>
               <div className={`p-3 rounded-lg transition-colors ${isDark ? 'bg-slate-700' : 'bg-gray-50'}`}>
