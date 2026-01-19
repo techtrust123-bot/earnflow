@@ -19,7 +19,8 @@ export default function Dashboard() {
     { icon: '➕', title: 'Create Task', to: '/create-task' },
     { icon: '➕', title: 'My Tasks', to: '/my-tasks' },
     { icon: '💬', title: 'Support', to: '/support' },
-    { icon: '📶', title: 'Buy Data & Airtime', to: '/buy-data-airtime' }
+    { icon: '📶', title: 'Buy Data & Airtime', to: '/buy-data-airtime' },
+    
   ]
 
   // Show admin panel to users with role 'admin'
@@ -31,6 +32,8 @@ export default function Dashboard() {
     features.push({ icon: '🛠️', title: 'My Tasks', to: '/my-tasks' })
     features.push({ icon: '🛠️', title: 'Exchange Rate', to: '/admin/exchange-rate' })
     features.push({ icon: '🛠️', title: 'Exchange Rate Audit', to: '/admin/exchange-rate/audit' })
+    features.push({ icon: '🛠️', title: 'Pending Payments', to: '/admin/pending-payments' })
+    features.push({ icon: '🛠️', title: 'Data & Airtime Packages', to: '/admin/data-airtime-packages' })
   }
 
   const stat = (label, value, tone = 'text-gray-700') => (

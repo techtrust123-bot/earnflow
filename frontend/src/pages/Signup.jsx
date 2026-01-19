@@ -12,6 +12,7 @@ export default function Signup() {
   const formDatas={
     name: '',
     email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false
@@ -37,8 +38,8 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.email || !formData.password) {
-      toast.error('Name, email and password are required')
+    if (!formData.name || !formData.email || !formData.phoneNumber || !formData.password) {
+      toast.error('Name, email, phone number and password are required')
       return
     }
 
@@ -59,7 +60,7 @@ export default function Signup() {
 
     setLoading(true)
     try {
-      const payload = { name: formData.name.trim(), email: formData.email.trim(), password: formData.password }
+      const payload = { name: formData.name.trim(), email: formData.email.trim(), phoneNumber: formData.phoneNumber.trim(), password: formData.password }
       if (refParam) payload.ref = refParam
       console.debug('Signup payload', payload)
       const res = await axios.post('/auth/register', payload)
@@ -115,6 +116,19 @@ export default function Signup() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="you@example.com"
+                required
+                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
+              />
+            </label>
+
+            <label className="block">
+              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Phone Number</span>
+              <input
+                type="tel"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="08012345678"
                 required
                 className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
               />

@@ -8,10 +8,10 @@ const bcrypt = require("bcryptjs")
 
 
 exports.register = async(req,res)=>{
-    const {name, email, password}=req.body
+    const {name, email, phoneNumber, password}=req.body
 
-    if(!name || !email || !password){
-        return res.status(400).json({message:"Input Field are Required"})
+    if(!name || !email || !phoneNumber || !password){
+        return res.status(400).json({message:"Name, email, phone number and password are required"})
     }
 
     try {
@@ -19,6 +19,13 @@ exports.register = async(req,res)=>{
         if(userExist){
             return res.status(400).json({message:"User Already Exist"})
         }
+        
+        // Check if phone number already exists
+        const phoneExists = await User.findOne({phoneNumber})
+        if(phoneExists){
+            return res.status(400).json({message:"Phone number already registered"})
+        }
+        
         const userCount = await User.countDocuments()
         const role = userCount === 0 ? "admin" : "user"
 
@@ -27,6 +34,7 @@ exports.register = async(req,res)=>{
         const user = new User({
             name,
             email,
+            phoneNumber,
             password:hashPassword,
             role,
             userID
@@ -429,5 +437,78 @@ exports.deleteAccount = async (req, res) => {
     } catch (error) {
         console.error('deleteAccount error', error)
         return res.status(500).json({ message: 'Server error' })
+    }
+}
+
+// Set Transaction PIN
+exports.setTransactionPin = async (req, res) => {
+    try {
+        const { pin } = req.body
+        const userId = req.user?.id
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' })
+        }
+
+        if (!pin || pin.length < 4) {
+            return res.status(400).json({ success: false, message: 'PIN must be at least 4 digits' })
+        }
+
+        if (!/^\d+$/.test(pin)) {
+            return res.status(400).json({ success: false, message: 'PIN must contain only numbers' })
+        }
+
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' })
+        }
+
+        // Hash the PIN before storing
+        const hashedPin = await bcrypt.hash(pin, 10)
+        user.transactionPin = hashedPin
+        user.transactionPinSet = true
+        await user.save()
+
+        res.json({
+            success: true,
+            message: 'Transaction PIN set successfully'
+        })
+    } catch (error) {
+        console.error('setTransactionPin error', error)
+        res.status(500).json({ success: false, message: 'Failed to set PIN' })
+    }
+}
+
+// Verify Transaction PIN
+exports.verifyTransactionPin = async (req, res) => {
+    try {
+        const { pin } = req.body
+        const userId = req.user?.id
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' })
+        }
+
+        if (!pin) {
+            return res.status(400).json({ success: false, message: 'PIN required' })
+        }
+
+        const user = await User.findById(userId)
+        if (!user || !user.transactionPinSet) {
+            return res.status(400).json({ success: false, message: 'PIN not set for this account' })
+        }
+
+        const pinMatches = await bcrypt.compare(pin, user.transactionPin)
+        if (!pinMatches) {
+            return res.status(401).json({ success: false, message: 'Invalid PIN' })
+        }
+
+        res.json({
+            success: true,
+            message: 'PIN verified successfully'
+        })
+    } catch (error) {
+        console.error('verifyTransactionPin error', error)
+        res.status(500).json({ success: false, message: 'Failed to verify PIN' })
     }
 }

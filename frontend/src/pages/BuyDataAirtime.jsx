@@ -14,6 +14,7 @@ export default function BuyDataAirtime() {
   const [loading, setLoading] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [pin, setPin] = useState('')
   const [purchasing, setPurchasing] = useState(false)
   const [transactions, setTransactions] = useState([])
   const [stats, setStats] = useState(null)
@@ -80,21 +81,38 @@ export default function BuyDataAirtime() {
       toast.error('Please enter phone number')
       return
     }
+    if (!pin.trim()) {
+      toast.error('Please enter your transaction PIN')
+      return
+    }
 
     setPurchasing(true)
     try {
+      // First, verify the PIN
+      const pinVerifyRes = await axios.post('/auth/verify-pin', { pin })
+      if (!pinVerifyRes.data.success) {
+        toast.error('Invalid PIN. Transaction cancelled.')
+        setPurchasing(false)
+        return
+      }
+
+      toast.success('PIN verified ✓')
+
+      // Then proceed with the purchase
       const endpoint = activeTab === 'data' 
         ? '/data-airtime/buy/data' 
         : '/data-airtime/buy/airtime'
       
       const res = await axios.post(endpoint, {
         packageId: selectedPackage._id,
-        phoneNumber
+        phoneNumber,
+        pin
       })
 
       if (res.data.success) {
         toast.success(res.data.message)
         setPhoneNumber('')
+        setPin('')
         setSelectedPackage(null)
         loadTransactions()
         loadStats()
@@ -260,6 +278,28 @@ export default function BuyDataAirtime() {
                       : 'bg-white border-gray-300 text-gray-900'
                   } focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-cyan-500' : 'focus:ring-blue-500'}`}
                 />
+              </div>
+
+              {/* PIN Input */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
+                  Transaction PIN
+                </label>
+                <input
+                  type="password"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  placeholder="Enter your 4-digit PIN"
+                  maxLength="6"
+                  className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                    isDark
+                      ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-500'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-cyan-500' : 'focus:ring-blue-500'}`}
+                />
+                <p className={`text-xs mt-1 transition-colors ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                  ⚠️ Your PIN is required to confirm purchases
+                </p>
               </div>
 
               {/* Purchase Button */}
