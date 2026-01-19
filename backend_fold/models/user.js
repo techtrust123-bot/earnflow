@@ -16,6 +16,12 @@ const userSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
+    phoneNumber: {
+        type: String,
+        default: "",
+        unique: true,
+        sparse: true
+    },
      password:{
         type: String,
         required: true,
@@ -121,6 +127,14 @@ const userSchema = new mongoose.Schema({
   fraudScore: {
     type: Number,
     default: 0
+  },
+  transactionPin: {
+    type: String,
+    default: ""
+  },
+  transactionPinSet: {
+    type: Boolean,
+    default: false
   }
 },{
     timestamps: true

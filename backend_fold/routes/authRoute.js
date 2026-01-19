@@ -1,5 +1,5 @@
 const express = require("express")
-const { register, login, logout, verifyAccount, sendResetOtp, resetPassword, resendOtp, getCurrentUser, deleteAccount } = require("../controllers/authController")
+const { register, login, logout, verifyAccount, sendResetOtp, resetPassword, resendOtp, getCurrentUser, deleteAccount, setTransactionPin, verifyTransactionPin } = require("../controllers/authController")
 const { authMiddlewere } = require("../middleweres/authmiddlewere")
 const router = express.Router()
 
@@ -12,6 +12,8 @@ router.post("/resendOtp", authMiddlewere,resendOtp)
 router.post("/verify",authMiddlewere,verifyAccount)
 router.post("/sendReset", sendResetOtp)
 router.post("/resetPassword", resetPassword)
+router.post("/set-pin", authMiddlewere, setTransactionPin)
+router.post("/verify-pin", authMiddlewere, verifyTransactionPin)
 
 router.get('/me', authMiddlewere, getCurrentUser)
 

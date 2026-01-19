@@ -5,6 +5,7 @@ const DataAirtimePackage = require('../models/dataAirtimePackage')
 const DataAirtimeTransaction = require('../models/dataAirtimeTransaction')
 const { authMiddlewere: authMiddleware } = require('../middleweres/authmiddlewere')
 const Transaction = require('../models/transaction')
+const DataAirtimeService = require('../services/dataAirtimeService')
 
 // Get all active data packages
 router.get('/packages/data', async (req, res) => {
@@ -45,7 +46,7 @@ router.get('/packages/airtime', async (req, res) => {
 // Buy data
 router.post('/buy/data', authMiddleware, async (req, res) => {
   try {
-    const { packageId, phoneNumber } = req.body
+    const { packageId, phoneNumber, pin } = req.body
     const userId = req.user._id
 
     if (!packageId || !phoneNumber) {
@@ -63,6 +64,11 @@ router.post('/buy/data', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Data package not found' })
     }
 
+    // Check if user has set PIN
+    if (!user.transactionPinSet) {
+      return res.status(400).json({ success: false, message: 'Please set your transaction PIN first' })
+    }
+
     // Check balance
     if (user.balance < pkg.amount) {
       return res.status(400).json({ success: false, message: 'Insufficient balance' })
@@ -74,7 +80,7 @@ router.post('/buy/data', authMiddleware, async (req, res) => {
 
     const transaction = new DataAirtimeTransaction({
       userId,
-      userName: user.firstName + ' ' + user.lastName,
+      userName: user.name || (user.firstName + ' ' + user.lastName),
       userEmail: user.email,
       type: 'data',
       packageId,
@@ -89,6 +95,21 @@ router.post('/buy/data', authMiddleware, async (req, res) => {
     })
 
     await transaction.save()
+
+    // Call real data/airtime service
+    const providerResult = await DataAirtimeService.purchaseData(
+      pkg.provider,
+      phoneNumber,
+      pkg.balance,
+      pkg.amount
+    )
+
+    if (!providerResult.success) {
+      transaction.status = 'failed'
+      transaction.errorMessage = providerResult.message
+      await transaction.save()
+      return res.status(400).json({ success: false, message: providerResult.message })
+    }
 
     // Deduct balance
     user.balance -= pkg.amount
@@ -139,7 +160,7 @@ router.post('/buy/data', authMiddleware, async (req, res) => {
 // Buy airtime
 router.post('/buy/airtime', authMiddleware, async (req, res) => {
   try {
-    const { packageId, phoneNumber } = req.body
+    const { packageId, phoneNumber, pin } = req.body
     const userId = req.user._id
 
     if (!packageId || !phoneNumber) {
@@ -157,6 +178,11 @@ router.post('/buy/airtime', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Airtime package not found' })
     }
 
+    // Check if user has set PIN
+    if (!user.transactionPinSet) {
+      return res.status(400).json({ success: false, message: 'Please set your transaction PIN first' })
+    }
+
     // Check balance
     if (user.balance < pkg.amount) {
       return res.status(400).json({ success: false, message: 'Insufficient balance' })
@@ -168,7 +194,7 @@ router.post('/buy/airtime', authMiddleware, async (req, res) => {
 
     const transaction = new DataAirtimeTransaction({
       userId,
-      userName: user.firstName + ' ' + user.lastName,
+      userName: user.name || (user.firstName + ' ' + user.lastName),
       userEmail: user.email,
       type: 'airtime',
       packageId,
@@ -183,6 +209,21 @@ router.post('/buy/airtime', authMiddleware, async (req, res) => {
     })
 
     await transaction.save()
+
+    // Call real data/airtime service
+    const providerResult = await DataAirtimeService.purchaseAirtime(
+      pkg.provider,
+      phoneNumber,
+      pkg.balance,
+      pkg.amount
+    )
+
+    if (!providerResult.success) {
+      transaction.status = 'failed'
+      transaction.errorMessage = providerResult.message
+      await transaction.save()
+      return res.status(400).json({ success: false, message: providerResult.message })
+    }
 
     // Deduct balance
     user.balance -= pkg.amount
