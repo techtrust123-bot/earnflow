@@ -85,18 +85,18 @@ export default function Signup() {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-slate-950' : 'bg-slate-50'} px-4 transition-colors`}>
+    <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-slate-950' : 'bg-slate-50'} px-4 py-6 transition-colors`}>
       <Container>
-        <div className={`max-w-md mx-auto ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white'} p-6 sm:p-8 rounded-xl shadow-lg w-full sm:w-auto mx-2 sm:mx-auto transition-colors`}>
-          <div className="text-center mb-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold mb-3">E</div>
-            <h2 className="text-2xl font-bold">Create Your Account</h2>
-            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Start earning in under 60 seconds</p>
+        <div className={`max-w-md mx-auto ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white'} p-4 sm:p-6 md:p-8 rounded-xl shadow-lg w-full transition-colors`}>
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold mb-2 sm:mb-3 text-sm sm:text-base">E</div>
+            <h2 className="text-xl sm:text-2xl font-bold">Create Your Account</h2>
+            <p className={`text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Start earning in under 60 seconds</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <label className="block">
-              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Full name</span>
+              <span className={`text-xs sm:text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Full name</span>
               <input
                 type="text"
                 name="name"
@@ -104,12 +104,12 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="Your full name"
                 required
-                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
+                className={`mt-1 w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm sm:text-base ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
               />
             </label>
 
             <label className="block">
-              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Email</span>
+              <span className={`text-xs sm:text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Email</span>
               <input
                 type="email"
                 name="email"
@@ -117,12 +117,12 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="you@example.com"
                 required
-                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
+                className={`mt-1 w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm sm:text-base ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
               />
             </label>
 
             <label className="block">
-              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Phone Number</span>
+              <span className={`text-xs sm:text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Phone Number</span>
               <input
                 type="tel"
                 name="phoneNumber"
@@ -130,13 +130,13 @@ export default function Signup() {
                 onChange={handleChange}
                 placeholder="08012345678"
                 required
-                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
+                className={`mt-1 w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm sm:text-base ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
               />
             </label>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               <label className="block">
-                <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Password</span>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Password</span>
                 <input
                   type="password"
                   name="password"
@@ -145,12 +145,12 @@ export default function Signup() {
                   placeholder="Password"
                   required
                   minLength="6"
-                  className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
+                  className={`mt-1 w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm sm:text-base ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
                 />
               </label>
 
               <label className="block">
-                <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Confirm</span>
+                <span className={`text-xs sm:text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Confirm</span>
                 <input
                   type="password"
                   name="confirmPassword"
@@ -158,20 +158,20 @@ export default function Signup() {
                   onChange={handleChange}
                   placeholder="Confirm password"
                   required
-                  className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
+                  className={`mt-1 w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm sm:text-base ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`}
                 />
               </label>
             </div>
 
-            <label className={`flex items-start gap-3 p-3 rounded-lg border-2 ${formData.agreeTerms ? (isDark ? 'bg-indigo-900/20 border-indigo-600' : 'bg-indigo-50 border-indigo-300') : (isDark ? 'bg-slate-800 border-slate-600' : 'bg-gray-50 border-gray-300')} transition-colors cursor-pointer`}>
+            <label className={`flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm ${formData.agreeTerms ? (isDark ? 'bg-indigo-900/20 border-indigo-600' : 'bg-indigo-50 border-indigo-300') : (isDark ? 'bg-slate-800 border-slate-600' : 'bg-gray-50 border-gray-300')} transition-colors cursor-pointer`}>
               <input
                 type="checkbox"
                 name="agreeTerms"
                 checked={formData.agreeTerms}
                 onChange={handleChange}
-                className={`mt-1 w-4 h-4 rounded cursor-pointer ${isDark ? 'accent-indigo-500' : 'accent-indigo-600'}`}
+                className={`mt-1 w-4 h-4 rounded cursor-pointer flex-shrink-0 ${isDark ? 'accent-indigo-500' : 'accent-indigo-600'}`}
               />
-              <div className="flex-1 text-sm">
+              <div className="flex-1">
                 <span className={isDark ? 'text-slate-300' : 'text-gray-700'}>
                   I agree to the{' '}
                   <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline font-semibold">
@@ -188,13 +188,13 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading || !formData.agreeTerms}
-              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {loading ? 'Creating Account...' : 'Sign Up Free'}
             </button>
           </form>
 
-          <p className={`text-center mt-6 text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
+          <p className={`text-center mt-4 sm:mt-6 text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
             Already have an account?{' '}
             <Link to="/login" className="text-green-600 font-semibold hover:underline">
               Login here

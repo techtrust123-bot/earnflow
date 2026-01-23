@@ -66,64 +66,64 @@ export default function Layout({ children }) {
       )}
 
       <div className="flex-1 flex flex-col">
-        <header className={`${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'} border-b p-4 sticky top-0 z-30 transition-colors`}>
+        <header className={`${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-100'} border-b p-3 sm:p-4 sticky top-0 z-30 transition-colors`}>
           <Container>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               {isAuthenticated && user && user.isAccountVerify && (
-                <button aria-label="Toggle menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(prev => !prev)} className={`md:hidden p-2 rounded-md ${isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-gray-100 text-gray-700'}`}>
-                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <button aria-label="Toggle menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(prev => !prev)} className={`md:hidden p-2 rounded-md flex-shrink-0 ${isDark ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-gray-100 text-gray-700'}`}>
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
               )}
-              <Link to="/" className="text-xl font-bold text-indigo-600">Earnflow</Link>
+              <Link to="/" className="text-lg sm:text-xl font-bold text-indigo-600 whitespace-nowrap">Earnflow</Link>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {isAuthenticated && user && user.isAccountVerify ? (
-                <div className="hidden sm:flex items-center gap-3" aria-hidden={!isAuthenticated}>
-                  <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Balance</div>
-                  <div className="font-semibold">₦{(Number(balance) || 0).toLocaleString()}</div>
+                <div className="hidden md:flex items-center gap-2 sm:gap-3 text-right" aria-hidden={!isAuthenticated}>
+                  <div className={`text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Balance</div>
+                  <div className="font-semibold text-sm sm:text-base">₦{(Number(balance) || 0).toLocaleString()}</div>
                 </div>
               ) : null}
 
               <button
                 onClick={toggleTheme}
-                className={`p-2 rounded-md ${isDark ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`p-2 rounded-md flex-shrink-0 ${isDark ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                 aria-label="Toggle dark mode"
               >
                 {isDark ? (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v1m0 16v1m8.485-8.485h1m-17.97 0h1M19.828 4.172l-.707.707m-12.242 0l-.707-.707M19.828 19.828l-.707-.707m-12.242 0l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/></svg>
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v1m0 16v1m8.485-8.485h1m-17.97 0h1M19.828 4.172l-.707.707m-12.242 0l-.707-.707M19.828 19.828l-.707-.707m-12.242 0l-.707.707M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/></svg>
                 ) : (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 )}
               </button>
 
               {isAuthenticated && user && user.isAccountVerify && (
                 <Link 
                   to="/support" 
-                  className={`p-2 rounded-md ${isDark ? 'hover:bg-slate-800 text-cyan-400' : 'hover:bg-gray-100 text-cyan-600'}`}
+                  className={`p-2 rounded-md flex-shrink-0 ${isDark ? 'hover:bg-slate-800 text-cyan-400' : 'hover:bg-gray-100 text-cyan-600'}`}
                   aria-label="Customer Support"
                   title="Customer Support"
                 >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 </Link>
               )}
 
               {/* If not authenticated show login/signup. If authenticated but not verified show verify CTA + logout */}
               {!isAuthenticated ? (
-                <div className="flex items-center gap-3">
-                  <Link to="/login" className={`px-3 py-2 rounded-md ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Login</Link>
-                  <Link to="/signup" className="px-3 py-2 bg-indigo-600 text-white rounded-md">Sign Up</Link>
+                <div className="flex items-center gap-2">
+                  <Link to="/login" className={`px-2 sm:px-3 py-1 sm:py-2 rounded-md text-sm sm:text-base ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Login</Link>
+                  <Link to="/signup" className="px-2 sm:px-3 py-1 sm:py-2 bg-indigo-600 text-white rounded-md text-sm sm:text-base">Sign Up</Link>
                 </div>
               ) : user && !user.isAccountVerify ? (
-                <div className="flex items-center gap-3">
-                  <Link to="/verify-email" className={`px-3 py-2 rounded-md ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Verify</Link>
-                  <button onClick={handleLogout} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Logout</button>
+                <div className="flex items-center gap-2">
+                  <Link to="/verify-email" className={`px-2 sm:px-3 py-1 sm:py-2 rounded-md text-sm sm:text-base ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Verify</Link>
+                  <button onClick={handleLogout} className="px-2 sm:px-3 py-1 sm:py-2 bg-indigo-600 text-white rounded-md text-sm sm:text-base">Logout</button>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  <Link to="/profile" className={`hidden sm:inline-block px-3 py-2 rounded-md ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Profile</Link>
-                  <button onClick={handleLogout} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Logout</button>
+                <div className="flex items-center gap-2">
+                  <Link to="/profile" className={`hidden sm:inline-block px-2 sm:px-3 py-1 sm:py-2 rounded-md text-sm sm:text-base ${isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-100'}`}>Profile</Link>
+                  <button onClick={handleLogout} className="px-2 sm:px-3 py-1 sm:py-2 bg-indigo-600 text-white rounded-md text-sm sm:text-base">Logout</button>
                 </div>
               )}
             </div>
@@ -138,20 +138,35 @@ export default function Layout({ children }) {
           </div>
         )}
 
-        <main className="flex-1 p-6 w-full">
+        <main className="flex-1 p-4 sm:p-6 w-full pb-20 md:pb-6">
           <Container>
             {children}
           </Container>
         </main>
 
         {isAuthenticated && user && user.isAccountVerify && (
-          <nav className={`md:hidden fixed bottom-4 left-4 right-4 ${isDark ? 'bg-slate-900 shadow-2xl' : 'bg-white shadow-lg'} rounded-2xl p-3 z-40 transition-colors`} role="navigation" aria-label="Primary mobile navigation">
-            <div className="flex justify-around">
-              <Link to="/dashboard" className="flex flex-col items-center text-xs" aria-label="Home">🏠<span>Home</span></Link>
-              <Link to="/tasks" className="flex flex-col items-center text-xs" aria-label="Tasks">📝<span>Tasks</span></Link>
-              <Link to="/support" className="flex flex-col items-center text-xs" aria-label="Support">💬<span>Support</span></Link>
-              <Link to="/withdraw" className="flex flex-col items-center text-xs" aria-label="Withdraw">💸<span>Withdraw</span></Link>
-              <Link to="/profile" className="flex flex-col items-center text-xs" aria-label="Profile">👤<span>Profile</span></Link>
+          <nav className={`md:hidden fixed bottom-4 left-4 right-4 ${isDark ? 'bg-slate-900 shadow-2xl' : 'bg-white shadow-lg'} rounded-2xl p-2 z-40 transition-colors`} role="navigation" aria-label="Primary mobile navigation">
+            <div className="flex justify-around items-center">
+              <Link to="/dashboard" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Home">
+                <span className="text-lg sm:text-2xl">🏠</span>
+                <span className="hidden sm:inline">Home</span>
+              </Link>
+              <Link to="/tasks" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Tasks">
+                <span className="text-lg sm:text-2xl">📝</span>
+                <span className="hidden sm:inline">Tasks</span>
+              </Link>
+              <Link to="/support" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Support">
+                <span className="text-lg sm:text-2xl">💬</span>
+                <span className="hidden sm:inline">Support</span>
+              </Link>
+              <Link to="/withdraw" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Withdraw">
+                <span className="text-lg sm:text-2xl">💸</span>
+                <span className="hidden sm:inline">Withdraw</span>
+              </Link>
+              <Link to="/profile" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Profile">
+                <span className="text-lg sm:text-2xl">👤</span>
+                <span className="hidden sm:inline">Profile</span>
+              </Link>
             </div>
           </nav>
         )}

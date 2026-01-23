@@ -119,7 +119,39 @@ const userSchema = new mongoose.Schema({
         // Temporary storage during request_token flow
         requestTokenSecret: String,
         linkedAt: Date
-  },
+    },
+    tiktok: {
+        id: String,
+        username: String,
+        displayName: String,
+        accessToken: String,
+        refreshToken: String,
+        linkedAt: Date
+    },
+    instagram: {
+        id: String,
+        username: String,
+        displayName: String,
+        accessToken: String,
+        refreshToken: String,
+        linkedAt: Date
+    },
+    facebook: {
+        id: String,
+        username: String,
+        displayName: String,
+        accessToken: String,
+        refreshToken: String,
+        linkedAt: Date
+    },
+    youtube: {
+        id: String,
+        username: String,
+        displayName: String,
+        accessToken: String,
+        refreshToken: String,
+        linkedAt: Date
+    },
     tasksCompleted: {
         type: Number,
         default: 0
@@ -127,6 +159,10 @@ const userSchema = new mongoose.Schema({
   fraudScore: {
     type: Number,
     default: 0
+  },
+  isSuspended: {
+    type: Boolean,
+    default: false
   },
   transactionPin: {
     type: String,

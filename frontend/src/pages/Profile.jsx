@@ -19,16 +19,16 @@ export default function Profile() {
   const [showRetry, setShowRetry] = useState(false)
   const navigate = useNavigate()
 
-  const handleConnectTwitter = () => {
-    // Use OAuth2 connect endpoint
-    const url = `${API_URL}/twitter/oauth2/connect`
+  const handleConnectSocial = (platform) => {
+    // Use OAuth2 connect endpoint for the platform
+    const url = `${API_URL}/${platform.toLowerCase()}/oauth2/connect`
     const width = 600
     const height = 700
     const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2)
     const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2)
 
     // Try popup first; fallback to top-level navigation if blocked
-    const popup = window.open(url, 'TwitterConnect', `width=${width},height=${height},left=${left},top=${top}`)
+    const popup = window.open(url, `${platform}Connect`, `width=${width},height=${height},left=${left},top=${top}`)
     if (!popup) {
       // popup blocked — navigate the main window
       window.location.href = url
@@ -50,7 +50,7 @@ export default function Profile() {
 
         // Once popup is redirected back to our origin we can safely read its location
         const href = popup.location && popup.location.href
-        if (href && (href.includes('/profile') || href.includes('?twitter='))) {
+        if (href && (href.includes('/profile') || href.includes(`?${platform.toLowerCase()}=`))) {
           popup.close()
           clearInterval(poll)
           try {
@@ -64,17 +64,21 @@ export default function Profile() {
     }, pollInterval)
   }
 
-  const handleUnlinkTwitter = async () => {
+  const handleConnectTwitter = () => {
+    handleConnectSocial('twitter')
+  }
+
+  const handleUnlinkSocial = async (platform) => {
     setLoading(true)
     try {
-      const res = await axios.delete('/twitter/unlink')
+      const res = await axios.delete(`/${platform.toLowerCase()}/unlink`)
       if (res.data.success) {
-        toast.success(res.data.message || 'Twitter unlinked')
+        toast.success(res.data.message || `${platform} unlinked`)
         const { data } = await axios.get('/auth/me')
         if (data?.user) dispatch(loginSuccess({ user: data.user, token: null, balance: data.balance }))
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to unlink Twitter')
+      toast.error(err.response?.data?.message || `Failed to unlink ${platform}`)
     } finally {
       setLoading(false)
     }
@@ -99,10 +103,21 @@ export default function Profile() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const twitterParam = params.get('twitter')
-    const twitterLinked = typeof twitterParam === 'string' && twitterParam.startsWith('linked')
-    const twitterFailed = params.get('twitter') === 'failed'
-    const failReason = params.get('reason')
+    const platforms = ['twitter', 'tiktok', 'instagram', 'facebook', 'youtube']
+    
+    let linkedPlatform = null
+    let failedPlatform = null
+    
+    for (const platform of platforms) {
+      const param = params.get(platform)
+      if (typeof param === 'string' && param.startsWith('linked')) {
+        linkedPlatform = platform
+        break
+      } else if (param === 'failed') {
+        failedPlatform = platform
+        break
+      }
+    }
 
     const refreshUser = async () => {
       try {
@@ -113,25 +128,26 @@ export default function Profile() {
       }
     }
 
-    if (twitterLinked) {
-      toast.success('Twitter linked')
-      params.delete('twitter')
+    if (linkedPlatform) {
+      toast.success(`${linkedPlatform.charAt(0).toUpperCase() + linkedPlatform.slice(1)} linked`)
+      params.delete(linkedPlatform)
       params.delete('reason')
       const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
       window.history.replaceState({}, '', newUrl)
       refreshUser()
       setShowRetry(false)
-    } else if (twitterFailed) {
+    } else if (failedPlatform) {
+      const failReason = params.get('reason')
       // map some reasons to friendly messages
       const map = {
         expired: 'OAuth session expired, please try connecting again',
-        invalid_session: 'OAuth session invalid — please retry linking your Twitter account',
-        missing_params: 'Twitter returned invalid response. Please try again',
-        server_error: 'Twitter linking failed due to a server error. Please retry.'
+        invalid_session: 'OAuth session invalid — please retry linking your account',
+        missing_params: 'The platform returned invalid response. Please try again',
+        server_error: 'Linking failed due to a server error. Please retry.'
       }
-      const msg = map[failReason] || decodeURIComponent(failReason || 'Twitter linking failed')
+      const msg = map[failReason] || decodeURIComponent(failReason || `${failedPlatform} linking failed`)
       toast.error(msg)
-      params.delete('twitter')
+      params.delete(failedPlatform)
       params.delete('reason')
       const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
       window.history.replaceState({}, '', newUrl)
@@ -156,12 +172,26 @@ export default function Profile() {
         const apiOrigin = (() => { try { return new URL(API_URL).origin } catch(e){ return null } })()
         if (e.origin !== window.location.origin && e.origin !== apiOrigin) return
         const data = e.data || {}
-         if (!data.twitter && !data.user) return
+        const platforms = ['twitter', 'tiktok', 'instagram', 'facebook', 'youtube']
+        
+        let hasPlatformData = false
+        for (const platform of platforms) {
+          if (data[platform] || data.user) {
+            hasPlatformData = true
+            break
+          }
+        }
+        
+        if (!hasPlatformData) return
 
-        if (typeof data.twitter === 'string' && data.twitter.startsWith('linked')) {
-          toast.success('Twitter linked')
-        } else if (data.twitter === 'failed') {
-          toast.error('Twitter linking failed')
+        for (const platform of platforms) {
+          if (typeof data[platform] === 'string' && data[platform].startsWith('linked')) {
+            toast.success(`${platform.charAt(0).toUpperCase() + platform.slice(1)} linked`)
+            break
+          } else if (data[platform] === 'failed') {
+            toast.error(`${platform.charAt(0).toUpperCase() + platform.slice(1)} linking failed`)
+            break
+          }
         }
 
         // If the popup included the user object, use it immediately; otherwise fetch
@@ -188,7 +218,7 @@ export default function Profile() {
     <div className={`min-h-screen ${isDark ? 'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-b from-white via-sky-50 to-indigo-50'} p-6 transition-colors`}>
       {showRetry && (
         <div className={`max-w-3xl mx-auto mb-4 p-4 rounded-lg ${isDark ? 'bg-yellow-900/20 border-yellow-800' : 'bg-yellow-50 border-yellow-200'} border flex items-center justify-between gap-4 transition-colors`}>
-          <div className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-800'}`}>Twitter linking failed — you can retry connecting your account.</div>
+          <div className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-800'}`}>Account linking failed — you can retry connecting your account.</div>
           <div className="flex items-center gap-2">
             <button onClick={() => { setShowRetry(false); handleConnectTwitter() }} className="px-3 py-2 bg-yellow-600 text-white rounded-full text-sm hover:bg-yellow-700">Retry Connect</button>
             <button onClick={() => setShowRetry(false)} className="px-3 py-2 bg-white border rounded-full text-sm">Dismiss</button>
@@ -221,14 +251,25 @@ export default function Profile() {
           </div>
 
           <div className="flex flex-col items-center sm:items-end gap-3 w-full sm:w-auto">
-            {user?.twitter?.username ? (
-              <>
-                <div className="text-sm text-gray-600">Connected: <span className="font-semibold">@{user.twitter.username}</span></div>
-                <button onClick={handleUnlinkTwitter} disabled={loading} className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-full text-sm hover:bg-red-700">Unlink</button>
-              </>
-            ) : (
-              <button onClick={handleConnectTwitter} className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700">Connect Twitter</button>
-            )}
+            <div className="space-y-2 w-full sm:w-auto">
+              {['twitter', 'tiktok', 'instagram', 'facebook', 'youtube'].map(platform => {
+                const platformData = user?.[platform]
+                const platformName = platform.charAt(0).toUpperCase() + platform.slice(1) === 'Twitter' ? 'X (Twitter)' : platform.charAt(0).toUpperCase() + platform.slice(1)
+                return (
+                  <div key={platform} className="text-xs sm:text-sm flex items-center justify-between gap-2">
+                    <span className={`${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{platformName}:</span>
+                    {platformData?.username ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">@{platformData.username}</span>
+                        <button onClick={() => handleUnlinkSocial(platform)} disabled={loading} className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">Unlink</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => handleConnectSocial(platform)} className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Connect</button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 

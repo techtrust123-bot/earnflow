@@ -4,7 +4,190 @@ const TwitterTask = require("../models/adminTasks")
 const TaskCompletion = require("../models/taskCompletion")
 const User = require("../models/user")
 const { verifyFollow, verifyLike, verifyRepost, verifyComment } = require("../services/twitterVerify")
+const { verifyTask } = require("../services/multiPlatformVerify")
 
+// Generic task completion for all platforms
+exports.completeTask = async (req, res) => {
+  const user = req.user
+  const taskId = req.params.id
+  const { platform } = req.body || {}
+
+  try {
+    // 1. Find task
+    const task = await TwitterTask.findById(taskId)
+    if (!task || !task.isActive) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Task unavailable or inactive" 
+      })
+    }
+
+    const taskPlatform = (platform || task.platform || '').toLowerCase()
+
+    // 2. Check social account linked based on platform
+    const socialAccounts = {
+      'x': user.twitter?.id,
+      'twitter': user.twitter?.id,
+      'tiktok': user.tiktok?.id,
+      'instagram': user.instagram?.id,
+      'facebook': user.facebook?.id,
+      'youtube': user.youtube?.id
+    }
+
+    if (!socialAccounts[taskPlatform]) {
+      const platformName = taskPlatform.charAt(0).toUpperCase() + taskPlatform.slice(1);
+      return res.status(400).json({ 
+        success: false,
+        message: `Please link your ${platformName} account first` 
+      })
+    }
+
+    // 3. Fraud check
+    if (user.fraudScore >= 5) {
+      return res.status(403).json({ 
+        success: false,
+        message: "Account under review for suspicious activity" 
+      })
+    }
+
+    // 4. Rate limiting
+    const recentAttempt = await TaskCompletion.findOne({
+      user: user._id,
+      task: taskId,
+      createdAt: { $gte: new Date(Date.now() - 60_000) }
+    })
+    if (recentAttempt) {
+      return res.status(429).json({
+        success: false,
+        message: "Please wait before trying again"
+      })
+    }
+
+    // 5. Get social account details based on platform
+    let userSocialId, accessToken;
+    
+    if (taskPlatform === 'x' || taskPlatform === 'twitter') {
+      userSocialId = user.twitter.id
+      accessToken = user.twitter.accessToken || user.twitter.token
+    } else if (taskPlatform === 'tiktok') {
+      userSocialId = user.tiktok.id
+      accessToken = user.tiktok.accessToken
+    } else if (taskPlatform === 'instagram') {
+      userSocialId = user.instagram.id
+      accessToken = user.instagram.accessToken
+    } else if (taskPlatform === 'facebook') {
+      userSocialId = user.facebook.id
+      accessToken = user.facebook.accessToken
+    } else if (taskPlatform === 'youtube') {
+      userSocialId = user.youtube.id
+      accessToken = user.youtube.accessToken
+    }
+
+    // Handle screenshot-based verification
+    if (task.verification?.requiresScreenshot) {
+      await TaskCompletion.create({
+        user: user._id,
+        task: taskId,
+        status: "pending_review",
+        createdAt: new Date(),
+        verificationType: task.verification?.type || null,
+        targetId: task.verification?.targetId || null,
+        reason: 'awaiting_admin_verification'
+      })
+
+      return res.json({
+        success: true,
+        message: "Task submitted for admin verification. You'll be notified once verified.",
+        status: "pending_review"
+      })
+    }
+
+    // 6. Verify task based on platform and verification type
+    let verified = false
+    const vType = (task.verification?.type || '').toLowerCase()
+    const targetId = task.verification?.targetTweetId || task.verification?.targetPostId || task.verification?.targetVideoId || task.verification?.targetId
+
+    try {
+      verified = await verifyTask(taskPlatform, vType, userSocialId, targetId, accessToken)
+    } catch (verifyErr) {
+      console.error(`Verification error for ${taskPlatform}:`, verifyErr.message)
+      verified = false
+    }
+
+    if (!verified) {
+      await TaskCompletion.create({
+        user: user._id,
+        task: taskId,
+        status: "failed",
+        verifiedAt: new Date(),
+        verificationType: task.verification?.type || null,
+        reason: 'verification_failed'
+      })
+
+      return res.status(400).json({ 
+        success: false,
+        message: "Verification failed. Make sure you completed the task correctly."
+      })
+    }
+
+    // 7. Transaction - reward user
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    try {
+      const completion = await TaskCompletion.create([{
+        user: user._id,
+        task: taskId,
+        status: "verified",
+        verifiedAt: new Date(),
+        reverifyUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        verificationType: task.verification?.type || null
+      }], { session })
+
+      const updatedTask = await TwitterTask.findByIdAndUpdate(
+        taskId,
+        { $inc: { completedCount: 1 } },
+        { new: true, session },
+      );
+
+      user.tasksCompleted += 1;
+      user.balance += task.reward;
+      await user.save({ session });
+
+      if (updatedTask.maxCompletions && updatedTask.completedCount >= updatedTask.maxCompletions) {
+        await TwitterTask.findByIdAndUpdate(taskId, { isActive: false }, { session });
+      }
+
+      completion[0].status = "rewarded"
+      completion[0].rewardedAt = new Date()
+      await completion[0].save({ session })
+
+      await session.commitTransaction()
+
+      return res.json({
+        success: true,
+        message: 'Task completed and reward added!',
+        reward: task.reward,
+        balance: user.balance
+      })
+
+    } catch (transactionErr) {
+      await session.abortTransaction()
+      throw transactionErr
+    } finally {
+      session.endSession()
+    }
+
+  } catch (error) {
+    console.error("Complete task error:", error)
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+// Keep the old completeTwitterTask for backward compatibility
 exports.completeTwitterTask = async (req, res) => {
   const user = req.user
   const taskId = req.params.id

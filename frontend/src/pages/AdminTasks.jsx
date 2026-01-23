@@ -201,10 +201,12 @@ export default function AdminTasks() {
         endDate: form.endDate || null,
         verification: {
           type: form.verificationType,
-          // Correct field based on type
-          ...(form.verificationType === 'follow' 
+          // Platform-specific field mapping
+          ...(form.verificationType === 'follow' || form.verificationType === 'subscribe'
             ? { targetId: form.target.trim() }
-            : { targetTweetId: form.target.trim() }
+            : form.platform === 'YouTube'
+            ? { targetVideoId: form.target.trim() }
+            : { targetPostId: form.target.trim() }
           )
         }
       }
@@ -299,7 +301,14 @@ export default function AdminTasks() {
           <h2 className={`text-3xl font-bold mb-8 text-center transition-colors ${isDark ? 'text-slate-50' : 'text-gray-900'}`}>{editingId ? 'Edit Task' : 'Create New Task'}</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <input type="text" placeholder="Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} required className={`p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} />
-            <input type="text" placeholder="Platform (e.g., X, Instagram)" value={form.platform} onChange={e => setForm({...form, platform: e.target.value})} required className={`p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} />
+            <select value={form.platform} onChange={e => setForm({...form, platform: e.target.value, verificationType: ''})} required className={`p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50' : 'border-gray-300 bg-white text-gray-900'}`}>
+              <option value="">Select Platform</option>
+              <option value="X">X (Twitter)</option>
+              <option value="Instagram">Instagram</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Facebook">Facebook</option>
+              <option value="YouTube">YouTube</option>
+            </select>
             <input type="number" placeholder="Reward (₦)" value={form.reward} onChange={e => setForm({...form, reward: e.target.value})} required className={`p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} />
             <input type="url" placeholder="Proof Link" value={form.link} onChange={e => setForm({...form, link: e.target.value})} required className={`p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} />
             <input type="number" placeholder="Max Completions (0 = unlimited)" value={form.maxCompletions} onChange={e => setForm({...form, maxCompletions: e.target.value})} required className={`p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} />
@@ -322,31 +331,48 @@ export default function AdminTasks() {
                     className={`w-full p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-600 border-slate-500 text-slate-50' : 'border-gray-300 bg-white text-gray-900'}`}
                   >
                     <option value="">Select verification type</option>
-                    <option value="follow">Follow</option>
-                    <option value="like">Like</option>
-                    <option value="retweet">Retweet</option>
-                    <option value="repost">Repost</option>
-                    <option value="comment">Comment</option>
+                    {form.platform === 'YouTube' ? (
+                      <>
+                        <option value="subscribe">Subscribe</option>
+                        <option value="like">Like</option>
+                        <option value="comment">Comment</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="follow">Follow</option>
+                        <option value="like">Like</option>
+                        <option value="retweet">Retweet</option>
+                        <option value="repost">Repost</option>
+                        <option value="comment">Comment</option>
+                        <option value="share">Share</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
                 {form.verificationType && (
                   <div>
                     <label className={`block text-sm font-medium mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
-                      {form.verificationType === 'follow' ? 'Username (without @)' : 'Tweet/Post ID'} *
+                      {form.verificationType === 'follow' || form.verificationType === 'subscribe' 
+                        ? `${form.platform === 'YouTube' ? 'Channel' : 'Account'} Name/ID` 
+                        : form.platform === 'YouTube' 
+                        ? 'Video ID' 
+                        : 'Post/Tweet ID'} *
                     </label>
                     <input
                       type="text"
                       value={form.target}
                       onChange={e => setForm({...form, target: e.target.value})}
-                      placeholder={form.verificationType === 'follow' ? 'earnflow' : '1234567890123456789'}
+                      placeholder={form.verificationType === 'follow' || form.verificationType === 'subscribe' 
+                        ? 'username or channel_id' 
+                        : 'post_id_or_tweet_id'}
                       required
                       className={`w-full p-4 border-2 rounded-xl transition-colors ${isDark ? 'bg-slate-600 border-slate-500 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`}
                     />
                     <p className={`text-xs mt-2 transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
-                      {form.verificationType === 'follow' 
-                        ? 'Enter username only (e.g., earnflow)' 
-                        : 'Copy the number from the tweet URL'}
+                      {form.verificationType === 'follow' || form.verificationType === 'subscribe'
+                        ? 'Enter account/channel name or ID'
+                        : `Enter the unique ID from the ${form.platform} ${form.platform === 'YouTube' ? 'video' : 'post'} URL`}
                     </p>
                   </div>
                 )}

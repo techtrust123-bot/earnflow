@@ -48,8 +48,10 @@ export default function CreateTask() {
     if (!form.platform) return toast.error('Platform is required')
     if (!form.numUsers || Number(form.numUsers) < 1) return toast.error('Number of users must be at least 1')
 
-    if (form.action === 'follow') {
-      if (!form.socialHandle.trim()) return toast.error('Please provide the account username to follow')
+    const followAction = form.action === 'follow' || form.action === 'subscribe'
+    
+    if (followAction) {
+      if (!form.socialHandle.trim()) return toast.error('Please provide the account/channel to follow/subscribe to')
     } else {
       // For repost, like, comment: require username/handle and screenshot
       if (!form.accountUsername.trim()) return toast.error('Please provide your account username/handle')
@@ -66,7 +68,9 @@ export default function CreateTask() {
       formData.append('action', form.action)
       formData.append('numUsers', Number(form.numUsers))
       
-      if (form.action === 'follow') {
+      const followAction = form.action === 'follow' || form.action === 'subscribe'
+      
+      if (followAction) {
         formData.append('socialHandle', form.socialHandle.trim())
       } else {
         formData.append('accountUsername', form.accountUsername.trim())
@@ -115,22 +119,33 @@ export default function CreateTask() {
             <option value="tiktok">TikTok</option>
             <option value="instagram">Instagram</option>
             <option value="facebook">Facebook</option>
+            <option value="youtube">YouTube</option>
           </select>
 
           <select value={form.action} onChange={e => setForm(f => ({ ...f, action: e.target.value }))} className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50' : 'border-gray-300 bg-white text-gray-900'}`}>
-            <option value="follow">Follow</option>
-            <option value="like">Like</option>
-            <option value="repost">Repost/Retweet</option>
-            <option value="comment">Comment/Reply</option>
+            {form.platform === 'youtube' ? (
+              <>
+                <option value="subscribe">Subscribe</option>
+                <option value="like">Like</option>
+                <option value="comment">Comment</option>
+              </>
+            ) : (
+              <>
+                <option value="follow">Follow</option>
+                <option value="like">Like</option>
+                <option value="repost">Repost/Retweet</option>
+                <option value="comment">Comment/Reply</option>
+              </>
+            )}
           </select>
 
           <input type="number" min="1" value={form.numUsers} onChange={e => setForm(f => ({ ...f, numUsers: Number(e.target.value) }))} className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} />
         </div>
 
-        {form.action === 'follow' ? (
+        {form.action === 'follow' || form.action === 'subscribe' ? (
           <div className="mb-4">
-            <label className={`block text-sm font-medium mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Account username to follow</label>
-            <input value={form.socialHandle} onChange={e => setForm(f => ({ ...f, socialHandle: e.target.value }))} placeholder="e.g. @username" className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} required />
+            <label className={`block text-sm font-medium mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>Account {form.platform === 'youtube' ? 'channel' : 'username'} to {form.action}</label>
+            <input value={form.socialHandle} onChange={e => setForm(f => ({ ...f, socialHandle: e.target.value }))} placeholder={form.platform === 'youtube' ? 'e.g. @channelname' : 'e.g. @username'} className={`p-2 border rounded w-full transition-colors ${isDark ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-400' : 'border-gray-300 bg-white text-gray-900'}`} required />
           </div>
         ) : (
           <>
