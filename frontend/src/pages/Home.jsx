@@ -36,48 +36,48 @@ export default function Home() {
           initial="initial"
           animate="animate"
           variants={staggerContainer}
-          className="pt-16 pb-20 grid gap-6 lg:grid-cols-2 items-center"
+          className="py-8 sm:py-12 lg:py-16 grid gap-4 sm:gap-6 lg:grid-cols-2 items-center"
         >
           <motion.div variants={fadeInUp}>
             <motion.h1 
-              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+              className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
               variants={fadeInUp}
             >
               Earn Money Doing Simple Social Tasks
             </motion.h1>
             <motion.p 
-              className={`mt-4 text-lg sm:text-xl ${isDark ? 'text-slate-300' : 'text-gray-600'} max-w-xl`}
+              className={`mt-3 sm:mt-4 text-base sm:text-lg md:text-xl ${isDark ? 'text-slate-300' : 'text-gray-600'} max-w-xl`}
               variants={fadeInUp}
             >
               Follow, like, comment, repost, and complete quick micro-tasks on Twitter, Instagram, TikTok, and more. Get paid instantly without hidden fees. Join thousands of earners worldwide.
             </motion.p>
 
-            <motion.div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4" variants={fadeInUp}>
-              <Link to="/signup" className="inline-block w-full sm:w-auto text-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+            <motion.div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4" variants={fadeInUp}>
+              <Link to="/signup" className="inline-block w-full sm:w-auto text-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm sm:text-base">
                 Get Started — Free
               </Link>
-              <Link to="/tasks" className={`inline-block w-full sm:w-auto text-center px-8 py-4 rounded-lg border-2 font-semibold transition-all duration-300 ${isDark ? 'border-indigo-500 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'}`}>
+              <Link to="/tasks" className={`inline-block w-full sm:w-auto text-center px-4 sm:px-8 py-3 sm:py-4 rounded-lg border-2 font-semibold transition-all duration-300 text-sm sm:text-base ${isDark ? 'border-indigo-500 text-indigo-400 hover:bg-indigo-500/10' : 'border-indigo-600 text-indigo-600 hover:bg-indigo-50'}`}>
                 Browse Tasks
               </Link>
             </motion.div>
 
-            <motion.div className="mt-12 flex flex-wrap gap-4" variants={fadeInUp}>
+            <motion.div className="mt-6 sm:mt-12 flex flex-wrap gap-2 sm:gap-4" variants={fadeInUp}>
               <motion.div 
-                className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-gray-200'} px-4 py-3 rounded-lg shadow-md backdrop-blur-sm`}
+                className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-gray-200'} px-3 sm:px-4 py-2 sm:py-3 rounded-lg shadow-md backdrop-blur-sm text-xs sm:text-sm`}
                 whileHover={{ y: -5 }}
                 transition={{ type: 'spring', stiffness: 400 }}
               >
                 <div className="font-bold text-indigo-600">⚡ Instant Payouts</div>
               </motion.div>
               <motion.div 
-                className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-gray-200'} px-4 py-3 rounded-lg shadow-md backdrop-blur-sm`}
+                className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-gray-200'} px-3 sm:px-4 py-2 sm:py-3 rounded-lg shadow-md backdrop-blur-sm text-xs sm:text-sm`}
                 whileHover={{ y: -5 }}
                 transition={{ type: 'spring', stiffness: 400 }}
               >
                 <div className="font-bold text-purple-600">🔒 Secure Withdrawals</div>
               </motion.div>
               <motion.div 
-                className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-gray-200'} px-4 py-3 rounded-lg shadow-md backdrop-blur-sm`}
+                className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-gray-200'} px-3 sm:px-4 py-2 sm:py-3 rounded-lg shadow-md backdrop-blur-sm text-xs sm:text-sm`}
                 whileHover={{ y: -5 }}
                 transition={{ type: 'spring', stiffness: 400 }}
               >
@@ -92,11 +92,11 @@ export default function Home() {
             animate="animate"
           >
             <motion.div 
-              className={`${isDark ? 'bg-gradient-to-br from-indigo-900 to-slate-800 shadow-2xl shadow-indigo-500/20' : 'bg-gradient-to-br from-indigo-50 to-white shadow-2xl'} rounded-2xl p-6 backdrop-blur-sm`}
+              className={`${isDark ? 'bg-gradient-to-br from-indigo-900 to-slate-800 shadow-2xl shadow-indigo-500/20' : 'bg-gradient-to-br from-indigo-50 to-white shadow-2xl'} rounded-2xl p-3 sm:p-4 md:p-6 backdrop-blur-sm`}
               whileHover={{ scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >
-              <img src="/assets/preview.png" alt="app preview" className="w-full rounded-xl object-cover max-h-64 sm:max-h-96 shadow-lg" />
+              <img src="/assets/preview.png" alt="app preview" className="w-full rounded-xl object-cover max-h-48 xs:max-h-56 sm:max-h-80 md:max-h-96 shadow-lg" />
             </motion.div>
           </motion.div>
         </motion.section>

@@ -88,8 +88,14 @@ const confirmComplete = async () => {
   setShowConfirm(false)
   setProcessingTask(task._id)
   try {
-    const res = await axios.post(`/tasks/twitter/${task._id}/complete`)
-      if (res.data.success) {
+    // Use generic endpoint or platform-specific endpoint
+    const endpoint = task.platform ? `/tasks/${task._id}/complete` : `/tasks/twitter/${task._id}/complete`
+    
+    const res = await axios.post(endpoint, {
+      platform: task.platform
+    })
+    
+    if (res.data.success) {
       // Server returns updated balance — use it as source of truth
       if (typeof res.data.balance === 'number') {
         dispatch(updateBalance(res.data.balance))
@@ -101,13 +107,13 @@ const confirmComplete = async () => {
         const next = [...prev, task._id]
         return next
       })
-        setCompletedTaskObjects(prev => [...prev, { ...task, reward: res.data.reward }])
+      setCompletedTaskObjects(prev => [...prev, { ...task, reward: res.data.reward }])
       // remove task from tasks list to reflect completed state immediately
       setTasks(prev => prev.filter(t => t._id !== task._id))
     }
   } catch (err) {
     const msg = err.response?.data?.message || 'Cannot complete task'
-    if (msg.includes('link your Twitter account')) {
+    if (msg.includes('link your') && msg.includes('account')) {
       toast.error(msg)
       navigate('/profile')
       return
@@ -159,35 +165,37 @@ const copyLink = async (task) => {
     <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'} py-6 px-4 sm:py-8 lg:py-12 transition-colors`}>
       <Container>
         {/* Header */}
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className={`text-3xl sm:text-4xl md:text-5xl font-bold ${isDark ? 'text-slate-50' : 'text-blue-800'} mb-4 transition-colors`}>
+        <div className="text-center mb-6 sm:mb-8 lg:mb-12">
+          <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold ${isDark ? 'text-slate-50' : 'text-blue-800'} mb-3 sm:mb-4 transition-colors`}>
             Complete Tasks & Earn
           </h1>
 
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className={`inline-block ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-blue-100'} rounded-2xl sm:rounded-3xl shadow-md border p-6 sm:p-8 max-w-sm mx-auto w-full transition-colors`}
+            className={`inline-block ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-blue-100'} rounded-2xl sm:rounded-3xl shadow-md border p-4 sm:p-6 md:p-8 max-w-sm mx-auto w-full transition-colors`}
           >
-            <p className={`text-lg sm:text-xl font-semibold ${isDark ? 'text-slate-300' : 'text-blue-800'} mb-2 transition-colors`}>Balance</p>
-            <p className={`text-4xl sm:text-5xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+            <p className={`text-base sm:text-lg md:text-xl font-semibold ${isDark ? 'text-slate-300' : 'text-blue-800'} mb-2 transition-colors`}>Balance</p>
+            <p className={`text-3xl sm:text-4xl md:text-5xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
               ₦{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </p>
           </motion.div>
         </div>
 
         {/* Active Tasks */}
-        <div className="mb-16">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks" className={`w-full sm:w-64 p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'border-gray-200 bg-white text-gray-900'} transition-colors`} />
-              <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} className={`p-3 rounded-lg border ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-gray-200 bg-white text-gray-900'} transition-colors`}>
+        <div className="mb-12 sm:mb-16">
+          <div className="mb-4 sm:mb-6 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks" className={`flex-1 p-2 sm:p-3 rounded-lg border text-sm sm:text-base ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'border-gray-200 bg-white text-gray-900'} transition-colors`} />
+              <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} className={`p-2 sm:p-3 rounded-lg border text-sm sm:text-base ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-gray-200 bg-white text-gray-900'} transition-colors`}>
                 <option value="all">All Platforms</option>
                 <option value="X">X (Twitter)</option>
                 <option value="Instagram">Instagram</option>
                 <option value="TikTok">TikTok</option>
+                <option value="Facebook">Facebook</option>
+                <option value="YouTube">YouTube</option>
               </select>
             </div>
-            <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Available tasks are updated frequently</div>
+            <div className={`text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Available tasks are updated frequently</div>
           </div>
 
           {/* Confirmation modal */}
@@ -215,7 +223,7 @@ const copyLink = async (task) => {
               <p className={`${isDark ? 'text-slate-400' : 'text-gray-500'} mt-2`}>Check back soon!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {activeTasks
                 .filter(t => (platformFilter === 'all' || t.platform === platformFilter) && (t.title.toLowerCase().includes(search.toLowerCase()) || t.platform.toLowerCase().includes(search.toLowerCase())))
                 .map((task, i) => (
@@ -227,30 +235,31 @@ const copyLink = async (task) => {
                   whileHover={{ scale: 1.02 }}
                   className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-blue-100'} rounded-3xl shadow-md border p-6 transition-all hover:shadow-lg flex flex-col h-full`}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-semibold">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold">
                       {task.platform}
                     </span>
-                    <span className="text-2xl font-bold text-blue-600">+₦{task.reward}</span>
+                    <span className="text-xl sm:text-2xl font-bold text-blue-600">+₦{task.reward}</span>
                   </div>
 
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">{task.title}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3">{task.title}</h3>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
+                  <div className="flex flex-col items-stretch gap-2 mb-3">
                     <a
                       href={task.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full sm:inline-flex sm:w-auto items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition text-sm shadow-sm text-center"
+                      className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-blue-600 text-white rounded-xl sm:rounded-2xl hover:bg-blue-700 transition text-xs sm:text-sm shadow-sm"
                       aria-label={`Open task ${task.title}`}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M15 3h6v6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 14L21 3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      <span>Open Task</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M15 3h6v6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 14L21 3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <span className="hidden sm:inline">Open Task</span>
+                      <span className="sm:hidden">Open</span>
                     </a>
 
-                    <button onClick={() => copyLink(task)} aria-label="Copy task link" className="w-full sm:inline-flex sm:w-auto items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-2xl text-sm text-gray-600 hover:bg-gray-50">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      {copiedId === task._id ? <span className="text-green-600">Copied</span> : <span className="sr-only">Copy link</span>}
+                    <button onClick={() => copyLink(task)} aria-label="Copy task link" className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-xs sm:text-sm text-gray-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      {copiedId === task._id ? <span className="text-green-600 text-xs sm:text-sm">Copied</span> : <span className="sr-only">Copy link</span>}
                     </button>
                   </div>
 
@@ -258,15 +267,16 @@ const copyLink = async (task) => {
                     <button
                       onClick={() => handleComplete(task)}
                       disabled={processingTask === task._id}
-                      className="w-full bg-blue-600 text-white py-3 rounded-2xl font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                      className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all text-sm sm:text-base"
                     >
                       {processingTask === task._id ? (
                         <>
-                          <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                          Verifying…
+                          <span className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          <span className="hidden sm:inline">Verifying…</span>
+                          <span className="sm:hidden">Verify…</span>
                         </>
                       ) : (
-                        'Verify & Complete'
+                        <span>Verify & Complete</span>
                       )}
                     </button>
                   </div>
@@ -280,11 +290,11 @@ const copyLink = async (task) => {
         {/* Completed Tasks */}
         {completedTasksList.length > 0 && (
           <div>
-            <h2 className={`text-2xl sm:text-3xl font-semibold ${isDark ? 'text-emerald-400' : 'text-green-800'} mb-6 text-center sm:text-left transition-colors`}>
+            <h2 className={`text-xl sm:text-2xl md:text-3xl font-semibold ${isDark ? 'text-emerald-400' : 'text-green-800'} mb-4 sm:mb-6 text-center sm:text-left transition-colors`}>
               Completed Tasks ({completedTasksList.length})
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {completedTasksList.map((task, i) => (
                 <motion.div
                   key={task._id}

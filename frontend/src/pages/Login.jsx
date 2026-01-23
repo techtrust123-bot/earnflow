@@ -41,40 +41,40 @@ export default function Login() {
 
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-slate-950' : 'bg-slate-50'} px-4 transition-colors`}>
+    <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-slate-950' : 'bg-slate-50'} px-4 py-6 transition-colors`}>
       <Container>
-        <div className={`max-w-md mx-auto ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white'} p-6 sm:p-8 rounded-xl shadow-lg w-full sm:w-auto mx-2 sm:mx-auto transition-colors`}>
+        <div className={`max-w-md mx-auto ${isDark ? 'bg-slate-900 border border-slate-700' : 'bg-white'} p-4 sm:p-6 md:p-8 rounded-xl shadow-lg w-full transition-colors`}>
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold mb-3">E</div>
-            <h2 className="text-2xl font-bold">Welcome Back</h2>
-            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Sign in to continue earning</p>
+            <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold mb-3 text-sm sm:text-base">E</div>
+            <h2 className="text-xl sm:text-2xl font-bold">Welcome Back</h2>
+            <p className={`text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Sign in to continue earning</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <label className="block">
-              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Email</span>
+              <span className={`text-xs sm:text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Email</span>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@domain.com" required
-                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`} />
+                className={`mt-1 w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`} />
             </label>
 
             <label className="block">
-              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Password</span>
+              <span className={`text-xs sm:text-sm ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>Password</span>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required
-                className={`mt-1 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`} />
+                className={`mt-1 w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base ${isDark ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'} transition-colors`} />
             </label>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <Link to="/forgot-password" className="text-indigo-600 hover:underline">Forgot password?</Link>
               <div />
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
+              className="w-full bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base">
               {loading ? 'Logging in...' : 'Login & Start Earning'}
             </button>
           </form>
 
-          <div className={`mt-6 text-center text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
+          <div className={`mt-6 text-center text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
             Don't have an account? <Link to="/signup" className="text-indigo-600 font-semibold hover:underline">Sign up</Link>
           </div>
         </div>
