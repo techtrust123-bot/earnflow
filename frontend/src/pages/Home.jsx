@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Container from '../components/Container'
 import { useTheme } from '../context/ThemeContext'
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaYoutube, FaBullhorn, FaDiscord, FaTiktok} from "react-icons/fa";
+
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -255,12 +257,12 @@ export default function Home() {
             viewport={{ once: true }}
           >
             {[
-              { icon: '📱', title: 'Twitter/X Tasks', desc: 'Follow accounts, like tweets, repost content, reply to tweets, and grow your followers', color: 'from-blue-500 to-blue-600' },
-              { icon: '📸', title: 'Instagram Growth', desc: 'Like posts, follow accounts, comment on photos, and boost engagement on Instagram', color: 'from-pink-500 to-rose-600' },
-              { icon: '🎵', title: 'TikTok Engagement', desc: 'Like videos, follow creators, share content, and help TikTok videos go viral', color: 'from-black to-gray-800' },
-              { icon: '📺', title: 'YouTube Tasks', desc: 'Watch videos, like, subscribe to channels, and leave meaningful comments', color: 'from-red-500 to-red-600' },
-              { icon: '💬', title: 'Discord/Telegram', desc: 'Join communities, react to messages, invite friends, and participate in discussions', color: 'from-indigo-500 to-purple-600' },
-              { icon: '🎯', title: 'Advertisement Campaigns', desc: 'Help brands grow by completing sponsored tasks and promotional campaigns', color: 'from-green-500 to-emerald-600' }
+              { icon: <FaTwitter className="text-white" />, title: 'Twitter/X Tasks', desc: 'Follow accounts, like tweets, repost content, reply to tweets, and grow your followers', color: 'from-blue-500 to-blue-600' },
+              { icon: <FaInstagram className="text-white" />, title: 'Instagram Growth', desc: 'Like posts, follow accounts, comment on photos, and boost engagement on Instagram', color: 'from-pink-500 to-rose-600' },
+              { icon: <FaTiktok className="text-white" />, title: 'TikTok Engagement', desc: 'Like videos, follow creators, share content, and help TikTok videos go viral', color: 'from-black to-gray-800' },
+              { icon: <FaYoutube className="text-white" />, title: 'YouTube Tasks', desc: 'Watch videos, like, subscribe to channels, and leave meaningful comments', color: 'from-red-500 to-red-600' },
+              { icon: <FaDiscord className="text-white" />, title: 'Discord/Telegram', desc: 'Join communities, react to messages, invite friends, and participate in discussions', color: 'from-indigo-500 to-purple-600' },
+              { icon: <FaBullhorn className="text-white" />, title: 'Advertisement Campaigns', desc: 'Help brands grow by completing sponsored tasks and promotional campaigns', color: 'from-green-500 to-emerald-600' }
             ].map((service, i) => (
               <motion.div 
                 key={i}
@@ -480,12 +482,12 @@ export default function Home() {
             <motion.div variants={fadeInUp}>
               <h4 className="font-bold mb-4">Follow Us</h4>
               <div className="flex gap-4">
-                <a href="https://twitter.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">𝕏</a>
-                <a href="https://facebook.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">📘</a>
-                <a href="https://instagram.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">📷</a>
-                <a href="https://linkedin.com/in/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">🔗</a>
-                <a href="https://tiktok.com/@earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">🎵</a>
-                <a href="https://youtube.com/@earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl">📺</a>
+                <a href="https://twitter.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl"><FaTwitter className="text-white" /></a>
+                <a href="https://facebook.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl"><FaFacebook className="text-white" /></a>
+                <a href="https://instagram.com/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl"><FaInstagram className="text-white" /></a>
+                <a href="https://linkedin.com/in/earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl"><FaLinkedin className="text-white" /></a>
+                <a href="https://tiktok.com/@earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl"><FaTiktok className="text-white" /></a>
+                <a href="https://youtube.com/@earnflow" className="text-indigo-600 hover:text-purple-600 text-2xl"><FaYoutube className="text-white" /></a>
               </div>
             </motion.div>
           </motion.div>

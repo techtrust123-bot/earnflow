@@ -4,6 +4,8 @@ require("dotenv").config()
 const  {cookie} = require("cookie-parser")
 const  transporter  = require("../transporter/transporter.js")
 const bcrypt = require("bcryptjs")
+const resend = require("resend")
+
 
 
 
@@ -71,7 +73,7 @@ exports.register = async(req,res)=>{
             return res.status(500).json({ message: 'Server misconfiguration' })
         }
 
-        const token = jwt.sign({id:user._id,role:user.role},process.env.SECRET,{expiresIn:"7d"})
+        const token = jwt.sign({id:user._id,role:user.role},process.env.SECRET,{expiresIn:"24h"})
 
         res.cookie("token",token,{
             httpOnly:true,
@@ -81,29 +83,44 @@ exports.register = async(req,res)=>{
             maxAge: 24 * 60 * 60 * 1000
         })
 
-        const mailOption = {
-            from: process.env.SENDER_EMAIL,
-            to:email,
-            subject: "EARN-FLOW-ACCOUNT",
-            text:`your account has been created successful with email: ${email}`
-        }
-        try {
-            await transporter.sendMail(mailOption)
-        } catch (e) {
-            console.warn('Failed to send welcome email:', e && e.message)
-        }
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+            from: 'Earn-Flow <no-reply@earnflow.onrender.com>',
+            to: user.email,
+            subject: "Welcome to Earn-Flow!",
+            html: `<p>Hello ${user.name},</p><p>Your account has been created successfully.</p>`
+        });
 
-        const maileOption = {
-            from: process.env.SENDER_EMAIL,
-            to: email,
-            subject: " Email Verification Otp Code",
-            text: `your verification otp code is:${otp} use it to verify your account`
-        }
-        try {
-            await transporter.sendMail(maileOption)
-        } catch (e) {
-            console.warn('Failed to send verification email:', e && e.message)
-        }
+        const verificationMail = await resend.emails.send({
+            from: 'Earn-Flow <no-reply@earnflow.onrender.com>',
+            to: user.email,
+            subject: "Verify Your Email",
+            html: `<p>Hello ${user.name},</p><p>Please verify your email by using the OTP code: ${otp}</p>`
+        });
+
+        // const mailOption = {
+        //     from: process.env.SENDER_EMAIL,
+        //     to:email,
+        //     subject: "EARN-FLOW-ACCOUNT",
+        //     text:`your account has been created successful with email: ${email}`
+        // }
+        // try {
+        //     await transporter.sendMail(mailOption)
+        // } catch (e) {
+        //     console.warn('Failed to send welcome email:', e && e.message)
+        // }
+
+        // const maileOption = {
+        //     from: process.env.SENDER_EMAIL,
+        //     to: email,
+        //     subject: " Email Verification Otp Code",
+        //     text: `your verification otp code is:${otp} use it to verify your account`
+        // }
+        // try {
+        //     await transporter.sendMail(maileOption)
+        // } catch (e) {
+        //     console.warn('Failed to send verification email:', e && e.message)
+        // }
 
                 const safeUser = {
                     _id: user._id,
@@ -146,7 +163,7 @@ exports.login = async(req, res)=>{
             requiresVerification: true
         })
     }
-        const token = jwt.sign({id: user._id, role: user.role},process.env.SECRET,{expiresIn:"2d"})
+        const token = jwt.sign({id: user._id, role: user.role},process.env.SECRET,{expiresIn:"24h"})
 
         if (!process.env.SECRET) {
             console.error('Missing SECRET env var; cannot sign token')
@@ -170,7 +187,10 @@ exports.login = async(req, res)=>{
                     userID: user.userID,
                     isAccountVerify: !!user.isAccountVerify,
                     accountStatus: user.accountStatus || 'unVerified',
-                    twitter: user.twitter || null
+                    twitter: user.twitter || null,
+                    tasksCompleted: user.tasksCompleted || 0,
+                    referrals: user.referrals || 0
+
                 }
                 // if(!user.isAccountVerify){
                 //     return res.status(403).json({
@@ -217,13 +237,21 @@ exports.resendOtp = async(req,res)=>{
 
         await user.save()
 
-        const mailOption = {
-            from: process.env.SENDER_EMAIL,
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const verificationMail = await resend.emails.send({
+            from: 'Earn-Flow <noreply@earnflow.com>',
             to: user.email,
-            subject: " Email Verification Otp Code",
-            text: `your verification otp code is:${otp} use it to verify your account`
-        }
-        await transporter.sendMail(mailOption)
+            subject: "Verify Your Email",
+            html: `<p>Hello ${user.name},</p><p>Please verify your email by using the OTP code: ${otp}</p>`
+        })
+
+        // const mailOption = {
+        //     from: process.env.SENDER_EMAIL,
+        //     to: user.email,
+        //     subject: " Email Verification Otp Code",
+        //     text: `your verification otp code is:${otp} use it to verify your account`
+        // }
+        // await transporter.sendMail(mailOption)
 
         res.status(200).json({message:" resend otp send successful"})
     } catch (error) {
@@ -260,17 +288,6 @@ exports.verifyAccount = async(req,res)=>{
             return res.status(400).json({message:"Otp Expired..."})
         }
 
-        // // Backend: /api/auth/verify
-        // if (user.isVerified) {
-        //     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' })
-  
-        //     return res.json({
-        //         success: true,
-        //         message: "Email verified!",
-        //         user: { id: user._id, name: user.name, email: user.email, balance: user.balance },
-        //         token
-        //     })
-        // }
 
         user.verifyOtp = "",
         user.verifyOtpExpireAt = 0,
@@ -335,14 +352,22 @@ exports.sendResetOtp = async(req,res)=>{
 
         await user.save()
 
-        const mailOption = {
-            from: process.env.SENDER_EMAIL,
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const resetMail = await resend.emails.send({
+            from: 'Earn-Flow <noreply@earnflow.com>',
             to: email,
-            subject:"Password Reset Otp Code",
-            text: `your password reset otp is: ${otp}`
-        }
+            subject: "Password Reset OTP",
+            html: `<p>Hello ${user.name},</p><p>Please use the following OTP to reset your password: ${otp}</p>`
+        })
 
-        await transporter.sendMail(mailOption)
+        // const mailOption = {
+        //     from: process.env.SENDER_EMAIL,
+        //     to: email,
+        //     subject:"Password Reset Otp Code",
+        //     text: `your password reset otp is: ${otp}`
+        // }
+
+        // await transporter.sendMail(mailOption)
 
         res.status(200).json({message:" resetOtp send successful..."})
     } catch (error) {
