@@ -84,6 +84,7 @@ exports.register = async(req,res)=>{
         })
 
         const resend = new Resend(process.env.RESEND_API_KEY);
+        console.log('Resend instance:', typeof resend, resend ? 'defined' : 'undefined');
         await resend.emails.send({
             from: 'Earn-Flow <no-reply@earnflow.onrender.com>',
             to: user.email,
