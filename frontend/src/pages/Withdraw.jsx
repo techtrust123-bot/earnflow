@@ -157,7 +157,7 @@ export default function Withdraw() {
                   <div className={`text-xs sm:text-sm ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Available Balance</div>
                   <div className={`text-2xl sm:text-3xl font-extrabold ${isDark ? 'text-slate-50' : 'text-gray-900'}`}>₦{balance.toLocaleString()}</div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
+                <div className={`grid grid-cols-2 sm:grid-cols-2 gap-2 ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>
                   {[1000, 2000, 5000, 10000].map(v => (
                     <button key={v} onClick={() => handleQuickAmount(v)} className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 rounded-lg text-xs sm:text-sm hover:bg-gray-200 text-center">₦{v.toLocaleString()}</button>
                   ))}

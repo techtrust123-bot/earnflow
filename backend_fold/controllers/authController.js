@@ -4,7 +4,7 @@ require("dotenv").config()
 const  {cookie} = require("cookie-parser")
 const  transporter  = require("../transporter/transporter.js")
 const bcrypt = require("bcryptjs")
-const resend = require("resend")
+const Resend = require("resend")
 
 
 
