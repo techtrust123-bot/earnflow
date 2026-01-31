@@ -8,12 +8,32 @@ const connectMongo = require("connect-mongo");
 const mongoose = require("mongoose");
 const connectDb = require("./config/dbConfig");
 const passport = require("passport");
+const helmet = require("helmet");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
 
 
 dotenv.config();
 
 const app = express();
+
+// Security headers with CSP
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://js.paystack.co", "https://checkout.paystack.com"],
+        frameSrc: ["'self'", "https://checkout.paystack.com"],
+        connectSrc: ["'self'", "https://api.paystack.co",
+          "http://localhost:10000", // dev backend
+          "https://earnflow.onrender.com" // prod backend
+        ],
+        imgSrc: ["'self'", "data:", "https:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://paystack.com"],
+      },
+    },
+  })
+);
 
 // When running behind a proxy (Render, Heroku, etc.) trust the first proxy
 // so `cookie.secure` and IP detection work correctly for HTTPS setups.
@@ -99,7 +119,7 @@ app.use(
     origin:
       process.env.NODE_ENV === "production"
         ? "https://earnflow.onrender.com"
-        : "http://localhost:5175",
+        : "http://localhost:5173",
     credentials: true
   })
 );
