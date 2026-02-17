@@ -4,6 +4,7 @@ import axios from '../utils/axios'
 import { useTheme } from '../context/ThemeContext'
 import Container from '../components/Container'
 import toast from 'react-hot-toast'
+import { FaPhone,FaCogs,FaDatabase,FaCog, FaSignal, FaMobileAlt } from 'react-icons/fa'
 
 export default function BuyDataAirtime() {
   const { user } = useSelector(state => state.auth)
@@ -165,7 +166,8 @@ export default function BuyDataAirtime() {
               : 'bg-gray-200 text-gray-700'
           }`}
         >
-          📱 Buy Data
+          <FaSignal className="inline-block mr-2" />
+          Buy Data
         </button>
         <button
           onClick={() => {
@@ -182,7 +184,8 @@ export default function BuyDataAirtime() {
               : 'bg-gray-200 text-gray-700'
           }`}
         >
-          📞 Buy Airtime
+          <FaPhone className="inline-block mr-2" />
+           Buy Airtime
         </button>
       </div>
 
@@ -198,6 +201,7 @@ export default function BuyDataAirtime() {
             {loading ? (
               <div className="text-center py-12">
                 <div className={`inline-block animate-spin ${isDark ? 'text-cyan-400' : 'text-blue-600'}`}>
+                  <FaCog className="text-4xl" />
                   ⚙️
                 </div>
                 <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Loading packages...</p>

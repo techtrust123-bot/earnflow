@@ -46,7 +46,7 @@ router.get('/packages/airtime', async (req, res) => {
 // Buy data
 router.post('/buy/data', authMiddleware, async (req, res) => {
   try {
-    const { packageId, phoneNumber, pin } = req.body
+    const { packageId, phoneNumber, pin, paymentMethod = 'wallet' } = req.body
     const userId = req.user._id
 
     if (!packageId || !phoneNumber) {
@@ -69,14 +69,28 @@ router.post('/buy/data', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please set your transaction PIN first' })
     }
 
-    // Check balance
-    if (user.balance < pkg.amount) {
-      return res.status(400).json({ success: false, message: 'Insufficient balance' })
+    // Check balance based on payment method
+    let availableBalance = 0
+    if (paymentMethod === 'wallet') {
+      const Wallet = require('../models/wallet')
+      let wallet = await Wallet.findOne({ user: userId })
+      if (!wallet) {
+        wallet = await Wallet.create({ user: userId })
+      }
+      availableBalance = wallet.balance
+    } else if (paymentMethod === 'balance') {
+      availableBalance = user.balance || 0
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid payment method' })
+    }
+
+    if (availableBalance < pkg.amount) {
+      return res.status(400).json({ success: false, message: `Insufficient ${paymentMethod} balance` })
     }
 
     // Create transaction
     const transactionRef = `DATA-${userId.toString().slice(-6)}-${Date.now()}`
-    const previousBalance = user.balance
+    const previousBalance = paymentMethod === 'wallet' ? wallet.balance : user.balance
 
     const transaction = new DataAirtimeTransaction({
       userId,
@@ -111,33 +125,61 @@ router.post('/buy/data', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: providerResult.message })
     }
 
-    // Deduct balance
-    user.balance -= pkg.amount
-    const newBalance = user.balance
+    // Debit based on payment method
+    let debitResult, newBalance
+    if (paymentMethod === 'wallet') {
+      const walletController = require('../controllers/walletController')
+      debitResult = await walletController.debitWallet(
+        userId,
+        pkg.amount,
+        `Data Purchase: ${pkg.name} (${pkg.balance}MB) for ${phoneNumber}`,
+        transactionRef,
+        {
+          packageId,
+          provider: pkg.provider,
+          phoneNumber,
+          dataAmount: pkg.balance,
+          type: 'data_purchase'
+        }
+      )
+      newBalance = debitResult.newBalance
+    } else if (paymentMethod === 'balance') {
+      // Debit user balance directly
+      user.balance -= pkg.amount
+      await user.save()
+      newBalance = user.balance
+
+      // Create transaction record
+      const Transaction = require('../models/transaction')
+      await Transaction.create({
+        user: userId,
+        type: 'debit',
+        amount: pkg.amount,
+        description: `Data Purchase: ${pkg.name} (${pkg.balance}MB) for ${phoneNumber}`,
+        status: 'successful',
+        reference: transactionRef,
+        related: transaction._id,
+        relatedModel: 'DataAirtimeTransaction',
+        meta: {
+          packageId,
+          provider: pkg.provider,
+          phoneNumber,
+          dataAmount: pkg.balance,
+          type: 'data_purchase'
+        }
+      })
+    }
+
+    if (paymentMethod === 'wallet' && !debitResult.success) {
+      transaction.status = 'failed'
+      transaction.errorMessage = 'Wallet debit failed'
+      await transaction.save()
+      return res.status(400).json({ success: false, message: 'Wallet debit failed' })
+    }
     transaction.newBalance = newBalance
     transaction.status = 'success'
     transaction.completedAt = new Date()
     await transaction.save()
-    await user.save()
-
-    // Create main transaction record
-    const mainTransaction = new Transaction({
-      userId,
-      type: 'data_purchase',
-      amount: pkg.amount,
-      description: `Data Purchase: ${pkg.name} (${pkg.balance}MB) for ${phoneNumber}`,
-      status: 'success',
-      reference: transactionRef,
-      balanceBefore: previousBalance,
-      balanceAfter: newBalance,
-      metadata: {
-        packageId,
-        provider: pkg.provider,
-        phoneNumber,
-        dataAmount: pkg.balance
-      }
-    })
-    await mainTransaction.save()
 
     res.json({
       success: true,
@@ -183,14 +225,20 @@ router.post('/buy/airtime', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please set your transaction PIN first' })
     }
 
-    // Check balance
-    if (user.balance < pkg.amount) {
-      return res.status(400).json({ success: false, message: 'Insufficient balance' })
+    // Check wallet balance
+    const Wallet = require('../models/wallet')
+    let wallet = await Wallet.findOne({ user: userId })
+    if (!wallet) {
+      wallet = await Wallet.create({ user: userId })
+    }
+
+    if (wallet.balance < pkg.amount) {
+      return res.status(400).json({ success: false, message: 'Insufficient wallet balance' })
     }
 
     // Create transaction
     const transactionRef = `AIRTIME-${userId.toString().slice(-6)}-${Date.now()}`
-    const previousBalance = user.balance
+    const previousBalance = wallet.balance
 
     const transaction = new DataAirtimeTransaction({
       userId,
@@ -225,33 +273,34 @@ router.post('/buy/airtime', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: providerResult.message })
     }
 
-    // Deduct balance
-    user.balance -= pkg.amount
-    const newBalance = user.balance
+    // Debit wallet
+    const walletController = require('../controllers/walletController')
+    const debitResult = await walletController.debitWallet(
+      userId,
+      pkg.amount,
+      `Airtime Purchase: ₦${pkg.balance} from ${pkg.provider} to ${phoneNumber}`,
+      transactionRef,
+      {
+        packageId,
+        provider: pkg.provider,
+        phoneNumber,
+        airtimeAmount: pkg.balance,
+        type: 'airtime_purchase'
+      }
+    )
+
+    if (!debitResult.success) {
+      transaction.status = 'failed'
+      transaction.errorMessage = 'Wallet debit failed'
+      await transaction.save()
+      return res.status(400).json({ success: false, message: 'Wallet debit failed' })
+    }
+
+    const newBalance = debitResult.newBalance
     transaction.newBalance = newBalance
     transaction.status = 'success'
     transaction.completedAt = new Date()
     await transaction.save()
-    await user.save()
-
-    // Create main transaction record
-    const mainTransaction = new Transaction({
-      userId,
-      type: 'airtime_purchase',
-      amount: pkg.amount,
-      description: `Airtime Purchase: ₦${pkg.balance} from ${pkg.provider} to ${phoneNumber}`,
-      status: 'success',
-      reference: transactionRef,
-      balanceBefore: previousBalance,
-      balanceAfter: newBalance,
-      metadata: {
-        packageId,
-        provider: pkg.provider,
-        phoneNumber,
-        airtimeAmount: pkg.balance
-      }
-    })
-    await mainTransaction.save()
 
     res.json({
       success: true,

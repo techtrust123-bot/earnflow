@@ -7,6 +7,7 @@ import axios from '../utils/axios'
 import toast from 'react-hot-toast'
 import Container from './Container'
 import { useTheme } from '../context/ThemeContext'
+import { FaComment, FaHome, FaMoneyBillAlt, FaTasks, FaUser, FaWallet } from 'react-icons/fa'
 
 export default function Layout({ children }) {
   const { isAuthenticated, user, balance, userType } = useSelector((state) => state.auth)
@@ -148,23 +149,23 @@ export default function Layout({ children }) {
           <nav className={`md:hidden fixed bottom-4 left-4 right-4 ${isDark ? 'bg-slate-900 shadow-2xl' : 'bg-white shadow-lg'} rounded-2xl p-2 z-40 transition-colors`} role="navigation" aria-label="Primary mobile navigation">
             <div className="flex justify-around items-center">
               <Link to="/dashboard" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Home">
-                <span className="text-lg sm:text-2xl">🏠</span>
+                <span className="text-lg sm:text-2xl"><FaHome className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Home</span>
               </Link>
               <Link to="/tasks" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Tasks">
-                <span className="text-lg sm:text-2xl">📝</span>
+                <span className="text-lg sm:text-2xl"><FaTasks className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Tasks</span>
               </Link>
               <Link to="/support" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Support">
-                <span className="text-lg sm:text-2xl">💬</span>
+                <span className="text-lg sm:text-2xl"><FaComment className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Support</span>
               </Link>
               <Link to="/withdraw" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Withdraw">
-                <span className="text-lg sm:text-2xl">💸</span>
+                <span className="text-lg sm:text-2xl"><FaMoneyBillAlt className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Withdraw</span>
               </Link>
               <Link to="/profile" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Profile">
-                <span className="text-lg sm:text-2xl">👤</span>
+                <span className="text-lg sm:text-2xl"><FaUser className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Profile</span>
               </Link>
             </div>
@@ -221,11 +222,12 @@ function SidebarContent({ user, userType, balance, isAuthenticated, onLogout, is
   ]
 
   if (userType === 'admin') {
+    navItems.push({ to: '/wallet', label: 'Wallet', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v17H5a2 2 0 0 1 0-4h16" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>) })
     navItems.push({ to: '/admin', label: 'Admin', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
     navItems.push({ to: '/admin/campaigns', label: 'Campaigns', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
     navItems.push({ to: '/admin/pending-payments', label: 'Pending Payments', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
       navItems.push({ to: '/admin/exchange-rate', label: 'Exchange Rate', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
-      navItems.push({ to: '/admin/exchange-rate/audit', label: 'Exchange Rate Audit', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
+      navItems.push({ to: '/admin/exchange-rate/audit', label: 'Exchange Rate Audit', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8l2.8-2.8M17 7l2.8-2.8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
     navItems.push({ to: '/admin/data-airtime-packages', label: 'Data & Airtime', icon: (<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M2 12h20" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>), admin: true })
   }
 

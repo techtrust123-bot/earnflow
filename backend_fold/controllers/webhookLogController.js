@@ -150,8 +150,14 @@ exports.monnifyWebhook = async (req, res) => {
           }
         } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
       } else {
-        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
-        await payment.save()
+        if (isWalletFunding) {
+          walletTransaction.status = 'failed'
+          walletTransaction.meta.paystack_data = data
+          await walletTransaction.save()
+        } else {
+          payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+          await payment.save()
+        }
         log.verification = { ok: false, reason: 'not paid', payloadStatus: paymentStatus }
         await log.save()
       }
@@ -194,71 +200,129 @@ exports.paystackWebhook = async (req, res) => {
       }
 
       const payment = await Payment.findOne({ reference: paymentReference })
+      let isWalletFunding = false
+      let walletTransaction = null
+
       if (!payment) {
-        log.verification = { ok: false, reason: 'payment not found' }
-        await log.save()
-        return
+        // Check if it's a wallet funding transaction
+        const Transaction = require('../models/transaction')
+        walletTransaction = await Transaction.findOne({ reference: paymentReference, 'meta.type': 'wallet_funding' })
+        if (walletTransaction) {
+          isWalletFunding = true
+        } else {
+          log.verification = { ok: false, reason: 'payment not found' }
+          await log.save()
+          return
+        }
       }
 
       if (event === 'charge.success' || paymentStatus === 'success' || String(paymentStatus).includes('success')) {
-        payment.status = 'successful'
-        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
-        await payment.save()
+        if (isWalletFunding) {
+          // Handle wallet funding
+          const Wallet = require('../models/wallet')
+          let wallet = await Wallet.findOne({ user: walletTransaction.user })
+          if (!wallet) {
+            wallet = await Wallet.create({ user: walletTransaction.user })
+          }
 
-        // If this payment is tied to an approval, mark approval as paid.
-        // Admin will create the actual UserTask(s) from the paid approval.
-        if (payment.approval) {
+          await wallet.credit(walletTransaction.amount, 'Wallet funding via Paystack', paymentReference, {
+            paystack_reference: data.reference,
+            paystack_transaction_id: data.id,
+            webhook_payload: payload
+          })
+
+          // Update transaction
+          walletTransaction.status = 'successful'
+          walletTransaction.meta.paystack_data = data
+          await walletTransaction.save()
+
+          // Update user balance for backward compatibility
+          await User.findByIdAndUpdate(walletTransaction.user, {
+            $inc: { balance: walletTransaction.amount }
+          })
+
+          log.verification = { ok: true, walletFunding: true, user: walletTransaction.user }
+          await log.save()
+
+          // Notify user about successful funding
           try {
-            const TaskApproval = require('../models/taskApproval')
-            const approval = await TaskApproval.findById(payment.approval)
-            if (approval) {
-              approval.paid = true
-              await approval.save()
-
-              // link payment to approval (leave task creation to admin)
-              payment.meta = Object.assign({}, payment.meta || {}, { approvalHandled: true })
-              await payment.save()
+            const user = await User.findById(walletTransaction.user)
+            if (user) {
+              const title = 'Wallet Funded Successfully'
+              const message = `Your wallet has been credited with ₦${walletTransaction.amount}`
+              await Notification.create({ user: user._id, title, message, meta: { transaction: walletTransaction._id } })
             }
           } catch (e) {
-            console.warn('webhook: approval handling error', e && e.message)
+            console.warn('wallet funding notification failed', e && e.message)
           }
+
         } else {
-          if (payment.task) {
-            await UserTask.findByIdAndUpdate(payment.task, { paid: true, status: 'active' })
-          }
-        }
+          // Handle regular payment
+          payment.status = 'successful'
+          payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+          await payment.save()
 
-        try {
-          const Transaction = require('../models/transaction')
-          const tx = await Transaction.findOne({ reference: payment.reference })
-          if (tx) {
-            tx.status = 'successful'
-            await tx.save()
-          }
-        } catch (e) {
-          console.warn('webhook: could not update transaction', e.message || e)
-        }
-
-        log.verification = { ok: true, matchedPayment: payment._id }
-        log.task = payment.task
-        await log.save()
-        // Notify admins about the successful payment
-        try {
-          const admins = await User.find({ role: 'admin' }).lean()
-          const title = 'Payment Received'
-          const message = `Payment ${payment.reference} of ${payment.amount} ${payment.currency} received.`
-          for (const a of admins) {
+          // If this payment is tied to an approval, mark approval as paid.
+          // Admin will create the actual UserTask(s) from the paid approval.
+          if (payment.approval) {
             try {
-              await Notification.create({ user: a._id, title, message, meta: { payment: payment._id } })
-              if (a.email) {
-                transporter.sendMail({ from: process.env.SENDER_EMAIL, to: a.email, subject: title, text: message }).catch(() => {})
+              const TaskApproval = require('../models/taskApproval')
+              const approval = await TaskApproval.findById(payment.approval)
+              if (approval) {
+                approval.paid = true
+                await approval.save()
+
+                // link payment to approval (leave task creation to admin)
+                payment.meta = Object.assign({}, payment.meta || {}, { approvalHandled: true })
+                await payment.save()
               }
-            } catch (e) { console.warn('notify admin failed', e && e.message) }
+            } catch (e) {
+              console.warn('webhook: approval handling error', e && e.message)
+            }
+          } else {
+            if (payment.task) {
+              await UserTask.findByIdAndUpdate(payment.task, { paid: true, status: 'active' })
+            }
           }
-        } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
+
+          try {
+            const Transaction = require('../models/transaction')
+            const tx = await Transaction.findOne({ reference: payment.reference })
+            if (tx) {
+              tx.status = 'successful'
+              await tx.save()
+            }
+          } catch (e) {
+            console.warn('webhook: could not update transaction', e.message || e)
+          }
+
+          log.verification = { ok: true, matchedPayment: payment._id }
+          log.task = payment.task
+          await log.save()
+          // Notify admins about the successful payment
+          try {
+            const admins = await User.find({ role: 'admin' }).lean()
+            const title = 'Payment Received'
+            const message = `Payment ${paymentReference} of ${payment?.amount || walletTransaction?.amount} ${payment?.currency || 'NGN'} received.`
+            for (const a of admins) {
+              try {
+                await Notification.create({ user: a._id, title, message, meta: { payment: payment?._id, walletTransaction: walletTransaction?._id } })
+                if (a.email) {
+                  transporter.sendMail({ from: process.env.SENDER_EMAIL, to: a.email, subject: title, text: message }).catch(() => {})
+                }
+              } catch (e) { console.warn('notify admin failed', e && e.message) }
+            }
+          } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
+        }
       } else {
-        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
-        await payment.save()
+        if (isWalletFunding) {
+          walletTransaction.status = 'failed'
+          walletTransaction.meta.paystack_data = data
+          await walletTransaction.save()
+        } else {
+          payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+          await payment.save()
+        }
         log.verification = { ok: false, reason: 'not paid', payloadStatus: paymentStatus }
         await log.save()
       }

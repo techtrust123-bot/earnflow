@@ -4,22 +4,23 @@ import { useEffect, useState } from 'react'
 import axios from '../utils/axios'
 import { useTheme } from '../context/ThemeContext'
 import Container from '../components/Container'
+import { FaMoneyBillAlt, FaTasks,FaUser,FaSignal, FaHistory } from 'react-icons/fa'
 
 export default function Dashboard() {
   const { user, balance } = useSelector(state => state.auth)
   const { isDark } = useTheme()
 
   const features = [
-    { icon: '📋', title: 'Tasks', to: '/tasks' },
-    { icon: '💰', title: 'Withdraw', to: '/withdraw' },
-    { icon: '👤', title: 'Profile', to: '/profile' },
+    { icon: <FaTasks className="text-cyan-500" />, title: 'Tasks', to: '/tasks' },
+    { icon: <FaMoneyBillAlt className="text-cyan-500" />, title: 'Withdraw', to: '/withdraw' },
+    { icon: <FaUser className="text-cyan-500" />, title: 'Profile', to: '/profile' },
     // { icon: '🎁', title: 'Rewards', to: '/rewards' },
-    { icon: '📊', title: 'History', to: '/history' },
+    { icon: <FaHistory className="text-cyan-500" />, title: 'History', to: '/history' },
     { icon: '➕', title: 'Referral', to: '/referral' },
     { icon: '➕', title: 'Create Task', to: '/create-task' },
-    { icon: '➕', title: 'My Tasks', to: '/my-tasks' },
+    { icon: <FaTasks className="text-cyan-500" />, title: 'My Tasks', to: '/my-tasks' },
     { icon: '💬', title: 'Support', to: '/support' },
-    { icon: '📶', title: 'Buy Data & Airtime', to: '/buy-data-airtime' },
+    { icon: <FaSignal className="text-cyan-500" />, title: 'Buy Data & Airtime', to: '/buy-data-airtime' },
     
   ]
 
@@ -29,7 +30,7 @@ export default function Dashboard() {
     features.push({ icon: '🛠️', title: 'Admin Campaing', to: '/admin/campaigns' })
     features.push({ icon: '🛠️', title: 'Admin Users', to: '/admin/users' })
     features.push({ icon: '🛠️', title: 'Create Task', to: '/create-task' })
-    features.push({ icon: '🛠️', title: 'My Tasks', to: '/my-tasks' })
+    features.push({ icon: <FaTasks className="text-cyan-500" />, title: 'My Tasks', to: '/my-tasks' })
     features.push({ icon: '🛠️', title: 'Exchange Rate', to: '/admin/exchange-rate' })
     features.push({ icon: '🛠️', title: 'Exchange Rate Audit', to: '/admin/exchange-rate/audit' })
     features.push({ icon: '🛠️', title: 'Pending Payments', to: '/admin/pending-payments' })
