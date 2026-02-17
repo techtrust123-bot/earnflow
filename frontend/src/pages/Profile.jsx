@@ -84,18 +84,18 @@ export default function Profile() {
     }
   }
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('Delete your account? This action is irreversible.')) return
+  const handleLogout = async () => {
+    if (!window.confirm('Logout of your account?')) return
     setLoading(true)
     try {
-      const res = await axios.delete('/auth/delete')
+      const res = await axios.post('/auth/logout')
       if (res.data.success) {
-        toast.success(res.data.message || 'Account deleted')
+        toast.success(res.data.message || 'Logged out')
         dispatch(logout())
         navigate('/')
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to delete account')
+      toast.error(err.response?.data?.message || 'Failed to logout')
     } finally {
       setLoading(false)
     }
@@ -290,7 +290,7 @@ export default function Profile() {
 
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 w-full sm:justify-end">
           <button onClick={() => window.location.href = '/tasks'} className="px-4 py-2 w-full sm:w-auto bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200">View Tasks</button>
-          <button onClick={handleDeleteAccount} disabled={loading} className="px-4 py-2 w-full sm:w-auto bg-red-600 text-white rounded-full hover:bg-red-700">{loading? 'Working...' : 'Delete Account'}</button>
+          <button onClick={handleLogout} disabled={loading} className="px-4 py-2 w-full sm:w-auto bg-red-600 text-white rounded-full hover:bg-red-700">{loading? 'Working...' : 'Logout'}</button>
         </div>
         </motion.div>
       </Container>

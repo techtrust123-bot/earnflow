@@ -21,6 +21,7 @@ router.use('/admin/settings', require('./adminSettings.js'))
 router.use('/admin', require('./adminWebhookRoutes.js'));
 router.use('/notifications', require('./notifications.js'))
 router.use('/support', require('./support.js'))
+router.use('/wallet', require('./wallet.js'))
 router.use('/data-airtime', require('./dataAirtime.js'))
 
 

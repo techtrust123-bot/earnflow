@@ -242,7 +242,7 @@ const copyLink = async (task) => {
                     <span className="text-xl sm:text-2xl font-bold text-blue-600">+₦{task.reward}</span>
                   </div>
 
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3">{task.title}</h3>
+                  <h3 className={`text-base sm:text-lg font-semibold ${isDark ? 'text-slate-200' : 'text-gray-800'} mb-3`}>{task.title}</h3>
 
                   <div className="flex flex-col items-stretch gap-2 mb-3">
                     <a

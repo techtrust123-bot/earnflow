@@ -4,12 +4,31 @@ const User = require('../models/user')
 
 exports.withdraw = async (req, res) => {
   const user = req.user
-  let { amount, accountNumber, accountName, bankCode } = req.body
+  let { amount, accountNumber, accountName, bankCode, paymentMethod = 'balance' } = req.body
 
   amount = Number(amount)
 
   if (!amount || amount <= 0) return res.status(400).json({ message: 'Invalid amount' })
   if (amount > user.balance) return res.status(400).json({ message: 'Insufficient balance' })
+
+  // Check balance based on payment method
+  let availableBalance = 0
+  if (paymentMethod === 'wallet') {
+    const Wallet = require('../models/wallet')
+    let wallet = await Wallet.findOne({ user: user._id })
+    if (!wallet) {
+      wallet = await Wallet.create({ user: user._id })
+    }
+    availableBalance = wallet.balance
+  } else if (paymentMethod === 'balance') {
+    availableBalance = user.balance || 0
+  } else {
+    return res.status(400).json({ message: 'Invalid payment method' })
+  }
+
+  if (availableBalance < amount) {
+    return res.status(400).json({ message: `Insufficient ${paymentMethod} balance` })
+  }
 
   // basic account number validation (Nigeria: 10 digits)
   if (!/^[0-9]{10}$/.test(String(accountNumber))) {
@@ -18,10 +37,6 @@ exports.withdraw = async (req, res) => {
 
   if(amount < 500){
     return res.status(400).json({ message: 'Minimum withdrawal is ₦500' })
-  }
-
-  if(user.balance < amount){
-    return res.status(400).json({ message: 'Insufficient balance' })
   }
 
   if (!bankCode) return res.status(400).json({ message: 'Missing bank code' })
@@ -53,16 +68,46 @@ exports.withdraw = async (req, res) => {
     // Create a transaction record for the withdrawal
     try {
       const Transaction = require('../models/transaction')
-      await Transaction.create({ user: user._id, type: 'debit', amount, description: `Withdrawal to ${accountName || accountNumber}`, status: result?.requestSuccessful ? 'pending' : 'failed', reference, related: null, relatedModel: 'Payment', meta: { transferResponse: result } })
+      await Transaction.create({
+        user: user._id,
+        type: 'debit',
+        amount,
+        description: `Withdrawal to ${accountName || accountNumber}`,
+        status: result?.requestSuccessful ? 'pending' : 'failed',
+        reference,
+        related: null,
+        relatedModel: 'Payment',
+        meta: {
+          transferResponse: result,
+          paymentMethod,
+          bankCode,
+          accountNumber,
+          accountName
+        }
+      })
     } catch (e) {
       console.warn('withdraw: could not create transaction record', e.message || e)
     }
 
-    // Deduct balance AFTER successful request
-    user.balance -= amount
-    await user.save()
+    // Deduct balance based on payment method
+    if (paymentMethod === 'wallet') {
+      const Wallet = require('../models/wallet')
+      let wallet = await Wallet.findOne({ user: user._id })
+      if (!wallet) {
+        wallet = await Wallet.create({ user: user._id })
+      }
+      wallet.balance -= amount
+      await wallet.save()
+    } else if (paymentMethod === 'balance') {
+      user.balance -= amount
+      await user.save()
+    }
 
-    return res.json({ success: true, message: 'Withdrawal processing', balance: user.balance })
+    return res.json({
+      success: true,
+      message: 'Withdrawal processing',
+      balance: paymentMethod === 'wallet' ? (await require('../models/wallet').findOne({ user: user._id })).balance : user.balance
+    })
   } catch (err) {
     console.error('Paystack withdraw error:', err.response?.data || err.message)
     return res.status(500).json({ message: 'Withdrawal failed' })
