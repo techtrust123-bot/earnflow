@@ -9,7 +9,7 @@ const mongoose = require("mongoose");
 const connectDb = require("./config/dbConfig");
 const passport = require("passport");
 const helmet = require("helmet");
-const mongoSanitize = require("express-mongo-sanitize");
+const sanitizer = require("./middleware/sanitizer");
 const hpp = require("hpp");
 const cron = require("node-cron");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
@@ -39,7 +39,7 @@ app.use(
 );
 
 // Additional security middleware
-app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(sanitizer); // Custom NoSQL injection prevention (handles read-only req.query gracefully)
 app.use(hpp()); // Prevent HTTP Parameter Pollution attacks
 app.use(express.json({ limit: '10mb' })); // Body parser with size limit
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
