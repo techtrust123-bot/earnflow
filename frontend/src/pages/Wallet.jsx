@@ -74,8 +74,47 @@ const Wallet = () => {
       })
 
       if (response.data.success) {
-        // Redirect to Paystack payment page
-        window.location.href = response.data.authorization_url
+        const ref = response.data.reference || (response.data.data && response.data.data.reference)
+        const authUrl = response.data.authorization_url || (response.data.data && response.data.data.authorization_url)
+
+        // Prefer inline popup when Paystack inline JS is available
+        if (window.PaystackPop && typeof window.PaystackPop.setup === 'function' && (process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || (response.data.data && response.data.data.public_key))) {
+          const key = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || (response.data.data && response.data.data.public_key)
+          const email = fundingEmail || ''
+          try {
+            const handler = window.PaystackPop.setup({
+              key,
+              email,
+              ref: ref,
+              onClose: function(){ toast('Payment closed') },
+              callback: async function(resp){
+                // Verify with backend and refresh wallet
+                try {
+                  const verifyResp = await axios.get(`/wallet/verify/${resp.reference}`)
+                  if (verifyResp.data && verifyResp.data.success) {
+                    toast.success('Wallet funded successfully')
+                    fetchWalletData()
+                  } else {
+                    toast.error(verifyResp.data?.message || 'Verification failed')
+                  }
+                } catch (err) {
+                  console.error('Verify error', err)
+                  toast.error('Payment verification failed')
+                }
+              }
+            })
+            try { handler.openIframe() } catch (e) { console.warn(e); if (authUrl) window.location.href = authUrl }
+          } catch (e) {
+            console.warn('Paystack popup failed', e)
+            if (authUrl) window.location.href = authUrl
+            else toast.error('Payment initialization failed')
+          }
+        } else if (authUrl) {
+          // Fallback to hosted page
+          window.location.href = authUrl
+        } else {
+          toast.error(response.data.message || 'Failed to initialize payment')
+        }
       } else {
         toast.error(response.data.message || 'Failed to initialize payment')
       }

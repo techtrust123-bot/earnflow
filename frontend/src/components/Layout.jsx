@@ -146,25 +146,30 @@ export default function Layout({ children }) {
         </main>
 
         {isAuthenticated && user && user.isAccountVerify && (
-          <nav className={`md:hidden fixed bottom-4 left-4 right-4 ${isDark ? 'bg-slate-900 shadow-2xl' : 'bg-white shadow-lg'} rounded-2xl p-2 z-40 transition-colors`} role="navigation" aria-label="Primary mobile navigation">
-            <div className="flex justify-around items-center">
-              <Link to="/dashboard" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Home">
+          <nav
+            className={`md:hidden fixed bottom-4 left-4 right-4 ${isDark ? 'bg-slate-900 shadow-2xl' : 'bg-white shadow-lg'} rounded-2xl z-40 transition-colors`}
+            role="navigation"
+            aria-label="Primary mobile navigation"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
+          >
+            <div className="flex justify-around items-center p-2">
+              <Link to="/dashboard" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm transition hover:opacity-80" aria-label="Home">
                 <span className="text-lg sm:text-2xl"><FaHome className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Home</span>
               </Link>
-              <Link to="/tasks" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Tasks">
+              <Link to="/tasks" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm transition hover:opacity-80" aria-label="Tasks">
                 <span className="text-lg sm:text-2xl"><FaTasks className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Tasks</span>
               </Link>
-              <Link to="/support" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Support">
+              <Link to="/support" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm transition hover:opacity-80" aria-label="Support">
                 <span className="text-lg sm:text-2xl"><FaComment className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Support</span>
               </Link>
-              <Link to="/withdraw" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Withdraw">
+              <Link to="/withdraw" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm transition hover:opacity-80" aria-label="Withdraw">
                 <span className="text-lg sm:text-2xl"><FaMoneyBillAlt className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Withdraw</span>
               </Link>
-              <Link to="/profile" className="flex flex-col items-center gap-1 p-2 text-xs sm:text-sm transition hover:opacity-70" aria-label="Profile">
+              <Link to="/profile" className="flex flex-col items-center gap-1 p-3 text-xs sm:text-sm transition hover:opacity-80" aria-label="Profile">
                 <span className="text-lg sm:text-2xl"><FaUser className="text-cyan-500" /></span>
                 <span className="hidden sm:inline">Profile</span>
               </Link>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import axios from '../utils/axios'
 import Container from '../components/Container'
 import { useTheme } from '../context/ThemeContext'
+import toast from 'react-hot-toast'
 
 export default function MyTasks(){
   const { isDark } = useTheme()
@@ -58,20 +59,43 @@ export default function MyTasks(){
       const res = await axios.post(`/campaigns/pay-approval/${task._id}`, { currency })
       if (res.data && res.data.success && res.data.data) {
         const data = res.data.data
-        // open paystack
-        // If Paystack returns an authorization_url (hosted payment page), redirect to it.
-        if (data.authorization_url) {
-          window.location.href = data.authorization_url
-        } else if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') {
+        // Prefer inline popup when Paystack inline JS is available
+        const authUrl = data.authorization_url || data.authorizationUrl || null
+        const publicKey = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || data.publicKey || (data.paymentData && data.paymentData.publicKey)
+
+        if (window.PaystackPop && typeof window.PaystackPop.setup === 'function' && publicKey) {
           const handler = window.PaystackPop.setup({
-            key: process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || data.publicKey,
+            key: publicKey,
             email: data.customer?.email || '',
-            amount: data.amount || data.display_amount || 0,
+            amount: data.amount || data.display_amount || (data.paymentData && data.paymentData.amount) || 0,
             ref: data.reference || data.tx_ref || `PAY_${Date.now()}`,
-            onClose: function(){ alert('Payment closed') },
-            callback: function(response){ alert('Payment complete; verify via webhook') }
+            onClose: function(){ toast('Payment closed') },
+            callback: function(response){
+              // Payment completed in popup. Poll backend to confirm and refresh UI.
+              toast.success('Payment completed. Verifying...')
+              ;(async function pollVerification(ref){
+                const maxAttempts = 8
+                const delay = ms => new Promise(r => setTimeout(r, ms))
+                for (let i=0;i<maxAttempts;i++){
+                  try{
+                    const check = await axios.get(`/campaigns/check-payment/${encodeURIComponent(ref)}`)
+                    if (check.data && check.data.success && check.data.status === 'successful'){
+                      toast.success('Payment verified — task will be activated shortly')
+                      // Refresh page to show new state
+                      window.location.reload()
+                      return
+                    }
+                  }catch(e){ console.warn('poll verify error', e) }
+                  await delay(1500)
+                }
+                toast('Payment verification is pending. We will update you once confirmed.')
+              })(response.reference || response.ref || response.transaction)
+            }
           })
-          try{ handler.openIframe() }catch(e){ console.warn(e) }
+          try { handler.openIframe() } catch (e) { console.warn('paystack open failed', e); if (authUrl) window.location.href = authUrl }
+        } else if (authUrl) {
+          // Fallback to hosted checkout
+          window.location.href = authUrl
         } else {
           alert('Payment cannot be started. Missing Paystack public key or payment URL.')
         }

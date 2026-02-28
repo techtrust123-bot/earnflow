@@ -34,10 +34,10 @@ import React from 'react'
  */
 
 const SIZE_MAP = {
-  sm: 'max-w-3xl',
-  md: 'max-w-4xl',
-  lg: 'max-w-5xl',
-  xl: 'max-w-7xl',
+  sm: 'max-w-screen-sm',
+  md: 'max-w-screen-md',
+  lg: 'max-w-screen-lg',
+  xl: 'max-w-5xl',
   full: 'max-w-full'
 }
 

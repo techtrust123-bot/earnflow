@@ -9,6 +9,9 @@ const mongoose = require("mongoose");
 const connectDb = require("./config/dbConfig");
 const passport = require("passport");
 const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
+const hpp = require("hpp");
+const cron = require("node-cron");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
 
 
@@ -34,6 +37,12 @@ app.use(
     },
   })
 );
+
+// Additional security middleware
+app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(hpp()); // Prevent HTTP Parameter Pollution attacks
+app.use(express.json({ limit: '10mb' })); // Body parser with size limit
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // When running behind a proxy (Render, Heroku, etc.) trust the first proxy
 // so `cookie.secure` and IP detection work correctly for HTTPS setups.
@@ -105,7 +114,6 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Middleware
-app.use(express.json());
 app.use(cookieParser());
 
 // resolve client `dist` located beside backend_fold
@@ -179,6 +187,32 @@ const port = process.env.PORT || 10000;
 (async function start() {
   try {
     await connectDb()
+    
+    // Setup cron job to release expired wallet holds every hour
+    cron.schedule('0 * * * *', async () => {
+      try {
+        console.log('[Cron] Running wallet hold auto-release job...');
+        const WalletHold = require('./models/walletHold');
+        await WalletHold.releaseExpiredHolds();
+        console.log('[Cron] Released expired holds');
+      } catch (err) {
+        console.error('[Cron] Error releasing wallet holds:', err.message);
+      }
+    });
+
+    // Daily financial reporting at 00:15 UTC
+    cron.schedule('15 0 * * *', async () => {
+      try {
+        console.log('[Cron] Running daily financial report...');
+        const reportingService = require('./services/reportingService');
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const report = await reportingService.generateDailyReport(yesterday);
+        console.log('[Cron] Daily report generated:', report);
+      } catch (err) {
+        console.error('[Cron] Error generating daily report:', err.message);
+      }
+    });
+    
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
     });

@@ -1,34 +1,27 @@
 const express = require("express")
 const { register, login, logout, verifyAccount, sendResetOtp, resetPassword, resendOtp, getCurrentUser, deleteAccount, setTransactionPin, verifyTransactionPin } = require("../controllers/authController")
 const { authMiddlewere } = require("../middleweres/authmiddlewere")
+const { authLogin, otpAttempts, resetOtpLimiter, registerLimiter } = require("../middleweres/rateLimiter")
+const { validateRegistration, validateLogin, validateOtpVerification, validatePasswordReset, validateTransactionPin } = require("../middleweres/inputValidation")
 const router = express.Router()
+const { logoutOtherDevices } = require("../controllers/authController")
 
 
 
-router.post("/register", register)
-router.post("/login",login)
-router.post("/logout",authMiddlewere,logout)
-router.post("/resendOtp", authMiddlewere,resendOtp)
-router.post("/verify",authMiddlewere,verifyAccount)
-router.post("/sendReset", sendResetOtp)
-router.post("/resetPassword", resetPassword)
-router.post("/set-pin", authMiddlewere, setTransactionPin)
+router.post("/register", registerLimiter, validateRegistration, register)
+router.post("/login", authLogin, validateLogin, login)
+router.post("/logout", authMiddlewere, logout)
+router.post('/logout-others', authMiddlewere, logoutOtherDevices)
+router.post("/resendOtp", authMiddlewere, otpAttempts, resendOtp)
+router.post("/verify", authMiddlewere, otpAttempts, validateOtpVerification, verifyAccount)
+router.post("/sendReset", resetOtpLimiter, sendResetOtp)
+router.post("/resetPassword", resetOtpLimiter, validatePasswordReset, resetPassword)
+router.post("/set-pin", authMiddlewere, validateTransactionPin, setTransactionPin)
 router.post("/verify-pin", authMiddlewere, verifyTransactionPin)
 
 router.get('/me', authMiddlewere, getCurrentUser)
 
 // Delete own account
 router.delete('/delete', authMiddlewere, deleteAccount)
-
-// console.log('types:', {
-//   register: typeof register,
-//   login: typeof login,
-//   logout: typeof logout,s
-//   resendOtp: typeof resendOtp,
-//   verifyAccount: typeof verifyAccount,
-//   sendResetOtp: typeof sendResetOtp,
-//   resetPassword: typeof resetPassword,
-//   authMiddlewere: typeof authMiddlewere
-// })
 
 module.exports = router
