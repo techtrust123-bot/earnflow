@@ -6,7 +6,7 @@ const  transporter  = require("../transporter/transporter.js")
 const bcrypt = require("bcryptjs")
 const { Resend } = require("resend")
 const AuditLog = require("../models/auditLog")
-const deviceFingerprint = require('../../services/deviceFingerprint')
+const deviceFingerprint = require('../services/deviceFingerprint')
 
 
 
@@ -256,7 +256,7 @@ exports.logout = async(req,res)=>{
                 if (user) {
                     try {
                         const { hash } = deviceFingerprint.generateDeviceFingerprint(req)
-                        const Device = require('../../models/device')
+                        const Device = require('../models/device')
                         const dev = await Device.findOne({ user: user._id, fingerprintHash: hash })
                         if (dev && user.activeDevice && dev._id.toString() === user.activeDevice.toString()) {
                             user.activeDevice = null
@@ -717,7 +717,7 @@ exports.logoutOtherDevices = async (req, res) => {
             console.warn('Could not generate fingerprint on revoke', e);
         }
 
-        const Device = require('../../models/device');
+        const Device = require('../models/device');
 
         // Set all user's devices to inactive
         await Device.updateMany({ user: user._id }, { $set: { isActive: false } });
