@@ -82,11 +82,11 @@ exports.register = async(req,res)=>{
 
         const token = jwt.sign({id:user._id,role:user.role},process.env.SECRET,{expiresIn:"24h"})
 
+        // cookie must be SameSite=None so that cross-site paystack redirects still send it
         res.cookie("token",token,{
             httpOnly:true,
             secure:process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? 
-            "none":"lax",
+            sameSite: 'none',
             maxAge: 24 * 60 * 60 * 1000
         })
 
@@ -212,10 +212,11 @@ exports.login = async(req, res)=>{
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: "24h" })
 
+        // cookie must be SameSite=None so that cross-site paystack redirects still send it
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            sameSite: 'none',
             maxAge: 24 * 60 * 60 * 1000
         })
 

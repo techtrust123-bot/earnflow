@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react'
 import axios from '../utils/axios'
 import toast from 'react-hot-toast'
 import { useTheme } from '../context/ThemeContext'
+import { useDispatch } from 'react-redux'
+import { loginSuccess } from '../features/auth/authSlice'
 
 const Wallet = () => {
   const { isDark } = useTheme()
+  const dispatch = useDispatch()
   const [balance, setBalance] = useState(0)
   const [userBalance, setUserBalance] = useState(0)
   const [transactions, setTransactions] = useState([])
@@ -49,6 +52,8 @@ const Wallet = () => {
 
       if (userRes.data.success) {
         setUserBalance(userRes.data.user.balance || 0)
+        // update global auth state in case it was lost on refresh
+        dispatch(loginSuccess({ user: userRes.data.user, token: null, balance: userRes.data.balance }))
       }
     } catch (error) {
       console.error('Error fetching wallet data:', error)
