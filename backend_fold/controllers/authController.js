@@ -307,6 +307,33 @@ exports.verifyDeviceAndLogin = async (req, res) => {
     }
 };
 
+// endpoint for users who cannot log in because their previous session/device
+// entry is stuck. accepts credentials and clears activeDevice so they may retry.
+exports.resetActiveDevice = async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password required' });
+    }
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'Invalid email' });
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(400).json({ message: 'Invalid password' });
+
+        user.activeDevice = null;
+        await user.save();
+        // also deactivate any lingering device entries
+        const Device = require('../models/device');
+        await Device.updateMany({ user: user._id }, { isActive: false });
+
+        res.json({ success: true, message: 'Active device cleared. You may now log in.' });
+    } catch (err) {
+        console.error('resetActiveDevice error', err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
 
 exports.logout = async(req,res)=>{
     try {
@@ -351,72 +378,89 @@ exports.logout = async(req,res)=>{
     }
 }
 
+// send/resend verification OTP to email; works with or without auth
 exports.resendOtp = async(req,res)=>{
-    const userId = req.user.id
-
+    // allow supplying email when unauthenticated
+    let user;
     try {
-        const user = await User.findById(userId)
-        if(user.isAccountVerify){
-            return res.status(404).json({message:"Account Already Verified",})
+        if (req.user && req.user.id) {
+            user = await User.findById(req.user.id);
+        } else if (req.body?.email) {
+            user = await User.findOne({ email: req.body.email });
+        }
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.isAccountVerify) {
+            return res.status(400).json({ message: 'Account Already Verified' });
         }
 
         // Generate 8-digit OTP
-        const otp = String(Math.floor(10000000 + Math.random() * 90000000))
+        const otp = String(Math.floor(10000000 + Math.random() * 90000000));
         const crypto = require('crypto');
         const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
-        user.verifyOtpHash = otpHash
-        user.verifyOtpExpireAt = Date.now() + 5 * 60 * 1000 // 5 minutes
-        user.verifyOtpAttempts = 0 // Reset attempts on resend
+        user.verifyOtpHash = otpHash;
+        user.verifyOtpExpireAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+        user.verifyOtpAttempts = 0; // Reset attempts on resend
 
-        await user.save()
+        await user.save();
 
         const resend = new Resend(process.env.RESEND_API_KEY);
-        const verificationMail = await resend.emails.send({
+        await resend.emails.send({
             from: 'Earn-Flow <noreply@earnflow.com>',
             to: user.email,
-            subject: "Verify Your Email - Your OTP Code",
+            subject: 'Verify Your Email - Your OTP Code',
             html: `<p>Hello ${user.name},</p><p>Please verify your email by using this OTP code: <strong>${otp}</strong></p><p>This code expires in 5 minutes.</p>`
-        })
+        });
 
-        res.status(200).json({message:" resend otp send successful"})
+        res.status(200).json({ message: 'OTP sent successfully' });
     } catch (error) {
-         console.log(error)
-        res.status(500).json({message:error.message})
+        console.log(error);
+        res.status(500).json({ message: error.message });
     }
 }
 
 exports.verifyAccount = async(req,res)=>{
-    const {otp} = req.body
-    const userId = req.user.id
+    const {otp, email} = req.body;
+    let user;
 
     if(!otp){
-        return res.status(400).json({message:"OTP is required"})
+        return res.status(400).json({message:"OTP is required"});
     }
 
     try {
-        const user = await User.findById(userId)
+        if (req.user && req.user.id) {
+            user = await User.findById(req.user.id);
+        } else if (email) {
+            user = await User.findOne({ email });
+        }
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
         if(user.isAccountVerify){
-            return res.status(400).json({message:"Account already verified"})
+            return res.status(400).json({message:"Account already verified"});
         }
 
         // Security Check: OTP attempt rate limiting (3 attempts per verification window)
-        if (!user.verifyOtpAttempts) user.verifyOtpAttempts = 0
+        if (!user.verifyOtpAttempts) user.verifyOtpAttempts = 0;
         
         if (user.verifyOtpAttempts >= 3) {
             await AuditLog.log(user._id, 'verification_failed', {
                 reason: 'max_attempts_exceeded',
                 status: 'locked',
                 severity: 'high'
-            }, req)
+            }, req);
             
             return res.status(429).json({
                 message: "Too many failed attempts. Please request a new OTP.",
                 remainingTime: user.verifyOtpExpireAt ? Math.ceil((user.verifyOtpExpireAt - Date.now()) / 1000) : 0
-            })
+            });
         }
 
         if (!user.verifyOtpHash || !user.verifyOtpExpireAt) {
-            return res.status(400).json({ message: "OTP not generated. Please request a new one." })
+            return res.status(400).json({ message: "OTP not generated. Please request a new one." });
         }
 
         // Check if OTP expired
