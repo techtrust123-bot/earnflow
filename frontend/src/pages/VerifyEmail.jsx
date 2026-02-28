@@ -12,14 +12,17 @@ export default function VerifyEmail() {
   const [resending, setResending] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
-  const userId = new URLSearchParams(location.search).get('id')
+  const query = new URLSearchParams(location.search)
+  const userId = query.get('id')
+  const initialEmail = query.get('email') || ''
+  const [email, setEmail] = useState(initialEmail)
 
 
 
   const handleOtp = async (e) => {
     e.preventDefault()
     try {
-      const response = await axios.post('/auth/sendOtp', {}, { withCredentials: true })
+      const response = await axios.post('/auth/sendOtp', { email }, { withCredentials: true })
       toast.success(response.data.message)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to send code')
@@ -29,11 +32,12 @@ export default function VerifyEmail() {
   const handleVerify = async (e) => {
     e.preventDefault()
     try {
-      const res = await axios.post('/auth/verify', { otp })
+      const payload = { otp };
+      if (email) payload.email = email;
+      const res = await axios.post('/auth/verify', payload)
       if (res.data.message) {
         toast.success(res.data.message)
       }
-    
       navigate('/login')
     } catch (err) {
       toast.error(err.response?.data?.message || "Invalid OTP")
@@ -43,7 +47,9 @@ export default function VerifyEmail() {
   const handleResend = async () => {
     setResending(true)
     try {
-      const res = await axios.post('/auth/resendOtp', { userId })
+      const payload = {};
+      if (email) payload.email = email;
+      const res = await axios.post('/auth/resendOtp', payload)
       if (res.data.message) {
         toast.success(res.data.message)
       }
@@ -68,6 +74,16 @@ export default function VerifyEmail() {
           </div>
 
           <form onSubmit={handleVerify} className="space-y-4">
+            {!email && (
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-4 py-2 border rounded"
+                required
+              />
+            )}
             <input
               type="text"
               value={otp}
