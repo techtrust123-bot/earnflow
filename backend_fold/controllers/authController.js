@@ -174,11 +174,13 @@ exports.login = async(req, res)=>{
 
             if (deviceCheck && deviceCheck.isNew) {
                 // New device: require verification before allowing login
+                // include the code so the frontend can present it to the user
                 return res.status(403).json({
                     message: 'New device detected. Please verify the device before logging in.',
                     requiresDeviceVerification: true,
-                    deviceId: deviceCheck.device._id
-                })
+                    deviceId: deviceCheck.device._id,
+                    verificationCode: deviceCheck.verificationCode // sent back for UI or SMS/email
+                });
             }
 
             const device = deviceCheck && deviceCheck.device
@@ -237,6 +239,74 @@ exports.login = async(req, res)=>{
     }
 
 }
+
+exports.verifyDeviceAndLogin = async (req, res) => {
+    const { email, password, deviceId, verificationCode } = req.body;
+
+    if (!email || !password || !deviceId || !verificationCode) {
+        return res.status(400).json({ message: 'Email, password, deviceId and verificationCode are required' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'Invalid email' });
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(400).json({ message: 'Invalid password' });
+
+        if (!user.isAccountVerify) {
+            return res.status(403).json({
+                message: 'Please verify your email',
+                requiresVerification: true
+            });
+        }
+
+        // Verify the device code
+        const verifyResult = await deviceFingerprint.verifyDevice(deviceId, verificationCode, user._id);
+        if (!verifyResult.success) {
+            return res.status(400).json({ message: verifyResult.message });
+        }
+
+        // mark device as active on user record
+        user.activeDevice = deviceId;
+        user.lastLogin = new Date();
+        await user.save();
+
+        // issue token
+        if (!process.env.SECRET) {
+            console.error('Missing SECRET env var; cannot sign token');
+            return res.status(500).json({ message: 'Server misconfiguration' });
+        }
+
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: '24h' });
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 24 * 60 * 60 * 1000
+        });
+
+        const safeUser = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            userID: user.userID,
+            isAccountVerify: !!user.isAccountVerify,
+            accountStatus: user.accountStatus || 'unVerified',
+            twitter: user.twitter || null,
+            tasksCompleted: user.tasksCompleted || 0,
+            referrals: user.referrals || 0
+        };
+
+        res.status(200).json({ message: 'Login Successful', user: safeUser, token, balance: user.balance || 0 });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 
 exports.logout = async(req,res)=>{
     try {
