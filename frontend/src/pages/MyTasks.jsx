@@ -63,39 +63,74 @@ export default function MyTasks(){
         const authUrl = data.authorization_url || data.authorizationUrl || null
         const publicKey = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || data.publicKey || (data.paymentData && data.paymentData.publicKey)
 
-        if (window.PaystackPop && typeof window.PaystackPop.setup === 'function' && publicKey) {
-          const handler = window.PaystackPop.setup({
-            key: publicKey,
-            email: data.customer?.email || '',
-            amount: data.amount || data.display_amount || (data.paymentData && data.paymentData.amount) || 0,
-            ref: data.reference || data.tx_ref || `PAY_${Date.now()}`,
-            onClose: function(){ toast('Payment closed') },
-            callback: function(response){
-              // Payment completed in popup. Poll backend to confirm and refresh UI.
-              toast.success('Payment completed. Verifying...')
-              ;(async function pollVerification(ref){
-                const maxAttempts = 8
-                const delay = ms => new Promise(r => setTimeout(r, ms))
-                for (let i=0;i<maxAttempts;i++){
-                  try{
-                    const check = await axios.get(`/campaigns/check-payment/${encodeURIComponent(ref)}`)
-                    if (check.data && check.data.success && check.data.status === 'successful'){
-                      toast.success('Payment verified — task will be activated shortly')
-                      // Refresh page to show new state
-                      window.location.reload()
-                      return
-                    }
-                  }catch(e){ console.warn('poll verify error', e) }
-                  await delay(1500)
-                }
-                toast('Payment verification is pending. We will update you once confirmed.')
-              })(response.reference || response.ref || response.transaction)
+        const ensurePaystack = () => new Promise((resolve, reject) => {
+          if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') return resolve(window.PaystackPop)
+          const src = 'https://js.paystack.co/v1/inline.js'
+          const existing = document.querySelector(`script[src="${src}"]`)
+          if (existing) {
+            existing.addEventListener('load', () => resolve(window.PaystackPop))
+            existing.addEventListener('error', reject)
+            return
+          }
+          const s = document.createElement('script')
+          s.src = src
+          s.async = true
+          s.onload = () => resolve(window.PaystackPop)
+          s.onerror = (err) => reject(err)
+          document.head.appendChild(s)
+        })
+
+        if (publicKey) {
+          try {
+            await ensurePaystack()
+            const handler = window.PaystackPop.setup({
+              key: publicKey,
+              email: data.customer?.email || '',
+              amount: data.amount || data.display_amount || (data.paymentData && data.paymentData.amount) || 0,
+              ref: data.reference || data.tx_ref || `PAY_${Date.now()}`,
+              onClose: function(){ toast('Payment closed') },
+              callback: function(response){
+                // Payment completed in popup. Poll backend to confirm and refresh UI.
+                toast.success('Payment completed. Verifying...')
+                ;(async function pollVerification(ref){
+                  const maxAttempts = 8
+                  const delay = ms => new Promise(r => setTimeout(r, ms))
+                  for (let i=0;i<maxAttempts;i++){
+                    try{
+                      const check = await axios.get(`/campaigns/check-payment/${encodeURIComponent(ref)}`)
+                      if (check.data && check.data.success && check.data.status === 'successful'){
+                        toast.success('Payment verified — task will be activated shortly')
+                        // Refresh page to show new state
+                        window.location.reload()
+                        return
+                      }
+                    }catch(e){ console.warn('poll verify error', e) }
+                    await delay(1500)
+                  }
+                  toast('Payment verification is pending. We will update you once confirmed.')
+                })(response.reference || response.ref || response.transaction)
+              }
+            })
+            try { handler.openIframe() } catch (e) {
+              console.warn('paystack open failed', e)
+              toast.error('Inline payment popup blocked. Opening payment in a new tab.')
+              toast.info('If the popup is blocked, allow popups for this site to use the inline checkout.')
+              if (authUrl) window.open(authUrl, '_blank', 'noopener')
+              else toast.error('Payment initialization failed')
             }
-          })
-          try { handler.openIframe() } catch (e) { console.warn('paystack open failed', e); if (authUrl) window.location.href = authUrl }
+          } catch (e) {
+            console.warn('Paystack inline load failed', e)
+            if (authUrl) {
+              toast.info('Opening payment page in a new tab. Complete payment there and return to this tab.')
+              window.open(authUrl, '_blank', 'noopener')
+            } else {
+              alert('Payment cannot be started. Missing Paystack public key or payment URL.')
+            }
+          }
         } else if (authUrl) {
-          // Fallback to hosted checkout
-          window.location.href = authUrl
+          // Fallback to hosted checkout in new tab
+          toast.info('Opening payment page in a new tab. Complete payment there and return to this tab.')
+          window.open(authUrl, '_blank', 'noopener')
         } else {
           alert('Payment cannot be started. Missing Paystack public key or payment URL.')
         }

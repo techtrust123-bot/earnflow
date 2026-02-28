@@ -82,11 +82,12 @@ exports.register = async(req,res)=>{
 
         const token = jwt.sign({id:user._id,role:user.role},process.env.SECRET,{expiresIn:"24h"})
 
-        // cookie must be SameSite=None so that cross-site paystack redirects still send it
-        res.cookie("token",token,{
-            httpOnly:true,
-            secure:process.env.NODE_ENV === "production",
-            sameSite: 'none',
+        // In production we need SameSite=None with Secure to survive cross-site redirects (Paystack).
+        // Locally, browsers will reject 'SameSite=None' without Secure, so use 'lax' in development.
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000
         })
 
@@ -212,11 +213,12 @@ exports.login = async(req, res)=>{
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: "24h" })
 
-        // cookie must be SameSite=None so that cross-site paystack redirects still send it
+        // In production we need SameSite=None with Secure to survive cross-site redirects (Paystack).
+        // Locally, browsers will reject 'SameSite=None' without Secure, so use 'lax' in development.
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: 'none',
+            sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000
         })
 
