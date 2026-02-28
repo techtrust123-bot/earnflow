@@ -56,6 +56,23 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    // Hashed OTP fields (security improvement)
+    verifyOtpHash:{
+        type: String,
+        default: ""
+    },
+    verifyOtpAttempts:{
+        type: Number,
+        default: 0
+    },
+    resetOtpHash:{
+        type: String,
+        default: ""
+    },
+    resetOtpAttempts:{
+        type: Number,
+        default: 0
+    },
      isAccountVerify:{
         type: Boolean,
         default: false,
@@ -171,6 +188,67 @@ const userSchema = new mongoose.Schema({
   transactionPinSet: {
     type: Boolean,
     default: false
+  },
+  // Withdrawal settings and tracking
+  withdrawalSettings: {
+    dailyLimit: {
+      type: Number,
+      default: 50000  // ₦50,000 daily limit
+    },
+    weeklyLimit: {
+      type: Number,
+      default: 200000  // ₦200,000 weekly limit
+    },
+    totalWithdrawalsToday: {
+      type: Number,
+      default: 0
+    },
+    lastWithdrawalDate: {
+      type: Date,
+      default: null
+    }
+  },
+  // 2FA (Two-Factor Authentication) fields
+  twoFASecret: {
+    type: String,
+    default: ""  // Encrypted TOTP secret
+  },
+  twoFAEnabled: {
+    type: Boolean,
+    default: false
+  },
+  backupCodes: [{
+    code: String,
+    used: { type: Boolean, default: false },
+    createdAt: Date
+  }],
+  // Phone verification
+  phoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  // Device and IP tracking
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  lastTransaction: {
+    type: Date,
+    default: null
+  },
+  // Single active device enforcement
+  activeDevice: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Device',
+    default: null
+  },
+  loginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockedUntil: {
+    type: Date,
+    default: null
   }
 },{
     timestamps: true

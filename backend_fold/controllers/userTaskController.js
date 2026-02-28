@@ -208,3 +208,53 @@ exports.getMyTasks = async (req, res) => {
     return res.status(500).json({ message: 'Server error' })
   }
 }
+
+// Check payment status by reference (used by frontend after popup)
+exports.checkPayment = async (req, res) => {
+  try {
+    const ref = req.params.ref
+    if (!ref) return res.status(400).json({ success: false, message: 'Missing reference' })
+
+    const payment = await Payment.findOne({ reference: ref })
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' })
+
+    // If already successful, return immediately
+    if (payment.status === 'successful') return res.json({ success: true, status: 'successful', payment })
+
+    // Try verifying with Paystack (only implemented for Paystack flow)
+    try {
+      const paystack = require('../services/paystack')
+      const verify = await paystack.verifyTransaction(ref)
+      if (verify.requestSuccessful && verify.responseBody) {
+        const data = verify.responseBody
+        if (String(data.status).toLowerCase() === 'success') {
+          payment.status = 'successful'
+          payment.meta = Object.assign({}, payment.meta || {}, { verification: data })
+          await payment.save()
+
+          // If this payment was for an approval, mark approval as paid
+          if (payment.approval) {
+            try {
+              const TaskApproval = require('../models/taskApproval')
+              const approval = await TaskApproval.findById(payment.approval)
+              if (approval) {
+                approval.paid = true
+                await approval.save()
+              }
+            } catch (e) { console.warn('checkPayment: approval mark paid failed', e && e.message) }
+          }
+
+          return res.json({ success: true, status: 'successful', payment })
+        }
+      }
+    } catch (e) {
+      console.warn('checkPayment: verify error', e && e.message)
+    }
+
+    // Fallback: return current payment status
+    return res.json({ success: false, status: payment.status || 'pending', payment })
+  } catch (err) {
+    console.error('checkPayment error', err)
+    return res.status(500).json({ success: false, message: 'Server error' })
+  }
+}

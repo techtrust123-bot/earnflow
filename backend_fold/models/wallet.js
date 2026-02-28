@@ -29,7 +29,6 @@ const walletSchema = new mongoose.Schema({
 })
 
 // Index for performance
-walletSchema.index({ user: 1 })
 
 // Method to credit wallet
 walletSchema.methods.credit = function(amount, description, reference, meta = {}) {

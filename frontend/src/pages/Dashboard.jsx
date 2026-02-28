@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import axios from '../utils/axios'
 import { useTheme } from '../context/ThemeContext'
 import Container from '../components/Container'
-import { FaMoneyBillAlt, FaTasks,FaUser,FaSignal, FaHistory } from 'react-icons/fa'
+import Card from '../components/Card'
+import { FaMoneyBillAlt, FaTasks,FaUser,FaSignal, FaHistory, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 
 export default function Dashboard() {
   const { user, balance } = useSelector(state => state.auth)
@@ -21,6 +22,7 @@ export default function Dashboard() {
     { icon: <FaTasks className="text-cyan-500" />, title: 'My Tasks', to: '/my-tasks' },
     { icon: '💬', title: 'Support', to: '/support' },
     { icon: <FaSignal className="text-cyan-500" />, title: 'Buy Data & Airtime', to: '/buy-data-airtime' },
+    {icon: <FaMoneyBillAlt className="text-cyan-500" />, title: 'Wallet', to: '/wallet' }
     
   ]
 
@@ -46,6 +48,9 @@ export default function Dashboard() {
 
   const [recentActivity, setRecentActivity] = useState([])
   const [notifications, setNotifications] = useState([])
+  const [deviceStatus, setDeviceStatus] = useState(null)
+
+  const unreadCount = notifications.filter(n => !n.read).length
 
   useEffect(() => {
     let mounted = true
@@ -100,6 +105,18 @@ export default function Dashboard() {
     return () => { mounted = false }
   }, [user])
 
+  useEffect(() => {
+    const loadDeviceStatus = async () => {
+      try {
+        const res = await axios.get('/devices/status')
+        if (res.data) setDeviceStatus(res.data)
+      } catch (e) {
+        // ignore
+      }
+    }
+    loadDeviceStatus()
+  }, [user])
+
   const markNotificationRead = async (id) => {
     try {
       await axios.patch(`/notifications/read/${id}`)
@@ -107,8 +124,38 @@ export default function Dashboard() {
     } catch (e) { console.warn('mark read failed', e) }
   }
 
+  // track which notifications are expanded
+  const [expandedNotifications, setExpandedNotifications] = useState({})
+  const toggleNotification = id => {
+    setExpandedNotifications(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const revokeOtherDevices = async () => {
+    try {
+      const pwd = window.prompt('Enter your password to confirm revoking other device sessions')
+      if (!pwd) return
+      const res = await axios.post('/auth/logout-others', { password: pwd })
+      if (res.data && res.data.success) {
+        alert('Other device sessions revoked')
+        setDeviceStatus(prev => ({ ...prev, othersRevoked: true }))
+      } else {
+        alert(res.data?.message || 'Failed to revoke sessions')
+      }
+    } catch (e) {
+      console.warn('revoke failed', e)
+      alert(e.response?.data?.message || 'Failed to revoke sessions')
+    }
+  }
+
   return (
     <Container className="p-3 sm:p-4 space-y-4 sm:space-y-6">
+      {/* page title */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl sm:text-3xl font-bold">Dashboard</h2>
+        {unreadCount > 0 && (
+          <div className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">{unreadCount} new</div>
+        )}
+      </div>
 
       {/* Top Row: Welcome + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -124,8 +171,16 @@ export default function Dashboard() {
             <div className="flex flex-col gap-2 w-full sm:w-auto">
               <Link to="/tasks" className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Go To Tasks</Link>
               <Link to="/withdraw" className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Withdraw</Link>
+              <button onClick={revokeOtherDevices} className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Logout Other Devices</button>
             </div>
           </div>
+          {deviceStatus && (
+            <div className={`mt-3 p-2 rounded-lg text-sm ${deviceStatus.devices.length > 1 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+              {deviceStatus.devices.length > 1
+                ? `You have ${deviceStatus.devices.length - 1} other active session${deviceStatus.devices.length - 1 > 1 ? 's' : ''}.`
+                : 'Only this device is active.'}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -136,17 +191,17 @@ export default function Dashboard() {
       </div>
 
       {/* Features grid */}
-      <div>
+      <Card className="p-6">
         <h3 className="text-base sm:text-lg font-semibold mb-3">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {features.map((f, i) => (
-            <Link key={i} to={f.to} className={`${isDark ? 'bg-slate-800 border border-slate-700 hover:bg-slate-700' : 'bg-white hover:shadow-md'} rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-2 shadow transition-colors`}>
-              <div className="text-xl sm:text-2xl">{f.icon}</div>
-              <div className="text-xs sm:text-sm font-medium text-center">{f.title}</div>
+            <Link key={i} to={f.to} className={`${isDark ? 'bg-slate-800 border border-slate-700 hover:bg-slate-700' : 'bg-white'} rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow hover:shadow-lg transform hover:scale-105 transition-all duration-150`}>
+              <div className="text-2xl">{f.icon}</div>
+              <div className="text-xs sm:text-sm font-semibold text-center">{f.title}</div>
             </Link>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Promo + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -155,26 +210,39 @@ export default function Dashboard() {
             <h4 className="text-xl font-bold">World Earn Carnival</h4>
             <p className="mt-2 text-sm opacity-90">Join now for a chance to win big — ₦400,000,000 in cash prizes.</p>
           </div> */}
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <button className="bg-white text-blue-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base">Join Now</button>
-          </div>
+          </div> */}
         </div>
 
-        <div className={`${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-white'} p-3 sm:p-4 rounded-2xl shadow space-y-3 sm:space-y-4 transition-colors`}>
+        <Card className="space-y-3 sm:space-y-4">
           <div>
-            <h4 className={`font-semibold mb-2 sm:mb-3 text-sm sm:text-base transition-colors ${isDark ? 'text-slate-50' : ''}`}>Notifications</h4>
+            <h4 className={`font-semibold mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base transition-colors ${isDark ? 'text-slate-50' : ''}`}>Notifications {unreadCount > 0 && <span className="text-xs bg-red-400 text-white px-1 rounded-full">{unreadCount}</span>}</h4>
             {notifications && notifications.length > 0 ? (
               <div className="space-y-2">
-                {notifications.map(n => (
-                  <div key={n._id} className={`p-2 rounded border text-xs sm:text-sm transition-colors ${isDark ? (n.read ? 'bg-slate-700 border-slate-600' : 'bg-slate-800 border-slate-600') : (n.read ? 'bg-gray-50' : 'bg-white')}`}>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className={`font-medium transition-colors ${isDark ? 'text-slate-200' : ''}`}>{n.title}</div>
-                      {!n.read && <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600 whitespace-nowrap">Mark read</button>}
+                {notifications.map(n => {
+                  const isExpanded = !!expandedNotifications[n._id]
+                  const displayMsg = isExpanded
+                    ? n.message
+                    : n.message.length > 80
+                      ? n.message.slice(0, 80) + '...'
+                      : n.message
+                  return (
+                    <div key={n._id} className={`p-2 rounded border text-xs sm:text-sm transition-colors ${isDark ? (n.read ? 'bg-slate-700 border-slate-600' : 'bg-slate-800 border-slate-600') : (n.read ? 'bg-gray-50' : 'bg-white')}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className={`font-medium transition-colors ${isDark ? 'text-slate-200' : ''}`}>{n.title}</div>
+                        <div className="flex items-center gap-2">
+                          {!n.read && <button onClick={() => markNotificationRead(n._id)} className="text-xs text-blue-600 whitespace-nowrap">Mark read</button>}
+                          <button onClick={() => toggleNotification(n._id)} className="text-xs text-indigo-500 flex items-center gap-1">
+                            {isExpanded ? <><FaChevronUp className="inline"/> Collapse</> : <><FaChevronDown className="inline"/> Expand</>}
+                          </button>
+                        </div>
+                      </div>
+                      <div className={`text-xs transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'} mt-1 ${isExpanded ? 'transition-all duration-150' : ''}`}>{displayMsg}</div>
+                      <div className={`text-xs transition-colors ${isDark ? 'text-slate-500' : 'text-gray-400'} mt-1`}>{new Date(n.createdAt).toLocaleString()}</div>
                     </div>
-                    <div className={`text-xs transition-colors ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>{n.message}</div>
-                    <div className={`text-xs transition-colors ${isDark ? 'text-slate-500' : 'text-gray-400'} mt-1`}>{new Date(n.createdAt).toLocaleString()}</div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className={`text-xs transition-colors ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>No notifications</div>
@@ -182,13 +250,16 @@ export default function Dashboard() {
           </div>
 
           <h4 className={`font-semibold text-sm sm:text-base transition-colors ${isDark ? 'text-slate-50' : ''}`}>Recent Activity</h4>
-          <div className={`space-y-2 sm:space-y-3 text-xs sm:text-sm transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
+          <div className={`space-y-2 sm:space-y-3 text-xs sm:text-sm transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>        
             {/** Render fetched activity items or a friendly message */}
             {recentActivity && recentActivity.length > 0 ? (
               recentActivity.map((it) => (
-                <div key={it.key} className="flex items-center justify-between gap-2">
-                  <div className="truncate">{it.text}</div>
-                  <div className={`${it.type === 'credit' ? 'text-green-600' : it.type === 'debit' ? 'text-red-600' : isDark ? 'text-slate-400' : 'text-gray-600'} font-bold whitespace-nowrap`}>{it.displayAmount}</div>
+                <div key={it.key} className={`${isDark ? 'bg-slate-800' : 'bg-gray-50'} p-2 rounded-lg hover:bg-opacity-90 transition-colors`}>                  
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`${it.type === 'credit' ? 'text-green-600' : it.type === 'debit' ? 'text-red-600' : isDark ? 'text-slate-400' : 'text-gray-600'} font-bold`}>{it.type === 'credit' ? '+' : it.type === 'debit' ? '-' : '·'}</span>
+                    <div className="truncate flex-1 text-xs sm:text-sm">{it.text}</div>
+                    <div className={`${it.type === 'credit' ? 'text-green-600' : it.type === 'debit' ? 'text-red-600' : isDark ? 'text-slate-400' : 'text-gray-600'} font-bold whitespace-nowrap`}>{it.displayAmount}</div>
+                  </div>
                 </div>
               ))
             ) : (
@@ -196,9 +267,8 @@ export default function Dashboard() {
             )}
           </div>
           <Link to="/history" className="block text-center mt-4 text-indigo-600 font-medium text-sm sm:text-base transition-colors hover:text-indigo-700">View Full History</Link>
+    </Card>
         </div>
-      </div>
-
-    </Container>
+  </Container>
   )
 }

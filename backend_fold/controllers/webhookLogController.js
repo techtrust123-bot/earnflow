@@ -6,6 +6,50 @@ const Notification = require('../models/notification')
 const transporter = require('../transporter/transporter')
 const User = require('../models/user')
 
+// Helper utilities
+function getRawBody(req) {
+  // Prefer rawBody if middleware provides it; fallback to stable JSON stringify
+  if (req.rawBody && typeof req.rawBody === 'string') return req.rawBody
+  try {
+    return JSON.stringify(req.body || {})
+  } catch (e) {
+    return ''
+  }
+}
+
+function computeHmac(algo, secret, data) {
+  return crypto.createHmac(algo, secret || '').update(data || '').digest('hex')
+}
+
+function safeEqual(a, b) {
+  try {
+    const A = Buffer.from(String(a || ''))
+    const B = Buffer.from(String(b || ''))
+    if (A.length !== B.length) return false
+    return crypto.timingSafeEqual(A, B)
+  } catch (e) {
+    return false
+  }
+}
+
+async function notifyAdminsGeneric({ payment, walletTransaction, paymentReference }) {
+  try {
+    const admins = await User.find({ role: 'admin' }).lean()
+    const title = 'Payment Received'
+    const amount = payment?.amount || walletTransaction?.amount
+    const currency = payment?.currency || 'NGN'
+    const message = `Payment ${paymentReference} of ${amount} ${currency} received.`
+    for (const a of admins) {
+      try {
+        await Notification.create({ user: a._id, title, message, meta: { payment: payment?._id, walletTransaction: walletTransaction?._id } })
+        if (a.email) {
+          transporter.sendMail({ from: process.env.SENDER_EMAIL, to: a.email, subject: title, text: message }).catch(() => {})
+        }
+      } catch (e) { console.warn('notify admin failed', e && e.message) }
+    }
+  } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
+}
+
 
 /**
  * GET /api/admin/webhook-logs?page=1&limit=25&provider=monnify
@@ -84,11 +128,9 @@ exports.monnifyWebhook = async (req, res) => {
 
   ;(async () => {
     try {
-      const hash = crypto.createHmac('sha512', process.env.MONNIFY_SECRET_KEY || '')
-        .update(JSON.stringify(payload))
-        .digest('hex')
-
-      if (!signature || hash !== signature) {
+      const raw = getRawBody(req)
+      const hash = computeHmac('sha512', process.env.MONNIFY_SECRET_KEY || '', raw)
+      if (!signature || !safeEqual(hash, signature)) {
         log.verification = { ok: false, reason: 'invalid signature' }
         await log.save()
         return
@@ -111,7 +153,8 @@ exports.monnifyWebhook = async (req, res) => {
       }
 
       // update payment record and activate task if paid
-      if (String(paymentStatus).toLowerCase().includes('paid') || String(paymentStatus).toLowerCase().includes('success')) {
+      const statusLower = String(paymentStatus).toLowerCase()
+      if (statusLower.includes('paid') || statusLower.includes('success')) {
         payment.status = 'successful'
         payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
         await payment.save()
@@ -135,29 +178,10 @@ exports.monnifyWebhook = async (req, res) => {
         log.verification = { ok: true, matchedPayment: payment._id }
         log.task = payment.task
         await log.save()
-        // Notify admins about the successful payment
-        try {
-          const admins = await User.find({ role: 'admin' }).lean()
-          const title = 'Payment Received'
-          const message = `Payment ${payment.reference} of ${payment.amount} ${payment.currency} received.`
-          for (const a of admins) {
-            try {
-              await Notification.create({ user: a._id, title, message, meta: { payment: payment._id } })
-              if (a.email) {
-                transporter.sendMail({ from: process.env.SENDER_EMAIL, to: a.email, subject: title, text: message }).catch(() => {})
-              }
-            } catch (e) { console.warn('notify admin failed', e && e.message) }
-          }
-        } catch (e) { console.warn('webhook: admin notify failed', e && e.message) }
+        await notifyAdminsGeneric({ payment, paymentReference })
       } else {
-        if (isWalletFunding) {
-          walletTransaction.status = 'failed'
-          walletTransaction.meta.paystack_data = data
-          await walletTransaction.save()
-        } else {
-          payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
-          await payment.save()
-        }
+        payment.meta = Object.assign({}, payment.meta || {}, { webhookPayload: payload })
+        await payment.save()
         log.verification = { ok: false, reason: 'not paid', payloadStatus: paymentStatus }
         await log.save()
       }

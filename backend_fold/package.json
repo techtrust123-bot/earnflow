@@ -20,8 +20,12 @@
     "crypto-js": "^4.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.2",
+    "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.2",
@@ -31,7 +35,10 @@
     "passport": "^0.7.0",
     "passport-twitter": "^1.0.4",
     "passport-twitter-oauth2": "^2.1.1",
-    "resend": "^6.9.1"
+    "qrcode": "^1.5.4",
+    "redis": "^5.11.0",
+    "resend": "^6.9.1",
+    "speakeasy": "^2.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

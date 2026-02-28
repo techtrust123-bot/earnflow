@@ -5,6 +5,7 @@ const router = express.Router()
 router.get('/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }))
 
 router.use("/auth",require("./authRoute.js"))
+router.use('/devices', require('./deviceRoutes'))
 router.use("/twitter", require("./twitter.js"))
 router.use("/tasks",require("./adminTasks.js"))
 router.use("/admin", require("./adminUsers.js"))
@@ -23,6 +24,8 @@ router.use('/notifications', require('./notifications.js'))
 router.use('/support', require('./support.js'))
 router.use('/wallet', require('./wallet.js'))
 router.use('/data-airtime', require('./dataAirtime.js'))
+// vending microservice endpoints
+router.use('/vends', require('./vending'))
 
 
 module.exports = router

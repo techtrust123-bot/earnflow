@@ -5,6 +5,8 @@ const  {cookie} = require("cookie-parser")
 const  transporter  = require("../transporter/transporter.js")
 const bcrypt = require("bcryptjs")
 const { Resend } = require("resend")
+const AuditLog = require("../models/auditLog")
+const deviceFingerprint = require('../../services/deviceFingerprint')
 
 
 
@@ -61,9 +63,14 @@ exports.register = async(req,res)=>{
             }
         }
 
-         const otp = String(Math.floor(100000 + Math.random() * 900000))
-            user.verifyOtp = otp
-            user.verifyOtpExpireAt = Date.now() + 10 * 60 * 1000
+         // Generate 8-digit OTP (much stronger than 6-digit)
+            const otp = String(Math.floor(10000000 + Math.random() * 90000000))
+            const crypto = require('crypto');
+            // Hash OTP before storing for security
+            const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+            user.verifyOtpHash = otpHash
+            user.verifyOtpExpireAt = Date.now() + 5 * 60 * 1000 // 5 minutes
+            user.verifyOtpAttempts = 0 // Initialize attempt counter
 
         await user.save()
 
@@ -94,8 +101,8 @@ exports.register = async(req,res)=>{
         const verificationMail = await resend.emails.send({
             from: 'Earn-Flow <no-reply@earnflow.onrender.com>',
             to: user.email,
-            subject: "Verify Your Email",
-            html: `<p>Hello ${user.name},</p><p>Please verify your email by using the OTP code: ${otp}</p>`
+            subject: "Verify Your Email - Your OTP Code",
+            html: `<p>Hello ${user.name},</p><p>Please verify your email by using this OTP code: <strong>${otp}</strong></p><p>This code expires in 5 minutes.</p><p>Do not share this code with anyone.</p>`
         });
 
         // const mailOption = {
@@ -143,79 +150,131 @@ exports.register = async(req,res)=>{
 exports.login = async(req, res)=>{
     const {email, password} = req.body
 
-      if( !email || !password){
-        return res.status(400).json({message:"Input Field are Required"})
+    if (!email || !password) {
+        return res.status(400).json({ message: "Input fields are required" })
     }
 
     try {
-        const user = await User.findOne({email})
-        if(!user){
-            return res.status(404).json({message:"Invalid email"})
-        }
-        const isMatch = await bcrypt.compare(password,user.password)
-        if(!isMatch){
-            return res.status(400).json({message:"Invalid password"})
-        }
+        const user = await User.findOne({ email })
+        if (!user) return res.status(404).json({ message: "Invalid email" })
+
+        const isMatch = await bcrypt.compare(password, user.password)
+        if (!isMatch) return res.status(400).json({ message: "Invalid password" })
 
         if (!user.isAccountVerify) {
-        return res.status(403).json({
-            message: "Please verify your email",
-            requiresVerification: true
-        })
-    }
-        const token = jwt.sign({id: user._id, role: user.role},process.env.SECRET,{expiresIn:"24h"})
+            return res.status(403).json({
+                message: "Please verify your email",
+                requiresVerification: true
+            })
+        }
+
+        // Device fingerprint check and single-device enforcement
+        try {
+            const deviceCheck = await deviceFingerprint.checkDevice(user, req)
+
+            if (deviceCheck && deviceCheck.isNew) {
+                // New device: require verification before allowing login
+                return res.status(403).json({
+                    message: 'New device detected. Please verify the device before logging in.',
+                    requiresDeviceVerification: true,
+                    deviceId: deviceCheck.device._id
+                })
+            }
+
+            const device = deviceCheck && deviceCheck.device
+
+            // If another active device exists, deny login
+            if (user.activeDevice && device && user.activeDevice.toString() !== device._id.toString()) {
+                return res.status(403).json({
+                    message: 'You are already logged in on another device. Please logout from that device first.'
+                })
+            }
+
+            if (device) {
+                device.isActive = true
+                device.lastUsed = new Date()
+                await device.save()
+
+                user.activeDevice = device._id
+                user.lastLogin = new Date()
+                await user.save()
+            }
+        } catch (dx) {
+            console.warn('Device check error:', dx)
+        }
 
         if (!process.env.SECRET) {
             console.error('Missing SECRET env var; cannot sign token')
             return res.status(500).json({ message: 'Server misconfiguration' })
         }
 
-        res.cookie("token",token,{
-            httpOnly:true,
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.SECRET, { expiresIn: "24h" })
+
+        res.cookie("token", token, {
+            httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? 
-            "none":"lax",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
             maxAge: 24 * 60 * 60 * 1000
         })
 
-         
-                const safeUser = {
-                    _id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                    userID: user.userID,
-                    isAccountVerify: !!user.isAccountVerify,
-                    accountStatus: user.accountStatus || 'unVerified',
-                    twitter: user.twitter || null,
-                    tasksCompleted: user.tasksCompleted || 0,
-                    referrals: user.referrals || 0
+        const safeUser = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            userID: user.userID,
+            isAccountVerify: !!user.isAccountVerify,
+            accountStatus: user.accountStatus || 'unVerified',
+            twitter: user.twitter || null,
+            tasksCompleted: user.tasksCompleted || 0,
+            referrals: user.referrals || 0
+        }
 
-                }
-                // if(!user.isAccountVerify){
-                //     return res.status(403).json({
-                //         message: "Please verify your email",
-                //         requiresVerification: true
-                //     })
-                // }
-
-                res.status(200).json({ message: 'Login Successful', user: safeUser, token, balance: user.balance || 0 })
+        res.status(200).json({ message: 'Login Successful', user: safeUser, token, balance: user.balance || 0 })
     } catch (error) {
-          console.log(error)
-        res.status(500).json({message:error.message,})
+        console.log(error)
+        res.status(500).json({ message: error.message })
     }
 
 }
 
 exports.logout = async(req,res)=>{
     try {
+        // Clear auth cookie
         res.clearCookie("token",{
             httpOnly: true,
             secure: process.env.NODE_ENV === "PRODUCTION",
             sameSite: process.env.NODE_ENV === "PRODUCTION" ? 
             "none":"lax",
         })
-        res.status(200).json({message:"Logout  successful"})
+
+        try {
+            // If user is authenticated, clear activeDevice if this device matches
+            const userId = req.user?.id
+            if (userId) {
+                const user = await User.findById(userId)
+                if (user) {
+                    try {
+                        const { hash } = deviceFingerprint.generateDeviceFingerprint(req)
+                        const Device = require('../../models/device')
+                        const dev = await Device.findOne({ user: user._id, fingerprintHash: hash })
+                        if (dev && user.activeDevice && dev._id.toString() === user.activeDevice.toString()) {
+                            user.activeDevice = null
+                            await user.save()
+                            dev.isActive = false
+                            await dev.save()
+                        }
+                    } catch (e) {
+                        console.warn('Logout device-clear error:', e)
+                    }
+                }
+            }
+
+        } catch (e) {
+            // non-fatal
+        }
+
+        res.status(200).json({message:"Logout successful"})
     } catch (error) {
          console.log(error)
         res.status(500).json({message:error.message})
@@ -231,9 +290,13 @@ exports.resendOtp = async(req,res)=>{
             return res.status(404).json({message:"Account Already Verified",})
         }
 
-        const otp = String(Math.floor(100000 + Math.random() * 900000))
-        user.resendOtp = otp
-        user.resendOtpExpireAt = Date.now() + 10 * 60 * 1000
+        // Generate 8-digit OTP
+        const otp = String(Math.floor(10000000 + Math.random() * 90000000))
+        const crypto = require('crypto');
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        user.verifyOtpHash = otpHash
+        user.verifyOtpExpireAt = Date.now() + 5 * 60 * 1000 // 5 minutes
+        user.verifyOtpAttempts = 0 // Reset attempts on resend
 
         await user.save()
 
@@ -241,17 +304,9 @@ exports.resendOtp = async(req,res)=>{
         const verificationMail = await resend.emails.send({
             from: 'Earn-Flow <noreply@earnflow.com>',
             to: user.email,
-            subject: "Verify Your Email",
-            html: `<p>Hello ${user.name},</p><p>Please verify your email by using the OTP code: ${otp}</p>`
+            subject: "Verify Your Email - Your OTP Code",
+            html: `<p>Hello ${user.name},</p><p>Please verify your email by using this OTP code: <strong>${otp}</strong></p><p>This code expires in 5 minutes.</p>`
         })
-
-        // const mailOption = {
-        //     from: process.env.SENDER_EMAIL,
-        //     to: user.email,
-        //     subject: " Email Verification Otp Code",
-        //     text: `your verification otp code is:${otp} use it to verify your account`
-        // }
-        // await transporter.sendMail(mailOption)
 
         res.status(200).json({message:" resend otp send successful"})
     } catch (error) {
@@ -265,36 +320,83 @@ exports.verifyAccount = async(req,res)=>{
     const userId = req.user.id
 
     if(!otp){
-        return res.status(400).json({message:"Input Field is required..."})
+        return res.status(400).json({message:"OTP is required"})
     }
 
     try {
         const user = await User.findById(userId)
         if(user.isAccountVerify){
-            return res.status(400).json({message:"account already verified..."})
+            return res.status(400).json({message:"Account already verified"})
         }
 
-        if(otp !== user.verifyOtp || otp === ""){
-            return res.status(400).json({message: "Inavalid otp code..."})
+        // Security Check: OTP attempt rate limiting (3 attempts per verification window)
+        if (!user.verifyOtpAttempts) user.verifyOtpAttempts = 0
+        
+        if (user.verifyOtpAttempts >= 3) {
+            await AuditLog.log(user._id, 'verification_failed', {
+                reason: 'max_attempts_exceeded',
+                status: 'locked',
+                severity: 'high'
+            }, req)
+            
+            return res.status(429).json({
+                message: "Too many failed attempts. Please request a new OTP.",
+                remainingTime: user.verifyOtpExpireAt ? Math.ceil((user.verifyOtpExpireAt - Date.now()) / 1000) : 0
+            })
         }
 
-        if (!user.verifyOtp || !user.verifyOtpExpireAt) {
-         return res.status(400).json({ message: "OTP not generated" })
-
+        if (!user.verifyOtpHash || !user.verifyOtpExpireAt) {
+            return res.status(400).json({ message: "OTP not generated. Please request a new one." })
         }
 
-
-        if(user.verifyOtpExpireAt < Date.now()){
-            return res.status(400).json({message:"Otp Expired..."})
+        // Check if OTP expired
+        if (user.verifyOtpExpireAt < Date.now()) {
+            return res.status(400).json({
+                message: "OTP Expired. Please request a new one.",
+                requiresResend: true
+            })
         }
 
+        // Security: Hash the submitted OTP and compare using timing-safe comparison
+        const crypto = require('crypto');
+        const submittedOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        
+        // Timing-safe comparison prevents timing attacks
+        const isValid = crypto.timingSafeEqual(
+            Buffer.from(submittedOtpHash),
+            Buffer.from(user.verifyOtpHash)
+        ).valueOf();
 
-        user.verifyOtp = "",
-        user.verifyOtpExpireAt = 0,
-        user.isAccountVerify = true,
+        if (!isValid) {
+            // Increment failed attempts
+            user.verifyOtpAttempts += 1
+            await user.save()
+            
+            await AuditLog.log(user._id, 'verification_failed', {
+                reason: 'invalid_otp',
+                attempt: user.verifyOtpAttempts,
+                status: 'failure'
+            }, req)
+
+            return res.status(400).json({
+                message: `Invalid OTP. ${3 - user.verifyOtpAttempts} attempts remaining.`,
+                attemptsRemaining: 3 - user.verifyOtpAttempts
+            })
+        }
+
+        // OTP is valid - verify account
+        user.verifyOtpHash = undefined
+        user.verifyOtpExpireAt = undefined
+        user.verifyOtpAttempts = 0
+        user.isAccountVerify = true
         user.accountStatus = "Verified"
 
         await user.save()
+
+        await AuditLog.log(user._id, 'account_verified', {
+            status: 'success',
+            severity: 'medium'
+        }, req)
 
         // If this user was referred, credit the referrer on successful verification
         try {
@@ -330,7 +432,7 @@ exports.verifyAccount = async(req,res)=>{
             console.warn('Referral crediting failed', e && e.message)
         }
 
-        res.status(200).json({message:"Account Verified Successful..."})
+        res.status(200).json({message:"Account Verified Successfully"})
     } catch (error) {
         console.log(error)
         res.status(500).json({message:error.message})
@@ -343,12 +445,16 @@ exports.sendResetOtp = async(req,res)=>{
     try {
         const user = await User.findOne({email})
         if(!user){
-            return res.status(400).json({message:"user not found"})
+            return res.status(400).json({message:"User not found"})
         }
 
-        const otp = String(Math.floor(100000 + Math.random() * 900000))
-        user.resetOtp = otp,
-        user.resetOtpExpireAt = Date.now() + 10 * 60 * 1000
+        // Generate 8-digit OTP
+        const otp = String(Math.floor(10000000 + Math.random() * 90000000))
+        const crypto = require('crypto');
+        const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+        user.resetOtpHash = otpHash
+        user.resetOtpExpireAt = Date.now() + 5 * 60 * 1000 // 5 minutes
+        user.resetOtpAttempts = 0
 
         await user.save()
 
@@ -356,27 +462,18 @@ exports.sendResetOtp = async(req,res)=>{
         const resetMail = await resend.emails.send({
             from: 'Earn-Flow <noreply@earnflow.com>',
             to: email,
-            subject: "Password Reset OTP",
-            html: `<p>Hello ${user.name},</p><p>Please use the following OTP to reset your password: ${otp}</p>`
+            subject: "Password Reset OTP - Your Code",
+            html: `<p>Hello ${user.name},</p><p>Please use the following OTP to reset your password: <strong>${otp}</strong></p><p>This code expires in 5 minutes.</p><p>If you didn't request a password reset, please ignore this email.</p>`
         })
 
-        // const mailOption = {
-        //     from: process.env.SENDER_EMAIL,
-        //     to: email,
-        //     subject:"Password Reset Otp Code",
-        //     text: `your password reset otp is: ${otp}`
-        // }
-
-        // await transporter.sendMail(mailOption)
-
-        res.status(200).json({message:" resetOtp send successful..."})
+        res.status(200).json({message:"Reset OTP sent successfully"})
     } catch (error) {
          console.log(error)
         res.status(500).json({message:error.message})
     }
 }
 
-// FIXED & PERFECT resetPassword controller
+// FIXED & PERFECT resetPassword controller with timing-safe comparison
 exports.resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
@@ -385,37 +482,95 @@ exports.resetPassword = async (req, res) => {
     return res.status(400).json({ message: "Email, OTP, and new password are required" });
   }
 
-  if (newPassword.length < 6) {
-    return res.status(400).json({ message: "Password must be at least 6 characters" });
+  if (newPassword.length < 12) {
+    return res.status(400).json({ 
+      message: "Password must be at least 12 characters with uppercase, lowercase, number, and special character" 
+    });
+  }
+
+  // Check password strength
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$/;
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({
+      message: "Password must contain uppercase, lowercase, number, and special character"
+    });
   }
 
   try {
-    // 2. Find user by email + OTP + not expired
-    const user = await User.findOne({
-      email,
-      resetOtp: otp,
-      resetOtpExpireAt: { $gt: Date.now() } // Only valid if not expired
-    });
-
-    // 3. If no user found → invalid/expired OTP
+    const user = await User.findOne({ email });
+    
     if (!user) {
       return res.status(400).json({ 
-        message: "Invalid or expired OTP. Please request a new one." 
+        message: "User not found" 
       });
     }
 
-    // 4. Update password & clear OTP
+    // Check attempt rate limiting (3 attempts only)
+    if (!user.resetOtpAttempts) user.resetOtpAttempts = 0
+    if (user.resetOtpAttempts >= 3) {
+      return res.status(429).json({
+        message: "Too many failed attempts. Please request a new OTP.",
+        requiresResend: true
+      });
+    }
+
+    if (!user.resetOtpHash || !user.resetOtpExpireAt) {
+      return res.status(400).json({ 
+        message: "OTP not generated. Please request a new one.",
+        requiresResend: true
+      });
+    }
+
+    // Check if OTP expired
+    if (user.resetOtpExpireAt < Date.now()) {
+      return res.status(400).json({ 
+        message: "OTP expired. Please request a new one.",
+        requiresResend: true
+      });
+    }
+
+    // Timing-safe OTP comparison
+    const crypto = require('crypto');
+    const submittedOtpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    
+    let isValid = false;
+    try {
+      isValid = crypto.timingSafeEqual(
+        Buffer.from(submittedOtpHash),
+        Buffer.from(user.resetOtpHash)
+      ).valueOf();
+    } catch (err) {
+      isValid = false;
+    }
+
+    if (!isValid) {
+      user.resetOtpAttempts += 1;
+      await user.save();
+      
+      return res.status(400).json({ 
+        message: `Invalid OTP. ${3 - user.resetOtpAttempts} attempts remaining.`,
+        attemptsRemaining: 3 - user.resetOtpAttempts
+      });
+    }
+
+    // Update password & clear OTP
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     user.password = hashedPassword;
-    user.resetOtp = undefined;
+    user.resetOtpHash = undefined;
     user.resetOtpExpireAt = undefined;
+    user.resetOtpAttempts = 0;
 
     await user.save();
 
+    await AuditLog.log(user._id, 'password_reset', {
+      status: 'success',
+      severity: 'medium'
+    }, req);
+
     return res.status(200).json({ 
       success: true,
-      message: "Password reset successful! You can now log in." 
+      message: "Password reset successful! You can now log in with your new password." 
     });
 
   } catch (error) {
@@ -535,5 +690,60 @@ exports.verifyTransactionPin = async (req, res) => {
     } catch (error) {
         console.error('verifyTransactionPin error', error)
         res.status(500).json({ success: false, message: 'Failed to verify PIN' })
+    }
+}
+
+// Revoke other device sessions (logout other devices)
+exports.logoutOtherDevices = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        const { password } = req.body;
+        if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+        if (!password) return res.status(400).json({ message: 'Password is required to revoke other sessions' });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(401).json({ message: 'Invalid password' });
+
+        // Determine current device fingerprint
+        let currentDeviceHash = null;
+        try {
+            const fp = deviceFingerprint.generateDeviceFingerprint(req);
+            currentDeviceHash = fp.hash;
+        } catch (e) {
+            console.warn('Could not generate fingerprint on revoke', e);
+        }
+
+        const Device = require('../../models/device');
+
+        // Set all user's devices to inactive
+        await Device.updateMany({ user: user._id }, { $set: { isActive: false } });
+
+        // If current device can be found, mark it active again
+        if (currentDeviceHash) {
+            const cur = await Device.findOne({ user: user._id, fingerprintHash: currentDeviceHash });
+            if (cur) {
+                cur.isActive = true;
+                cur.lastUsed = new Date();
+                await cur.save();
+                user.activeDevice = cur._id;
+            } else {
+                user.activeDevice = null;
+            }
+        } else {
+            user.activeDevice = null;
+        }
+
+        await user.save();
+
+        await AuditLog.log(user._id, 'revoke_other_devices', { message: 'User revoked other device sessions' }, req);
+
+        return res.json({ success: true, message: 'Other device sessions revoked' });
+    } catch (err) {
+        console.error('logoutOtherDevices error', err);
+        return res.status(500).json({ message: 'Failed to revoke other sessions' });
     }
 }
