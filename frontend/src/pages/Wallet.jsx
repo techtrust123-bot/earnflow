@@ -83,10 +83,29 @@ const Wallet = () => {
         const authUrl = response.data.authorization_url || (response.data.data && response.data.data.authorization_url)
 
         // Prefer inline popup when Paystack inline JS is available
-        if (window.PaystackPop && typeof window.PaystackPop.setup === 'function' && (process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || (response.data.data && response.data.data.public_key))) {
-          const key = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || (response.data.data && response.data.data.public_key)
-          const email = fundingEmail || ''
-          try {
+        const ensurePaystack = () => new Promise((resolve, reject) => {
+          if (window.PaystackPop && typeof window.PaystackPop.setup === 'function') return resolve(window.PaystackPop)
+          // Dynamically load inline script if not present
+          const src = 'https://js.paystack.co/v1/inline.js'
+          const existing = document.querySelector(`script[src="${src}"]`)
+          if (existing) {
+            existing.addEventListener('load', () => resolve(window.PaystackPop))
+            existing.addEventListener('error', reject)
+            return
+          }
+          const s = document.createElement('script')
+          s.src = src
+          s.async = true
+          s.onload = () => resolve(window.PaystackPop)
+          s.onerror = (err) => reject(err)
+          document.head.appendChild(s)
+        })
+
+        const key = process.env.REACT_APP_PAYSTACK_PUBLIC_KEY || (response.data.data && response.data.data.public_key)
+        const email = fundingEmail || ''
+        try {
+          if (key) {
+            await ensurePaystack()
             const handler = window.PaystackPop.setup({
               key,
               email,
@@ -108,17 +127,27 @@ const Wallet = () => {
                 }
               }
             })
-            try { handler.openIframe() } catch (e) { console.warn(e); if (authUrl) window.location.href = authUrl }
-          } catch (e) {
-            console.warn('Paystack popup failed', e)
-            if (authUrl) window.location.href = authUrl
-            else toast.error('Payment initialization failed')
+            try { handler.openIframe() } catch (e) {
+              console.warn('Paystack popup open failed', e)
+              // Inform user about popup blocking and fallback behavior
+              toast.error('Inline payment popup blocked. Opening payment in a new tab.')
+              toast.info('If the popup is blocked, allow popups for this site to use the inline checkout.')
+              if (authUrl) window.open(authUrl, '_blank', 'noopener')
+              else toast.error('Payment initialization failed')
+            }
+          } else if (authUrl) {
+            // Fallback to hosted page but open in new tab/window so user stays on site
+            toast.info('Opening payment page in a new tab. Complete payment there and return to this tab.')
+            window.open(authUrl, '_blank', 'noopener')
+          } else {
+            toast.error(response.data.message || 'Failed to initialize payment')
           }
-        } else if (authUrl) {
-          // Fallback to hosted page
-          window.location.href = authUrl
-        } else {
-          toast.error(response.data.message || 'Failed to initialize payment')
+        } catch (e) {
+          console.warn('Paystack popup failed', e)
+          toast.error('Payment initialization failed. Opening hosted payment page in a new tab.')
+          toast.info('Allow popups for inline checkout or complete payment in the new tab.')
+          if (authUrl) window.open(authUrl, '_blank', 'noopener')
+          else toast.error('Payment initialization failed')
         }
       } else {
         toast.error(response.data.message || 'Failed to initialize payment')
