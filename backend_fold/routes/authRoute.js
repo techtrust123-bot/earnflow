@@ -22,7 +22,9 @@ router.post("/resetPassword", resetOtpLimiter, validatePasswordReset, resetPassw
 router.post("/set-pin", authMiddlewere, validateTransactionPin, setTransactionPin)
 router.post("/verify-pin", authMiddlewere, verifyTransactionPin)
 
+// return the authenticated user either at /me (preferred) or /profile for legacy clients
 router.get('/me', authMiddlewere, getCurrentUser)
+router.get('/profile', authMiddlewere, getCurrentUser)
 
 // Delete own account
 router.delete('/delete', authMiddlewere, deleteAccount)

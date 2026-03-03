@@ -8,19 +8,23 @@ export default function ProtectedRoute({ children }) {
   const { isAuthenticated, user } = useSelector(state => state.auth)
   const dispatch = useDispatch()
   const location = useLocation()
-  const [checking, setChecking] = useState(false)
+  const [checking, setChecking] = useState(!isAuthenticated)
 
-  // on first mount, if not authenticated try to fetch profile
+  // on first mount, if not authenticated try to fetch current user from server
   useEffect(() => {
     if (!isAuthenticated) {
       setChecking(true)
-      axios.get('/auth/profile').then(res => {
-        if (res.data?.success) {
-          dispatch(loginSuccess({ user: res.data.user, token: null, balance: res.data.balance }))
-        }
-      }).catch(err => {
-        // ignore - will redirect below
-      }).finally(() => setChecking(false))
+      axios
+        .get('/auth/me')
+        .then(res => {
+          if (res.data?.user) {
+            dispatch(loginSuccess({ user: res.data.user, token: null, balance: res.data.balance }))
+          }
+        })
+        .catch(() => {
+          // failure means token invalid or not present; will redirect below
+        })
+        .finally(() => setChecking(false))
     }
   }, [isAuthenticated, dispatch])
 

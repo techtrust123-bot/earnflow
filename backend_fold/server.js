@@ -13,6 +13,10 @@ const sanitizer = require("./middleware/sanitizer");
 const hpp = require("hpp");
 const cron = require("node-cron");
 require("./config/passport"); // ✅ THIS LINE FIXES YOUR ERROR
+const dns = require("dns");
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+// ... mongoose.connect(...)
+
 
 
 dotenv.config();

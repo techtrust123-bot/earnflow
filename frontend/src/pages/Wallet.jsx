@@ -39,7 +39,7 @@ const Wallet = () => {
       const [balanceRes, transactionsRes, userRes] = await Promise.all([
         axios.get('/wallet/balance'),
         axios.get('/wallet/transactions'),
-        axios.get('/auth/profile')
+        axios.get('/auth/me')
       ])
 
       if (balanceRes.data.success) {
@@ -50,7 +50,7 @@ const Wallet = () => {
         setTransactions(transactionsRes.data.transactions)
       }
 
-      if (userRes.data.success) {
+      if (userRes.data && userRes.data.user) {
         setUserBalance(userRes.data.user.balance || 0)
         // update global auth state in case it was lost on refresh
         dispatch(loginSuccess({ user: userRes.data.user, token: null, balance: userRes.data.balance }))

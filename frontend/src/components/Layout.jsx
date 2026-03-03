@@ -2,12 +2,13 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useState, useEffect } from 'react'
-import { logout } from '../features/auth/authSlice'
+import { logout, loginSuccess } from '../features/auth/authSlice'
 import axios from '../utils/axios'
 import toast from 'react-hot-toast'
 import Container from './Container'
 import { useTheme } from '../context/ThemeContext'
 import { FaComment, FaHome, FaMoneyBillAlt, FaTasks, FaUser, FaWallet } from 'react-icons/fa'
+import IdleTimer from './IdleTimer'  // automatic logout on inactivity
 
 export default function Layout({ children }) {
   const { isAuthenticated, user, balance, userType } = useSelector((state) => state.auth)
@@ -40,6 +41,24 @@ export default function Layout({ children }) {
   useEffect(() => {
     if (!isAuthenticated) setMobileOpen(false)
   }, [isAuthenticated])
+
+  // attempt to restore session on every mount / refresh
+  useEffect(() => {
+    if (!isAuthenticated) {
+      axios.get('/auth/me')
+        .then(res => {
+          if (res.data?.user) {
+            dispatch(loginSuccess({ user: res.data.user, token: null, balance: res.data.balance }))
+            // if we happen to be on a public page such as login/signup, send user to dashboard
+            if (location.pathname === '/login' || location.pathname === '/signup') {
+              navigate('/dashboard')
+            }
+          }
+        })
+        // failure is fine; user will stay unauthenticated
+        .catch(() => {})
+    }
+  }, [isAuthenticated, dispatch, location.pathname, navigate])
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -144,6 +163,9 @@ export default function Layout({ children }) {
             {children}
           </Container>
         </main>
+
+        {/* global idle tracker will show a modal when needed */}
+        {isAuthenticated && <IdleTimer />}
 
         {isAuthenticated && user && user.isAccountVerify && (
           <nav
