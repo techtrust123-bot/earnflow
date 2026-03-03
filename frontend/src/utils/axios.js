@@ -56,10 +56,8 @@ axios.interceptors.response.use((resp) => resp, (error) => {
     } catch (e) {
       // ignore
     }
-    // Redirect to login page so user can re-authenticate
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-    }
+    // we no longer perform a hard redirect here; layout effect will navigate
+    // when the auth state flips, avoiding reload loops or repeated refreshes
   }
   return Promise.reject(error)
 })
