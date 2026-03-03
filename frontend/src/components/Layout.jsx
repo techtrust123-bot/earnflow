@@ -42,23 +42,31 @@ export default function Layout({ children }) {
     if (!isAuthenticated) setMobileOpen(false)
   }, [isAuthenticated])
 
-  // attempt to restore session on every mount / refresh
+  // restore session once per page load (avoid infinite loops on public pages)
+  const [authChecked, setAuthChecked] = useState(false)
+
   useEffect(() => {
-    if (!isAuthenticated) {
-      axios.get('/auth/me')
-        .then(res => {
-          if (res.data?.user) {
-            dispatch(loginSuccess({ user: res.data.user, token: null, balance: res.data.balance }))
-            // if we happen to be on a public page such as login/signup, send user to dashboard
-            if (location.pathname === '/login' || location.pathname === '/signup') {
-              navigate('/dashboard')
-            }
-          }
-        })
-        // failure is fine; user will stay unauthenticated
-        .catch(() => {})
+    if (authChecked) return
+    setAuthChecked(true)
+
+    // skip session check on login/signup because redirect would only bounce
+    if (isAuthenticated || ['\/login','\/signup'].includes(location.pathname)) {
+      return
     }
-  }, [isAuthenticated, dispatch, location.pathname, navigate])
+
+    axios.get('/auth/me', { headers: { 'X-Skip-Logout': '1' } })
+      .then(res => {
+        if (res.data?.user) {
+          dispatch(loginSuccess({ user: res.data.user, token: null, balance: res.data.balance }))
+          if (location.pathname === '/login' || location.pathname === '/signup') {
+            navigate('/dashboard')
+          }
+        }
+      })
+      .catch(() => {
+        // ignore: user remains logged out
+      })
+  }, [authChecked, isAuthenticated, dispatch, location.pathname, navigate])
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
