@@ -707,7 +707,8 @@ exports.getCurrentUser = async (req, res) => {
         const user = await User.findById(userId).select('-password')
         if (!user) return res.status(404).json({ message: 'User not found' })
 
-        return res.status(200).json({ user, balance: user.balance || 0 })
+        // always include `success` for frontend helpers that rely on it
+        return res.status(200).json({ success: true, user, balance: user.balance || 0 })
     } catch (error) {
         console.error('getCurrentUser error', error)
         return res.status(500).json({ message: 'Server error' })
