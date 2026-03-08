@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const Device = require('../models/device');
+const User = require('../models/user');
+const transporter = require('../transporter/transporter');
 
 // Generate device fingerprint from request headers
 exports.generateDeviceFingerprint = (req) => {
@@ -72,8 +74,51 @@ exports.checkDevice = async (user, req) => {
   }
 };
 
+// Request device verification - generate code and send email
+exports.requestDeviceVerification = async (userId, req) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    return { success: false, message: 'User not found' };
+  }
+
+  // Find the device (current one based on fingerprint)
+  const { hash } = exports.generateDeviceFingerprint(req);
+  let device = await Device.findOne({ user: userId, fingerprintHash: hash });
+
+  if (!device) {
+    return { success: false, message: 'Device not found' };
+  }
+
+  // Generate new verification code
+  const verificationCode = crypto.randomInt(100000, 999999).toString();
+  device.verificationCode = verificationCode;
+  device.verificationCodeExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+  await device.save();
+
+  // Send email with verification code
+  const mailOptions = {
+    from: process.env.SENDER_MAIL,
+    to: user.email,
+    subject: 'Device Verification Code',
+    html: `
+      <h2>Device Verification</h2>
+      <p>Your verification code for this device is: <strong>${verificationCode}</strong></p>
+      <p>This code will expire in 30 minutes.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { success: true, message: 'Verification code sent to your email' };
+  } catch (error) {
+    console.error('Email send error:', error);
+    return { success: false, message: 'Failed to send verification code' };
+  }
+};
+
 // Verify device with code
-exports.verifyDevice = async (deviceId, verificationCode, userId) => {
+exports.verifyDevice = async (deviceId, userId, verificationCode) => {
   const device = await Device.findById(deviceId);
   
   if (!device || device.user.toString() !== userId.toString()) {

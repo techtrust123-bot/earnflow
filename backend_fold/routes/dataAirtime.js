@@ -7,6 +7,34 @@ const { authMiddlewere: authMiddleware } = require('../middleweres/authmiddlewer
 const Transaction = require('../models/transaction')
 const DataAirtimeService = require('../services/dataAirtimeService')
 
+// Phone number validation function
+const validatePhoneNumber = (number) => {
+  if (!number) return false
+  
+  // Remove any non-digit characters
+  const cleanNumber = number.replace(/\D/g, '')
+  
+  // Must be at least 11 digits
+  if (cleanNumber.length < 11) return false
+  
+  // Nigerian phone number patterns
+  const patterns = {
+    mtn: /^(\+234|234|0)(703|706|803|806|810|813|814|816|903|906|913|916|703|704|706|803|806|810|813|814|816|903|906|913|916)/,
+    airtel: /^(\+234|234|0)(701|708|802|808|812|901|902|904|907|912)/,
+    glo: /^(\+234|234|0)(705|805|807|811|815|905|915)/,
+    etisalat: /^(\+234|234|0)(809|817|818|909|908)/
+  }
+
+  // Check if it matches any network
+  for (const [net, pattern] of Object.entries(patterns)) {
+    if (pattern.test(cleanNumber)) {
+      return true
+    }
+  }
+
+  return false
+}
+
 // Get all active data packages
 router.get('/packages/data', async (req, res) => {
   try {
@@ -51,6 +79,11 @@ router.post('/buy/data', authMiddleware, async (req, res) => {
 
     if (!packageId || !phoneNumber) {
       return res.status(400).json({ success: false, message: 'Package ID and phone number required' })
+    }
+
+    // Validate phone number format
+    if (!validatePhoneNumber(phoneNumber)) {
+      return res.status(400).json({ success: false, message: 'Invalid phone number format or unsupported network' })
     }
 
     // Get user and package
@@ -207,6 +240,11 @@ router.post('/buy/airtime', authMiddleware, async (req, res) => {
 
     if (!packageId || !phoneNumber) {
       return res.status(400).json({ success: false, message: 'Package ID and phone number required' })
+    }
+
+    // Validate phone number format
+    if (!validatePhoneNumber(phoneNumber)) {
+      return res.status(400).json({ success: false, message: 'Invalid phone number format or unsupported network' })
     }
 
     // Get user and package

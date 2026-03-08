@@ -20,6 +20,7 @@ import CampaignPayment from './pages/CampaignPayment'
 import History from './pages/History'
 import Referral from './pages/Referral'
 import VerifyEmail from './pages/VerifyEmail'
+import VerifyDevice from './pages/VerifyDevice'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import TermsAndConditions from './pages/TermsAndConditions'
@@ -40,6 +41,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/verify-device" element={<VerifyDevice />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/terms" element={<TermsAndConditions />} />

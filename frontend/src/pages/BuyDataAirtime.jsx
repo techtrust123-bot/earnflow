@@ -19,6 +19,8 @@ export default function BuyDataAirtime() {
   const [purchasing, setPurchasing] = useState(false)
   const [transactions, setTransactions] = useState([])
   const [stats, setStats] = useState(null)
+  const [phoneError, setPhoneError] = useState('')
+  const [verifyingPhone, setVerifyingPhone] = useState(false)
 
   // Load packages and data on mount
   useEffect(() => {
@@ -28,6 +30,66 @@ export default function BuyDataAirtime() {
       loadStats()
     }
   }, [user, activeTab])
+
+  // Validate phone number when it changes
+  useEffect(() => {
+    if (phoneNumber) {
+      validatePhoneNumber(phoneNumber)
+    } else {
+      setPhoneError('')
+    }
+  }, [phoneNumber])
+
+  const validatePhoneNumber = (number) => {
+    // Remove any non-digit characters
+    const cleanNumber = number.replace(/\D/g, '')
+    
+    // Nigerian phone number patterns
+    const patterns = {
+      mtn: /^(\+234|234|0)(703|706|803|806|810|813|814|816|903|906|913|916|703|704|706|803|806|810|813|814|816|903|906|913|916)/,
+      airtel: /^(\+234|234|0)(701|708|802|808|812|901|902|904|907|912)/,
+      glo: /^(\+234|234|0)(705|805|807|811|815|905|915)/,
+      etisalat: /^(\+234|234|0)(809|817|818|909|908)/
+    }
+
+    if (cleanNumber.length < 11) {
+      setPhoneError('Phone number must be at least 11 digits')
+      return false
+    }
+
+    if (cleanNumber.length > 11 && !cleanNumber.startsWith('234') && !cleanNumber.startsWith('+234')) {
+      setPhoneError('Phone number is too long')
+      return false
+    }
+
+    // Check if it matches any network
+    let network = null
+    for (const [net, pattern] of Object.entries(patterns)) {
+      if (pattern.test(cleanNumber)) {
+        network = net
+        break
+      }
+    }
+
+    if (!network) {
+      setPhoneError('Invalid phone number or unsupported network')
+      return false
+    }
+
+    setPhoneError('')
+    return true
+  }
+
+  const formatPhoneNumber = (number) => {
+    const cleanNumber = number.replace(/\D/g, '')
+    if (cleanNumber.startsWith('234')) {
+      return '0' + cleanNumber.slice(3)
+    }
+    if (cleanNumber.startsWith('+234')) {
+      return '0' + cleanNumber.slice(4)
+    }
+    return cleanNumber
+  }
 
   const loadPackages = async () => {
     try {
@@ -82,6 +144,10 @@ export default function BuyDataAirtime() {
       toast.error('Please enter phone number')
       return
     }
+    if (!validatePhoneNumber(phoneNumber)) {
+      toast.error(phoneError || 'Invalid phone number')
+      return
+    }
     if (!pin.trim()) {
       toast.error('Please enter your transaction PIN')
       return
@@ -99,6 +165,9 @@ export default function BuyDataAirtime() {
 
       toast.success('PIN verified ✓')
 
+      // Format phone number for API
+      const formattedPhone = formatPhoneNumber(phoneNumber)
+
       // Then proceed with the purchase
       const endpoint = activeTab === 'data' 
         ? '/data-airtime/buy/data' 
@@ -106,7 +175,7 @@ export default function BuyDataAirtime() {
       
       const res = await axios.post(endpoint, {
         packageId: selectedPackage._id,
-        phoneNumber,
+        phoneNumber: formattedPhone,
         pin
       })
 
@@ -271,17 +340,43 @@ export default function BuyDataAirtime() {
                 <label className={`block text-sm font-semibold mb-2 transition-colors ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
                   Phone Number
                 </label>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Enter phone number"
-                  className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-500'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  } focus:outline-none focus:ring-2 ${isDark ? 'focus:ring-cyan-500' : 'focus:ring-blue-500'}`}
-                />
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Enter phone number (e.g., 08012345678)"
+                    maxLength={11}
+                    className={`w-full px-4 py-2 pr-10 rounded-lg border transition-colors ${
+                      phoneError
+                        ? 'border-red-500 focus:ring-red-500 bg-red-50 text-red-900'
+                        : phoneNumber && !phoneError
+                        ? 'border-green-500 focus:ring-green-500 bg-green-50 text-green-900'
+                        : isDark
+                        ? 'bg-slate-700 border-slate-600 text-slate-50 placeholder-slate-500 focus:ring-cyan-500'
+                        : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500'
+                    } focus:outline-none focus:ring-2`}
+                  />
+                  {phoneNumber && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      {phoneError ? (
+                        <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {phoneError && (
+                  <p className="text-red-500 text-sm mt-1">{phoneError}</p>
+                )}
+                {phoneNumber && !phoneError && (
+                  <p className="text-green-500 text-sm mt-1">✓ Valid phone number</p>
+                )}
               </div>
 
               {/* PIN Input */}

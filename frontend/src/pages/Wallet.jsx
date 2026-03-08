@@ -28,10 +28,45 @@ const Wallet = () => {
   const [accountName, setAccountName] = useState('')
   const [bankCode, setBankCode] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('wallet') // 'wallet' or 'balance'
+  const [verifyingAccount, setVerifyingAccount] = useState(false)
 
   useEffect(() => {
     fetchWalletData()
   }, [])
+
+  // Verify account number when it changes
+  useEffect(() => {
+    if (accountNumber.length === 10 && bankCode) {
+      verifyAccountNumber()
+    } else if (accountName) {
+      setAccountName('')
+    }
+  }, [accountNumber, bankCode])
+
+  const verifyAccountNumber = async () => {
+    if (!accountNumber || !bankCode || accountNumber.length !== 10) return
+
+    setVerifyingAccount(true)
+    try {
+      const response = await axios.post('/withdraw/verify-account', {
+        accountNumber,
+        bankCode
+      })
+
+      if (response.data.success) {
+        setAccountName(response.data.accountName)
+        toast.success('Account verified successfully')
+      } else {
+        setAccountName('')
+        toast.error(response.data.message || 'Account verification failed')
+      }
+    } catch (error) {
+      setAccountName('')
+      toast.error(error.response?.data?.message || 'Account verification failed')
+    } finally {
+      setVerifyingAccount(false)
+    }
+  }
 
   const fetchWalletData = async () => {
     try {
@@ -266,6 +301,11 @@ const Wallet = () => {
 
     if (!withdrawAmount || !accountNumber || !bankCode) {
       toast.error('Please fill all required fields')
+      return
+    }
+
+    if (!accountName) {
+      toast.error('Please verify your account number first')
       return
     }
 
@@ -700,15 +740,28 @@ const Wallet = () => {
               {/* Account Name */}
               <div className="mb-4">
                 <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Account Name (optional)
+                  Account Name {verifyingAccount && <span className="text-blue-500">(Verifying...)</span>}
                 </label>
-                <input
-                  type="text"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                  placeholder="Account holder name"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'} ${accountName ? 'bg-green-50 border-green-300' : ''}`}
+                    placeholder={verifyingAccount ? "Verifying account..." : "Account holder name (auto-filled when verified)"}
+                    readOnly={!!accountName}
+                  />
+                  {accountName && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                {accountName && (
+                  <p className="text-sm text-green-600 mt-1">✓ Account verified successfully</p>
+                )}
               </div>
 
               {/* Bank Code */}
