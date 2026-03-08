@@ -171,7 +171,8 @@ export default function Dashboard() {
             <div className="flex flex-col gap-2 w-full sm:w-auto">
               <Link to="/tasks" className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Go To Tasks</Link>
               <Link to="/withdraw" className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Withdraw</Link>
-              <button onClick={revokeOtherDevices} className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Logout Other Devices</button>
+              <Link to="/wallet" className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Wallet</Link>
+              {/* <button onClick={revokeOtherDevices} className="bg-white/95 text-indigo-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-semibold shadow-sm hover:opacity-95 text-center text-sm sm:text-base">Logout Other Devices</button> */}
             </div>
           </div>
           {deviceStatus && (

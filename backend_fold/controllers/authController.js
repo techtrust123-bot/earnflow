@@ -186,11 +186,23 @@ exports.login = async(req, res)=>{
 
             const device = deviceCheck && deviceCheck.device
 
-            // If another active device exists, deny login
-            if (user.activeDevice && device && user.activeDevice.toString() !== device._id.toString()) {
-                return res.status(403).json({
-                    message: 'You are already logged in on another device. Please logout from that device first.'
-                })
+            // Check if activeDevice still exists and is valid
+            if (user.activeDevice) {
+                const Device = require('../models/device')
+                const activeDeviceExists = await Device.findById(user.activeDevice)
+                
+                // If activeDevice doesn't exist or is not active, clear it
+                if (!activeDeviceExists || !activeDeviceExists.isActive) {
+                    user.activeDevice = null
+                    await user.save()
+                } else if (device && user.activeDevice.toString() !== device._id.toString()) {
+                    // Deactivate the old device and allow login from new device
+                    activeDeviceExists.isActive = false
+                    await activeDeviceExists.save()
+                    user.activeDevice = null
+                    await user.save()
+                    console.log('Deactivated old device and allowing login from new device')
+                }
             }
 
             if (device) {

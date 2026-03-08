@@ -32,7 +32,14 @@ export default function Login() {
       navigate('/dashboard')
     } catch (error) {
       console.log(error.message)
-      toast.error(error.response?.data?.message)
+      const errorData = error.response?.data
+      if (errorData?.requiresDeviceVerification) {
+        // Redirect to device verification
+        navigate('/verify-device')
+        toast.info('Please verify your device to continue')
+      } else {
+        toast.error(errorData?.message)
+      }
     } finally {
       setLoading(false)
     }

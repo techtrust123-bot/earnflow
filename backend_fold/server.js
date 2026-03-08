@@ -66,7 +66,7 @@ try {
     // connect-mongo v4+ exposes `create()`
     sessionStore = cm.create(storeOpts);
   } else if (typeof cm === 'function') {
-    // older connect-mongo (v1-v3) exports a function that takes `session`
+        // older connect-mongo (v1-v3) exports a function that takes `session`
     const OldStore = cm(session);
     const mongooseConn = mongoose && mongoose.connection;
     if (mongooseConn && mongooseConn.readyState) {
@@ -131,7 +131,7 @@ app.use(
     origin:
       process.env.NODE_ENV === "production"
         ? "https://earnflow.onrender.com"
-        : "http://localhost:5173",
+        : "http://localhost:5175",
     credentials: true
   })
 );
