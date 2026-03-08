@@ -12,16 +12,27 @@ export default function VerifyDevice() {
   const [resending, setResending] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const [email, setEmail] = useState('')
 
   useEffect(() => {
+    // Get email from localStorage
+    const pendingEmail = localStorage.getItem('pendingDeviceVerification')
+    if (pendingEmail) {
+      setEmail(pendingEmail)
+    } else {
+      // If no pending verification, redirect to login
+      navigate('/login')
+      return
+    }
+
     // Request verification code when component mounts
     requestVerification()
-  }, [])
+  }, [navigate])
 
   const requestVerification = async () => {
     setResending(true)
     try {
-      await axios.post('/api/devices/request-verification', {}, { withCredentials: true })
+      await axios.post('/api/devices/request-verification', { email }, { withCredentials: true })
       toast.success('Verification code sent to your email')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to send verification code')
@@ -39,9 +50,16 @@ export default function VerifyDevice() {
 
     setLoading(true)
     try {
-      const response = await axios.post('/api/devices/verify', { code }, { withCredentials: true })
-      toast.success(response.data.message || 'Device verified successfully')
-      navigate('/dashboard')
+      const response = await axios.post('/api/devices/verify', { 
+        code, 
+        email 
+      }, { withCredentials: true })
+      
+      // Clear pending verification
+      localStorage.removeItem('pendingDeviceVerification')
+      
+      toast.success('Device verified successfully! Please login to continue.')
+      navigate('/login')
     } catch (error) {
       toast.error(error.response?.data?.message || 'Invalid verification code')
     } finally {

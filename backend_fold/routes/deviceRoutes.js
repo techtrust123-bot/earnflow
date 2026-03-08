@@ -17,10 +17,25 @@ router.get('/status', authMiddlewere, async (req, res) => {
   }
 })
 
-// Request device verification
-router.post('/request-verification', authMiddlewere, async (req, res) => {
+// Request device verification - Allow for both authenticated and new device users
+router.post('/request-verification', async (req, res) => {
   try {
-    const userId = req.user.id
+    let userId = req.user?.id
+    const { email } = req.body
+
+    // If not authenticated but email provided, find user
+    if (!userId && email) {
+      const User = require('../models/user')
+      const user = await User.findOne({ email })
+      if (user) {
+        userId = user._id
+      }
+    }
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' })
+    }
+
     const result = await deviceFingerprint.requestDeviceVerification(userId, req)
     
     if (result.success) {
@@ -34,11 +49,24 @@ router.post('/request-verification', authMiddlewere, async (req, res) => {
   }
 })
 
-// Verify device with code
-router.post('/verify', authMiddlewere, async (req, res) => {
+// Verify device with code - Allow verification without full authentication for new devices
+router.post('/verify', async (req, res) => {
   try {
-    const userId = req.user.id
-    const { code, deviceId } = req.body
+    const { code, deviceId, email } = req.body
+
+    // If email is provided, find user by email (for new device verification)
+    let userId = req.user?.id
+    if (!userId && email) {
+      const User = require('../models/user')
+      const user = await User.findOne({ email })
+      if (user) {
+        userId = user._id
+      }
+    }
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' })
+    }
 
     let deviceIdToVerify = deviceId
     if (!deviceIdToVerify) {
@@ -55,7 +83,9 @@ router.post('/verify', authMiddlewere, async (req, res) => {
     const result = await deviceFingerprint.verifyDevice(deviceIdToVerify, userId, code)
     
     if (result.success) {
-      res.json({ message: result.message })
+      // After successful verification, create a temporary session or return success
+      // The frontend should then be able to login normally
+      res.json({ message: result.message, verified: true })
     } else {
       res.status(400).json({ message: result.message })
     }
