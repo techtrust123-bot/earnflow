@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { loginSuccess } from '../features/auth/authSlice'
 import { useNavigate, } from 'react-router-dom'
@@ -15,6 +15,15 @@ export default function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { isDark } = useTheme()
+
+  useEffect(() => {
+    // Check if coming from device verification
+    const pendingEmail = localStorage.getItem('pendingDeviceVerification')
+    if (pendingEmail) {
+      setEmail(pendingEmail)
+      localStorage.removeItem('pendingDeviceVerification')
+    }
+  }, [])
 
 
 
@@ -34,6 +43,8 @@ export default function Login() {
       console.log(error.message)
       const errorData = error.response?.data
       if (errorData?.requiresDeviceVerification) {
+        // Store email for device verification
+        localStorage.setItem('pendingDeviceVerification', email)
         // Redirect to device verification
         navigate('/verify-device')
         toast.info('Please verify your device to continue')
